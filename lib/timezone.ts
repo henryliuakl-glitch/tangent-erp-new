@@ -148,6 +148,25 @@ export function utcToNzDateKey(utcIso: string): string {
   return formatInTimeZone(new Date(utcIso), TZ_NZ, "yyyy-MM-dd");
 }
 
+/** 新西兰本地 date+time 加上课时，跨日则进一天（连排下一节用） */
+export function addHoursToNzDateTime(
+  dateStr: string,
+  timeStr: string,
+  hours: number
+): { date: string; time: string } {
+  const [h, m] = timeStr.split(":").map(Number);
+  const startMin = (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+  const total = startMin + hours * 60;
+  const dayDelta = Math.floor(total / (24 * 60));
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const nh = Math.floor(wrapped / 60);
+  const nm = Math.round(wrapped % 60);
+  return {
+    date: addCalendarDaysInNZ(dateStr, dayDelta),
+    time: `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`,
+  };
+}
+
 export function isTodayInNZ(utcIso: string): boolean {
   const now = toZonedTime(new Date(), TZ_NZ);
   const target = toZonedTime(new Date(utcIso), TZ_NZ);

@@ -11,13 +11,15 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   MapPin, Loader2, Trash2, Pencil, Check, 
-  Calendar as CalendarIcon, FileText
+  Calendar as CalendarIcon, FileText, Search, Plus
 } from "lucide-react";
 import { isPast } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { InvoiceModal } from "@/components/InvoiceModal";
 import { DualTimezoneTime, DualTimezonePreview } from "@/components/DualTimezoneTime";
 import { toast } from "sonner";
+import Link from "next/link";
+import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
   isTodayInNZ,
   isTomorrowInNZ,
@@ -56,6 +58,19 @@ type ScopedActionResult = {
   updatedCount?: number;
 };
 
+export function BookingsCta() {
+  const { currentBusinessId } = useBusiness();
+  const driving = isDrivingSchoolBusiness(currentBusinessId);
+  return (
+    <Link href={driving ? "/bookings/quick" : "/bookings/new"} className="self-end sm:self-auto">
+      <Button className="h-9 rounded-xl bg-indigo-600 px-3 text-xs font-bold shadow-lg shadow-indigo-200 transition-transform active:scale-95 hover:bg-indigo-700 sm:h-10 sm:w-auto sm:px-4 sm:text-sm">
+        <Plus className="mr-1 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+        {driving ? "极速排课" : "新建排课"}
+      </Button>
+    </Link>
+  );
+}
+
 export function BookingList({ bookings }: { bookings: Booking[] }) {
   const { currentBusinessId } = useBusiness();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -72,6 +87,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
 
   const [invoiceBooking, setInvoiceBooking] = useState<Booking | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const filteredByBusiness = bookings.filter((b) => {
     if (currentBusinessId === "tangent") return true;
@@ -86,7 +102,16 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
     .filter(b => b.status !== 'confirmed')
     .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
 
-  const displayList = activeTab === 'upcoming' ? upcomingBookings : historyBookings;
+  const displayList = (activeTab === 'upcoming' ? upcomingBookings : historyBookings).filter((b) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    const name = b.student?.name?.toLowerCase() || "";
+    const code = b.student?.student_code?.toLowerCase() || "";
+    const loc = b.location?.toLowerCase() || "";
+    const subject = (b.subject || b.student?.subject || "").toLowerCase();
+    const coach = (b.metadata?.coach || b.student?.teacher || "").toLowerCase();
+    return name.includes(q) || code.includes(q) || loc.includes(q) || subject.includes(q) || coach.includes(q);
+  });
 
   const groupedBookings: Record<string, Booking[]> = {};
   displayList.forEach(b => {
@@ -173,6 +198,15 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
 
   return (
     <div className="space-y-6">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          placeholder="搜索学员、编号、地点、教练…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-11 rounded-xl border-slate-200 bg-white pl-9 text-sm"
+        />
+      </div>
       <div className="mx-auto w-full max-w-md bg-slate-100 p-1 rounded-xl grid grid-cols-2">
         <button 
           onClick={() => setActiveTab('upcoming')}

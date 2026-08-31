@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
-import { BookingList } from "./booking-list";
-import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
-import Link from "next/link";
+import { BookingList, BookingsCta } from "./booking-list";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
 
 export default async function BookingsPage() {
@@ -35,12 +33,7 @@ export default async function BookingsPage() {
             </p>
           </div>
 
-          <Link href="/bookings/quick" className="self-end sm:self-auto">
-            <Button className="h-9 rounded-xl bg-indigo-600 px-3 text-xs font-bold shadow-lg shadow-indigo-200 transition-transform active:scale-95 hover:bg-indigo-700 sm:h-10 sm:w-auto sm:px-4 sm:text-sm">
-              <Plus className="mr-1 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
-              极速排课
-            </Button>
-          </Link>
+          <BookingsCta />
         </div>
 
         <BookingList bookings={bookings || []} />

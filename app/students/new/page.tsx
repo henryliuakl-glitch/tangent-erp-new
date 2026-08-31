@@ -53,7 +53,7 @@ export default function NewStudentPage() {
   // ==========================================
   if (currentBusinessId.includes('sine')) {
     return (
-      <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-10">
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
         <div className="hidden md:block"><Navbar /></div>
         <main className="mx-auto max-w-xl px-4 py-20 text-center">
            <div className="mx-auto h-20 w-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
@@ -68,6 +68,7 @@ export default function NewStudentPage() {
              前往极速排课 &rarr;
            </Button>
         </main>
+        <MobileDock />
       </div>
     );
   }

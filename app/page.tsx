@@ -17,11 +17,15 @@ import {
   LogOut, Check, Building2, Plus, Zap
 } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { isBookingUnpaid } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import { MobileDock } from "@/components/MobileDock";
+import { completeBooking } from "@/app/bookings/actions";
+import { isTodayInNZ, utcToNzTimeStr, TZ_NZ } from "@/lib/timezone";
+import { toast } from "sonner";
+import { formatInTimeZone } from "date-fns-tz";
 
 // 简单的下拉菜单组件
 function MobileUserMenu({ user, currentLabel, businesses, onSwitch, onSignOut }: any) {
@@ -96,6 +100,7 @@ export default function Home() {
   });
   
   const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -143,6 +148,34 @@ export default function Home() {
     router.push('/login');
   };
 
+  const reloadStats = async () => {
+    if (!currentBusinessId) return;
+    try {
+      const data = await getDashboardStats(currentBusinessId);
+      setStats(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleCompleteTodo = async (e: React.MouseEvent, b: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!b.student?.id) {
+      toast.error("缺少学员信息，无法消课");
+      return;
+    }
+    if (!confirm(`确认完成 ${b.student?.name} 的课程？`)) return;
+    setCompletingId(b.id);
+    const res = await completeBooking(b.id, b.student.id, b.duration);
+    setCompletingId(null);
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("已消课");
+      await reloadStats();
+    }
+  };
+
   const handleScroll = () => {
     if (scrollRef.current) {
       const scrollLeft = scrollRef.current.scrollLeft;
@@ -183,6 +216,13 @@ export default function Home() {
 
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   const quickBookHref = driving ? "/bookings/quick" : "/bookings/new";
+  const quickBookLabel = driving ? "极速排课" : "新建排课";
+
+  const todayLessons = (stats.calendarBookings || []).filter(
+    (b: any) => b.status !== "cancelled" && isTodayInNZ(b.start_time)
+  );
+  const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
+  const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
 
   return (
     <>
@@ -277,22 +317,39 @@ export default function Home() {
                 </div>
               </Link>
 
-              <Link href="/students" className="snap-center w-full min-w-full px-1 block active:scale-[0.98] transition-transform">
+              <Link href={driving ? "/bookings" : "/students"} className="snap-center w-full min-w-full px-1 block active:scale-[0.98] transition-transform">
                 <div className="h-44 rounded-3xl bg-slate-900 p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
                    <div className="absolute right-[-10px] bottom-[-10px] opacity-10 pointer-events-none"><PiggyBank className="h-32 w-32" /></div>
                    <div className="z-10">
                      <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <PiggyBank className="h-3 w-3" /> 资金池 (Pool)
+                        {driving ? <CalendarIcon className="h-3 w-3" /> : <PiggyBank className="h-3 w-3" />}
+                        {driving ? "今日课程" : "资金池 (Pool)"}
                      </p>
-                     <h2 className="text-4xl font-black tracking-tight flex items-center gap-2">
-                       ${Number(stats.unearnedRevenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                       <ArrowUpRight className="h-5 w-5 opacity-50" />
-                     </h2>
-                     <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
-                       RMB: ¥{Number(stats.unearnedRevenueRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                     </p>
+                     {driving ? (
+                       <>
+                         <h2 className="text-4xl font-black tracking-tight flex items-center gap-2">
+                           {todayPending}
+                           <span className="text-lg font-bold text-slate-500">待办</span>
+                         </h2>
+                         <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
+                           已完成 {todayDone} 节
+                         </p>
+                       </>
+                     ) : (
+                       <>
+                         <h2 className="text-4xl font-black tracking-tight flex items-center gap-2">
+                           ${Number(stats.unearnedRevenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                           <ArrowUpRight className="h-5 w-5 opacity-50" />
+                         </h2>
+                         <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
+                           RMB: ¥{Number(stats.unearnedRevenueRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                         </p>
+                       </>
+                     )}
                    </div>
-                   <div className="text-xs text-slate-600 font-medium z-10">* 预收学费总额</div>
+                   <div className="text-xs text-slate-600 font-medium z-10">
+                     {driving ? "点击查看排课" : "* 预收学费总额"}
+                   </div>
                 </div>
               </Link>
             </div>
@@ -333,14 +390,28 @@ export default function Home() {
                      <div className="text-right"><div className="h-10 w-10 bg-slate-50 rounded-full flex items-center justify-center ml-auto"><ArrowUpRight className="h-5 w-5 text-slate-400"/></div></div>
                   </div>
                </Link>
-               <Link href="/students" className="block hover:scale-[1.02] transition-transform">
+               <Link href={driving ? "/bookings" : "/students"} className="block hover:scale-[1.02] transition-transform">
                   <div className="h-48 rounded-3xl bg-slate-900 p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
                      <div>
-                       <p className="text-slate-500 text-xs font-bold uppercase">资金池 (负债)</p>
-                       <h2 className="text-4xl font-black mt-2">${Number(stats.unearnedRevenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
-                       <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
-                         RMB: ¥{Number(stats.unearnedRevenueRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                       </p>
+                       <p className="text-slate-500 text-xs font-bold uppercase">{driving ? "今日课程" : "资金池 (负债)"}</p>
+                       {driving ? (
+                         <>
+                           <h2 className="text-4xl font-black mt-2">
+                             {todayPending}
+                             <span className="ml-2 text-lg font-bold text-slate-500">待办</span>
+                           </h2>
+                           <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
+                             已完成 {todayDone} 节
+                           </p>
+                         </>
+                       ) : (
+                         <>
+                           <h2 className="text-4xl font-black mt-2">${Number(stats.unearnedRevenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
+                           <p className="text-slate-500 text-xs font-medium mt-1.5 tabular-nums tracking-wide">
+                             RMB: ¥{Number(stats.unearnedRevenueRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                           </p>
+                         </>
+                       )}
                      </div>
                      <div className="text-right"><div className="h-10 w-10 bg-slate-800 rounded-full flex items-center justify-center ml-auto"><ArrowUpRight className="h-5 w-5 text-slate-400"/></div></div>
                   </div>
@@ -361,7 +432,7 @@ export default function Home() {
                  </h3>
                  <Link href={quickBookHref} className="md:hidden shrink-0">
                    <Button className="h-9 rounded-full bg-indigo-600 px-3 text-xs font-black shadow-md shadow-indigo-200 hover:bg-indigo-700">
-                     <Plus className="mr-1 h-4 w-4" /> 极速排课
+                     <Plus className="mr-1 h-4 w-4" /> {quickBookLabel}
                    </Button>
                  </Link>
                </div>
@@ -377,32 +448,34 @@ export default function Home() {
                    <div className="absolute left-[26px] top-6 bottom-6 w-0.5 bg-slate-200 z-0 rounded-full"></div>
                    
                    {futureBookings.map((b: any) => {
-                     const isToday = isSameDay(new Date(b.start_time), new Date());
-                     const dateStr = format(new Date(b.start_time), "MMM d", { locale: zhCN });
-                     const timeStr = format(new Date(b.start_time), "HH:mm");
+                     const isToday = isTodayInNZ(b.start_time);
+                     const dateStr = formatInTimeZone(new Date(b.start_time), TZ_NZ, "MMM d", { locale: zhCN });
+                     const timeStr = utcToNzTimeStr(b.start_time);
                      const student = b.student || {};
+                     const subjectLabel = b.subject || student.subject || (driving ? "练车" : "无科目");
+                     const coachLabel = b.metadata?.coach || b.teacher || student.teacher || (driving ? "" : "无老师");
                      
                      return (
-                       <Link href="/bookings" key={b.id} className="relative z-10 flex gap-4 group active:scale-[0.98] transition-transform duration-200">
+                       <div key={b.id} className="relative z-10 flex gap-4 group">
                           
-                          <div className="flex flex-col items-center gap-1 shrink-0 w-14 pt-1">
+                          <Link href="/bookings" className="flex flex-col items-center gap-1 shrink-0 w-14 pt-1 active:scale-[0.98] transition-transform duration-200">
                              <div className={`h-14 w-14 rounded-2xl flex flex-col items-center justify-center text-xs font-bold shadow-sm z-20 border-[3px] border-slate-50 ${isToday ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600'}`}>
                                <span className="text-[10px] leading-tight opacity-80">{dateStr}</span>
                                <span className="text-sm leading-tight">{timeStr}</span>
                              </div>
-                          </div>
+                          </Link>
 
                           <div className="flex-1 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-indigo-200 transition-colors">
+                               <Link href="/bookings" className="block">
                                <div className="flex justify-between items-start mb-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
                                     {student.student_code && (
                                       <Badge variant="outline" className="text-[10px] h-5 px-1 bg-slate-50 text-slate-500 font-mono border-slate-200">
                                         {student.student_code}
                                       </Badge>
                                     )}
-                                    <h4 className="font-bold text-sm text-slate-900">{student.name}</h4>
+                                    <h4 className="font-bold text-sm text-slate-900 truncate">{student.name}</h4>
                                     
-                                    {/* ✅ 待缴费红帽子标签 */}
                                     {b.isUnpaid && (
                                       <Badge variant="destructive" className="bg-rose-100 text-rose-600 border-none px-1.5 py-0 h-5 text-[10px] ml-1 shadow-none">
                                         待缴费
@@ -410,28 +483,44 @@ export default function Home() {
                                     )}
 
                                   </div>
-                                  <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full shrink-0">
                                     <Clock className="h-3 w-3" /> {b.duration}h
                                   </div>
                                </div>
                                
                                <div className="flex items-center gap-3 text-xs text-slate-600 mb-2">
-                                  <span className="flex items-center gap-1 truncate max-w-[120px]">
+                                  <span className="flex items-center gap-1 truncate max-w-[140px]">
                                     <BookOpen className="h-3.5 w-3.5 text-indigo-400" /> 
-                                    {student.subject || b.subject || "无科目"}
+                                    {subjectLabel}
                                   </span>
-                                  <span className="h-3 w-px bg-slate-200"></span>
-                                  <span className="flex items-center gap-1 truncate">
-                                    <User className="h-3.5 w-3.5 text-emerald-500" />
-                                    {student.teacher || b.teacher || "无老师"}
-                                  </span>
+                                  {coachLabel ? (
+                                    <>
+                                      <span className="h-3 w-px bg-slate-200"></span>
+                                      <span className="flex items-center gap-1 truncate">
+                                        <User className="h-3.5 w-3.5 text-emerald-500" />
+                                        {coachLabel}
+                                      </span>
+                                    </>
+                                  ) : null}
                                </div>
 
                                <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400 border-t border-slate-50 pt-2 mt-1">
                                   <MapPin className="h-3 w-3" /> {b.location || "线上 (Online)"}
                                </div>
+                               </Link>
+                               <div className="mt-2 flex justify-end">
+                                 <button
+                                   type="button"
+                                   onClick={(e) => handleCompleteTodo(e, b)}
+                                   disabled={completingId === b.id}
+                                   className="flex h-8 items-center gap-1 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-60"
+                                 >
+                                   {completingId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                   完成
+                                 </button>
+                               </div>
                           </div>
-                       </Link>
+                       </div>
                      );
                    })}
                  </div>
@@ -445,13 +534,13 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <Link href={quickBookHref}>
                     <Button className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 font-black">
-                      <Zap className="mr-1.5 h-4 w-4" /> 极速排课
+                      <Zap className="mr-1.5 h-4 w-4" /> {quickBookLabel}
                     </Button>
                   </Link>
                   <Link href="/finance/add"><Button className="w-full bg-slate-900 hover:bg-slate-800 h-12 rounded-xl shadow-lg shadow-slate-200">记账</Button></Link>
                 </div>
              </div>
-             {!loading && stats.lowBalanceStudents.length > 0 && (
+             {!driving && !loading && stats.lowBalanceStudents.length > 0 && (
                <div className="bg-white rounded-3xl border border-rose-100 p-6">
                  <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                    <AlertCircle className="h-4 w-4 text-rose-500" /> 待续费学员

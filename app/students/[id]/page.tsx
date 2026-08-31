@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { 
-  ArrowLeft, User, BookOpen, Wallet, Clock, Calendar as CalendarIcon,
-  History, ArrowUpRight, ArrowDownRight, MapPin, CheckCircle2
+  ArrowLeft, Wallet, Clock, Calendar as CalendarIcon,
+  ArrowUpRight, ArrowDownRight, MapPin, CheckCircle2
 } from "lucide-react";
 import { format } from "date-fns";
 import TopUpButton from "./top-up-button"; 
@@ -17,6 +17,7 @@ import { getStudentHistory } from "../actions";
 import { isPaymentAlert, getPaymentTypeLabel } from "@/lib/student-payment";
 import { currencySymbol, formatMoney } from "@/lib/currency";
 import { MobileDock } from "@/components/MobileDock";
+import { isDrivingSchoolBusiness } from "@/lib/business";
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,11 +35,11 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   // 2. ✅ 获取历史记录
   const { bookings, transactions } = await getStudentHistory(id);
 
-  const estimatedValue = (student.balance || 0) * (student.hourly_rate || 0);
   const paymentAlert = isPaymentAlert(Number(student.balance), student.payment_type, {
     businessUnitId: student.business_unit_id,
     level: student.level,
   });
+  const driving = isDrivingSchoolBusiness(student.business_unit_id);
   const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${student.name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
 
   return (
@@ -75,14 +76,25 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                  {student.student_code && <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-mono text-xs border-slate-200">{student.student_code}</Badge>}
                </div>
                <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-                 <span className="inline-block h-2 w-2 rounded-full bg-slate-300"></span>{student.level || "年级未知"}
+                 <span className="inline-block h-2 w-2 rounded-full bg-slate-300"></span>{student.level || (driving ? "驾校学员" : "年级未知")}
                  <span className="text-slate-300">·</span>
-                 {getPaymentTypeLabel(student.payment_type)}
+                 {driving ? "一课一缴" : getPaymentTypeLabel(student.payment_type)}
                </p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
+               {driving ? (
+                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">缴费方式</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-slate-800">一课一缴</span>
+                    </div>
+                 </div>
+               ) : (
                <div className={`p-4 rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <Clock className={`h-4 w-4 ${paymentAlert ? 'text-rose-500' : 'text-emerald-500'}`} />
@@ -93,6 +105,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                     <span className={`text-sm font-bold ${paymentAlert ? 'text-rose-400' : 'text-emerald-500'}`}>hrs</span>
                   </div>
                </div>
+               )}
                <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/50">
                   <div className="flex items-center gap-2 mb-1">
                     <Wallet className="h-4 w-4 text-indigo-500" />
@@ -110,7 +123,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                </div>
             </div>
 
-            <div className="mt-4"><TopUpButton studentId={student.id} defaultCurrency={student.currency || "NZD"} /></div>
+            {!driving && (
+              <div className="mt-4"><TopUpButton studentId={student.id} defaultCurrency={student.currency || "NZD"} /></div>
+            )}
           </div>
         </div>
 
@@ -146,7 +161,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                   <Badge variant={b.status === 'completed' ? 'secondary' : 'default'} className={b.status === 'completed' ? 'bg-slate-100 text-slate-500' : 'bg-indigo-600'}>
-                    {b.status === 'completed' ? '已消课' : b.status}
+                    {b.status === 'completed' ? '已消课' : b.status === 'cancelled' ? '已取消' : '待上课'}
                   </Badge>
                 </Card>
               ))

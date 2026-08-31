@@ -15,7 +15,6 @@ import {
 import {
   Menu,
   LayoutDashboard,
-  CreditCard,
   CalendarDays,
   Users,
   PlusCircle,
@@ -36,7 +35,8 @@ export function Navbar() {
   };
 
   // 辅助函数：判断链接是否激活 (用于高亮)
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) =>
+    path === "/" ? pathname === "/" : pathname.startsWith(path);
 
   return (
     <nav className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-md sm:px-6">
@@ -89,13 +89,13 @@ export function Navbar() {
               财务 (Finance)
             </DropdownMenuLabel>
             <Link href="/finance/add">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/finance/add') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <PlusCircle className="mr-2 h-4 w-4 text-emerald-500" />
                 记一笔 (Record)
               </DropdownMenuItem>
             </Link>
             <Link href="/finance/transactions">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/finance/transactions') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <ListOrdered className="mr-2 h-4 w-4 text-slate-500" />
                 查流水 (History)
               </DropdownMenuItem>
@@ -108,13 +108,13 @@ export function Navbar() {
               排课 (Bookings)
             </DropdownMenuLabel>
             <Link href="/bookings/quick">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/bookings/quick') || pathname.startsWith('/bookings/new') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <PlusCircle className="mr-2 h-4 w-4 text-amber-500" />
                 极速排课 (Quick)
               </DropdownMenuItem>
             </Link>
             <Link href="/bookings">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname === '/bookings' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <CalendarDays className="mr-2 h-4 w-4 text-slate-500" />
                 排课表 (Schedule)
               </DropdownMenuItem>
@@ -127,13 +127,13 @@ export function Navbar() {
               学员 (Students)
             </DropdownMenuLabel>
             <Link href="/students/new">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/students/new') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <PlusCircle className="mr-2 h-4 w-4 text-indigo-500" />
                 添加学员 (Add)
               </DropdownMenuItem>
             </Link>
             <Link href="/students">
-              <DropdownMenuItem className="rounded-lg px-3 py-2 cursor-pointer">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname === '/students' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <Users className="mr-2 h-4 w-4 text-slate-500" />
                 学员名单 (List)
               </DropdownMenuItem>

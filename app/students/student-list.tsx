@@ -19,9 +19,14 @@ import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PAYMENT_TYPE_OPTIONS, isPayAsYouGoDriving, isPaymentAlert } from "@/lib/student-payment";
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency";
+import { isDrivingSchoolBusiness } from "@/lib/business";
+import { isTodayInNZ, utcToNzTimeStr } from "@/lib/timezone";
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 export function StudentList({ students }: { students: any[] }) {
   const { currentBusinessId } = useBusiness();
+  const drivingView = isDrivingSchoolBusiness(currentBusinessId);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -161,6 +166,7 @@ export function StudentList({ students }: { students: any[] }) {
   };
 
   const renderStudentRows = (list: any[]) => {
+    const driving = drivingView;
     return list.map((student) => {
       const totalBalance = Number(student.balance);
       const bookings = student.bookings || [];
@@ -177,6 +183,12 @@ export function StudentList({ students }: { students: any[] }) {
         level: student.level,
       });
       const isOverScheduled = !payAsYouGo && unscheduledHours < 0;
+      const nextBooking = bookings
+        .filter((b: any) => b.status === "confirmed" && b.start_time)
+        .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+      const nextLabel = nextBooking
+        ? `${isTodayInNZ(nextBooking.start_time) ? "今天" : format(new Date(nextBooking.start_time), "M/d", { locale: zhCN })} ${utcToNzTimeStr(nextBooking.start_time)}`
+        : "无待办";
 
       return (
         <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 hover:border-indigo-300 hover:shadow-md transition-all gap-4">
@@ -191,16 +203,24 @@ export function StudentList({ students }: { students: any[] }) {
                 )}
               </div>
               <div className="flex items-center gap-3 text-xs text-slate-500 truncate">
-                 <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5 text-slate-400"/> {student.level || "-"}</span>
-                 <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5 text-slate-400"/> {student.subject || "-"}</span>
+                 {!driving && <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5 text-slate-400"/> {student.level || "-"}</span>}
+                 <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5 text-slate-400"/> {student.subject || (driving ? "练车" : "-")}</span>
                  <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-slate-400"/> {student.teacher || "-"}</span>
-                 <span className="flex items-center gap-1 font-mono text-slate-400">
-                   {currencySymbol(student.currency)}{student.hourly_rate || 0}/h
-                 </span>
+                 {!driving && (
+                   <span className="flex items-center gap-1 font-mono text-slate-400">
+                     {currencySymbol(student.currency)}{student.hourly_rate || 0}/h
+                   </span>
+                 )}
               </div>
             </div>
           </Link>
           <div className="flex items-center justify-between md:justify-end gap-6 border-t border-slate-100 md:border-t-0 pt-3 md:pt-0">
+             {driving ? (
+               <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[4.5rem]">
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">下次课</span>
+                 <span className={`text-sm font-black tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>{nextLabel}</span>
+               </Link>
+             ) : (
              <Link href={`/students/${student.id}`} className="flex items-center gap-4">
                 <div className="flex flex-col items-end"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">总课时</span><span className={`text-base font-black ${paymentAlert ? 'text-rose-600' : 'text-slate-700'}`}>{totalBalance}<span className="text-[10px] font-bold ml-0.5">h</span></span></div>
                 <div className="h-8 w-px bg-slate-200"></div>
@@ -214,8 +234,11 @@ export function StudentList({ students }: { students: any[] }) {
                    </div>
                 </div>
              </Link>
+             )}
              <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" className="h-9 px-2.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => { setTopUpTarget(student); setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency); }}><Coins className="h-4 w-4" /> 充值</Button>
+                {!driving && (
+                  <Button size="sm" variant="ghost" className="h-9 px-2.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => { setTopUpTarget(student); setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency); }}><Coins className="h-4 w-4" /> 充值</Button>
+                )}
                 <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg text-slate-400 hover:text-slate-700"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl">
                     <DropdownMenuItem onClick={() => setEditingStudent({ ...student, targetBalance: Number(student.balance), currency: student.currency || "NZD" })}><Pencil className="mr-2 h-4 w-4" /> 编辑资料</DropdownMenuItem>
@@ -269,7 +292,7 @@ export function StudentList({ students }: { students: any[] }) {
             <SelectContent>
               <SelectItem value="student_code">按学员编号</SelectItem>
               <SelectItem value="name">按姓名 A-Z</SelectItem>
-              <SelectItem value="balance">按剩余课时</SelectItem>
+              {!drivingView && <SelectItem value="balance">按剩余课时</SelectItem>}
             </SelectContent>
           </Select>
 

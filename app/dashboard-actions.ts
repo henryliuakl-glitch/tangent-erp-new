@@ -39,7 +39,7 @@ export async function getDashboardStats(businessId: string) {
     supabase
       .from("bookings")
       .select(`
-        id, start_time, end_time, duration, status, location, student_id, business_unit_id,
+        id, start_time, end_time, duration, status, location, subject, teacher, actual_rate, metadata, student_id, business_unit_id,
         student:students (
           id, name, student_code, teacher, subject, balance, payment_type, currency, level
         )

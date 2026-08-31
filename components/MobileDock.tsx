@@ -73,7 +73,11 @@ export function MobileDock() {
             className="relative -top-5 flex flex-col items-center justify-center active:scale-90 transition-transform"
             aria-label="极速排课"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 bg-indigo-600 text-white shadow-lg shadow-indigo-400/50">
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 text-white shadow-lg ${
+              pathname.startsWith("/bookings/quick") || pathname.startsWith("/bookings/new")
+                ? "bg-indigo-700 shadow-indigo-400/60"
+                : "bg-indigo-600 shadow-indigo-400/50"
+            }`}>
               <Plus className="h-7 w-7" strokeWidth={2.5} />
             </div>
             <span className="mt-1 text-[10px] font-semibold leading-none text-indigo-600">
@@ -86,9 +90,14 @@ export function MobileDock() {
             className="relative -top-5 flex flex-col items-center justify-center active:scale-90 transition-transform"
             aria-label="记一笔"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 text-white shadow-lg shadow-slate-400/50">
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 text-white shadow-lg ${
+              isFinanceAdd ? "bg-slate-800 shadow-slate-400/60" : "bg-slate-900 shadow-slate-400/50"
+            }`}>
               <PenLine className="h-6 w-6" />
             </div>
+            <span className="mt-1 text-[10px] font-semibold leading-none text-slate-700">
+              记一笔
+            </span>
           </Link>
         )}
 

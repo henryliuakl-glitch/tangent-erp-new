@@ -14,12 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea"; 
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Repeat, CalendarCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DualTimezonePreview } from "@/components/DualTimezoneTime";
 import { CreatableCombobox } from "@/components/CreatableCombobox";
-import { addCalendarDaysInNZ, getTodayInNZ, utcToNzTimeStr } from "@/lib/timezone";
+import { addCalendarDaysInNZ, addHoursToNzDateTime, getTodayInNZ } from "@/lib/timezone";
 import {
   DEFAULT_DRIVING_COACH,
   DEFAULT_DRIVING_SUBJECT,
@@ -60,6 +59,10 @@ const QUICK_SUBJECTS = [
   "限制性陪考",
   "道路熟悉练车",
 ] as const;
+
+function subjectSelectValue(value: string) {
+  return (QUICK_SUBJECTS as readonly string[]).includes(value) ? value : "custom";
+}
 
 const DURATION_PRESETS = [
   { value: "1", label: "1h (60 min)" },
@@ -375,12 +378,23 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
   const [needPickup, setNeedPickup] = useState(true);
   const [pickupAddress, setPickupAddress] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
+  const [locationOptions, setLocationOptions] = useState<string[]>(
+    VTNZ_LOCATIONS.filter((l) => l !== "其他 (Other)")
+  );
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCoach(defaultCoachForEmail(user?.email));
     });
-  }, [supabase]);
+    fetchFormSuggestions(supabase, businessId).then((s) => {
+      setLocationOptions(
+        mergeLocationOptions(
+          s.locations,
+          VTNZ_LOCATIONS.filter((l) => l !== "其他 (Other)")
+        )
+      );
+    });
+  }, [supabase, businessId]);
 
   useEffect(() => {
     return () => {
@@ -422,6 +436,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       return;
     }
 
+    // 时间已在顶部选定，不回填上次上课时间，避免冲掉「时间前置」流程
     if (last.location) setLocation(last.location);
     if (last.useInstructorCar != null) {
       setUseInstructorCar(last.useInstructorCar);
@@ -432,13 +447,9 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
     if (last.actualRate != null && last.actualRate > 0) {
       setActualRate(String(last.actualRate));
     }
-    if (last.startTime) setTime(utcToNzTimeStr(last.startTime));
     if (last.duration != null && last.duration > 0) setDuration(String(last.duration));
     setSubject(last.subject?.trim() || DEFAULT_DRIVING_SUBJECT);
-    if (last.coach && (DRIVING_COACHES as readonly string[]).includes(last.coach)) {
-      setCoach(last.coach as DrivingCoach);
-    }
-    if (last.needPickup) setNeedPickup(true);
+    setNeedPickup(last.needPickup);
     if (last.pickupAddress) setPickupAddress(last.pickupAddress);
     if (last.plateNumber) setPlateNumber(last.plateNumber);
   };
@@ -486,8 +497,20 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
 
     if (result && result.error) toast.error(result.error);
     else {
-      toast.success("排课成功！");
-      router.push("/bookings");
+      toast.success("已排课，可继续排下一节", {
+        action: {
+          label: "课表",
+          onClick: () => router.push("/bookings"),
+        },
+      });
+      const next = addHoursToNzDateTime(date, time, Number(duration) || 1);
+      setDate(next.date);
+      setTime(next.time);
+      setIdentifier("");
+      setMagicInput("");
+      setNotes("");
+      setPickupAddress("");
+      setPlateNumber("");
     }
   };
 
@@ -545,13 +568,14 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
   );
 
   const durationMode = durationSelectValue(duration);
+  const subjectMode = subjectSelectValue(subject);
 
   return (
     <form
       onSubmit={handleSubmit}
       className="flex min-h-0 flex-1 flex-col"
     >
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3.5 py-1">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3.5 overflow-y-auto overscroll-contain py-1">
         <div className="grid w-full min-w-0 grid-cols-5 gap-2">
           <DatePill label="今天" active={date === todayNz} onClick={() => setDate(todayNz)} />
           <DatePill label="明天" active={date === tomorrowNz} onClick={() => setDate(tomorrowNz)} />
@@ -577,15 +601,25 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
             aria-label="开始时间"
           />
           {durationMode === "custom" ? (
-            <Input
-              type="number"
-              step="0.5"
-              min="0.5"
-              placeholder="时长 h"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className={FIELD}
-            />
+            <div className="relative min-w-0">
+              <Input
+                type="number"
+                step="0.5"
+                min="0.5"
+                placeholder="时长 h"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className={`${FIELD} pr-8`}
+                aria-label="自定义时长"
+              />
+              <button
+                type="button"
+                onClick={() => setDuration("1")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-500"
+              >
+                预设
+              </button>
+            </div>
           ) : (
             <Select
               value={durationMode}
@@ -629,16 +663,44 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
             onChange={setIdentifier}
             onSelectPrefill={applyStudentPrefill}
           />
-          <Select value={subject} onValueChange={setSubject}>
-            <SelectTrigger className={FIELD}>
-              <SelectValue placeholder="课程阶段" />
-            </SelectTrigger>
-            <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-              {QUICK_SUBJECTS.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {subjectMode === "custom" ? (
+            <div className="relative min-w-0">
+              <Input
+                placeholder="自定义科目"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className={`${FIELD} pr-8`}
+              />
+              <button
+                type="button"
+                onClick={() => setSubject(DEFAULT_DRIVING_SUBJECT)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-500"
+              >
+                预设
+              </button>
+            </div>
+          ) : (
+            <Select
+              value={subjectMode}
+              onValueChange={(v) => {
+                if (v === "custom") {
+                  setSubject("");
+                  return;
+                }
+                setSubject(v);
+              }}
+            >
+              <SelectTrigger className={FIELD}>
+                <SelectValue placeholder="课程阶段" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                {QUICK_SUBJECTS.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+                <SelectItem value="custom">自定义</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select value={coach || undefined} onValueChange={(v) => setCoach(v as DrivingCoach)}>
             <SelectTrigger className={FIELD}>
               <SelectValue placeholder="教练" />
@@ -651,11 +713,12 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
           </Select>
         </div>
 
-        <Input
-          placeholder="练车地点"
+        <CreatableCombobox
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className={FIELD}
+          onChange={setLocation}
+          options={locationOptions}
+          placeholder="练车地点"
+          inputClassName={FIELD}
         />
 
         <div className="grid w-full min-w-0 grid-cols-3 gap-3">
@@ -695,6 +758,27 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
             className={`${FIELD} text-right font-semibold text-emerald-600`}
           />
         </div>
+
+        {(needPickup || !useInstructorCar) && (
+          <div className={`grid w-full min-w-0 gap-3 ${needPickup && !useInstructorCar ? "grid-cols-2" : "grid-cols-1"}`}>
+            {needPickup && (
+              <Input
+                placeholder="接送地址"
+                value={pickupAddress}
+                onChange={(e) => setPickupAddress(e.target.value)}
+                className={FIELD}
+              />
+            )}
+            {!useInstructorCar && (
+              <Input
+                placeholder="车牌号"
+                value={plateNumber}
+                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                className={FIELD}
+              />
+            )}
+          </div>
+        )}
 
         <Input
           placeholder="备注信息 (选填)"
