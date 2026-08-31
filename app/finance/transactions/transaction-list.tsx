@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, FileText, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import Link from "next/link";
 import { formatMoney, normalizeCurrency } from "@/lib/currency";
+import { isPendingReimbursementTx } from "@/lib/reimbursement";
 
 type Transaction = {
   id: string;
@@ -27,6 +28,7 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
 
   // 1. 客户端过滤：只显示当前公司的
   const filteredTransactions = initialTransactions.filter((t) => {
+    if (isPendingReimbursementTx(t.description)) return false;
     if (currentBusinessId === "tangent") return true;
     return t.business_unit_id === currentBusinessId;
   });

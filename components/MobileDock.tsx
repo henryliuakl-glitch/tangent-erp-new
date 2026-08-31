@@ -58,7 +58,7 @@ export function MobileDock() {
   const isHome = pathname === "/";
   const isStudents = pathname.startsWith("/students");
   const isBookings = pathname.startsWith("/bookings");
-  const isFinance = pathname === "/finance" || pathname.startsWith("/finance/transactions");
+  const isFinance = pathname === "/finance" || pathname.startsWith("/finance/transactions") || pathname.startsWith("/finance/reimburse");
   const isFinanceAdd = pathname.startsWith("/finance/add");
 
   return (

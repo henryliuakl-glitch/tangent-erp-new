@@ -8,6 +8,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/currency";
 import { getNzMonthBounds, getTodayInNZ, nzStartOfDayUtc, nzEndOfDayUtc, TZ_NZ } from "@/lib/timezone";
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
+import { isPendingReimbursementTx } from "@/lib/reimbursement";
 
 /** 流水/时间戳 → NZ 日历日 YYYY-MM-DD */
 function toNzCalendarDay(value: string | null | undefined): string {
@@ -192,7 +193,7 @@ export async function getFinanceStats(businessId: string, range: string) {
   const bookingStartIso = range === "week" ? startStr : startDate.toISOString();
   const bookingEndIso = range === "week" ? endStr : endDate.toISOString();
 
-  const [transactionsRes, bookingsPrimary] = await Promise.all([
+  const [transactionsRes, bookingsPrimary, pendingRes] = await Promise.all([
     txQuery,
     supabase
       .from("bookings")
@@ -201,6 +202,11 @@ export async function getFinanceStats(businessId: string, range: string) {
       .eq("status", "completed")
       .gte("start_time", bookingStartIso)
       .lte("start_time", bookingEndIso),
+    supabase
+      .from("transactions")
+      .select("amount, currency, description")
+      .eq("business_unit_id", businessId)
+      .ilike("description", "%[报销待打款]%"),
   ]);
 
   let bookings: any[] = bookingsPrimary.data || [];
@@ -240,6 +246,14 @@ export async function getFinanceStats(businessId: string, range: string) {
       return day >= monthStartDay && day <= monthEndDay;
     });
   }
+
+  const pendingReimburse = (pendingRes.data || []).filter((t) =>
+    isPendingReimbursementTx(t.description)
+  );
+  transactions = transactions.filter((t) => !isPendingReimbursementTx(t.description));
+  const pendingReimburseByCurrency = aggregateByCurrency(
+    pendingReimburse.map((t) => ({ ...t, type: "expense" }))
+  );
   
   const byCurrency = aggregateByCurrency(transactions);
   const income = byCurrency.NZD.income;
@@ -307,5 +321,8 @@ export async function getFinanceStats(businessId: string, range: string) {
     transactions,
     chartData,
     defaultCurrency: DEFAULT_CURRENCY,
+    pendingReimburseCount: pendingReimburse.length,
+    pendingReimburseNzd: pendingReimburseByCurrency.NZD.expense,
+    pendingReimburseRmb: pendingReimburseByCurrency.RMB.expense,
   };
 }

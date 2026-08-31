@@ -94,6 +94,12 @@ export function Navbar() {
                 记一笔 (Record)
               </DropdownMenuItem>
             </Link>
+            <Link href="/finance/reimburse">
+              <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/finance/reimburse') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
+                <PlusCircle className="mr-2 h-4 w-4 text-amber-500" />
+                报销平账 (Reimburse)
+              </DropdownMenuItem>
+            </Link>
             <Link href="/finance/transactions">
               <DropdownMenuItem className={`rounded-lg px-3 py-2 cursor-pointer ${pathname.startsWith('/finance/transactions') ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}>
                 <ListOrdered className="mr-2 h-4 w-4 text-slate-500" />

@@ -18,7 +18,7 @@ import {
 import { 
   Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, 
   Loader2, Plus, DollarSign, Calendar as CalendarIcon,
-  FileBarChart, MoreVertical, Trash2, Pencil
+  FileBarChart, MoreVertical, Trash2, Pencil, Receipt
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -39,7 +39,8 @@ export default function FinancePage() {
       NZD: { income: 0, expense: 0, net: 0 },
       RMB: { income: 0, expense: 0, net: 0 },
     },
-    transactions: [], chartData: []
+    transactions: [], chartData: [],
+    pendingReimburseCount: 0, pendingReimburseNzd: 0, pendingReimburseRmb: 0,
   });
 
   // --- 编辑状态管理 ---
@@ -179,6 +180,20 @@ export default function FinancePage() {
           </div>
         </div>
 
+        {(data.pendingReimburseCount || 0) > 0 && (
+          <Link href="/finance/reimburse" className="mb-5 flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <div>
+              <p className="text-xs font-bold text-amber-700">有 {data.pendingReimburseCount} 笔报销待打款</p>
+              <p className="mt-0.5 text-sm font-black text-slate-900">
+                {Number(data.pendingReimburseNzd || 0) > 0 ? `$${Number(data.pendingReimburseNzd).toLocaleString()}` : ""}
+                {Number(data.pendingReimburseNzd || 0) > 0 && Number(data.pendingReimburseRmb || 0) > 0 ? " · " : ""}
+                {Number(data.pendingReimburseRmb || 0) > 0 ? `¥${Number(data.pendingReimburseRmb).toLocaleString()}` : ""}
+              </p>
+            </div>
+            <span className="text-xs font-bold text-amber-700">去平账 →</span>
+          </Link>
+        )}
+
         {/* Stats Cards — NZD / RMB 独立轨道 */}
         <div className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-6 no-scrollbar snap-x snap-mandatory">
           <Card className="snap-center min-w-[85vw] md:min-w-0 p-5 border-emerald-100 bg-emerald-50/50 shadow-sm flex flex-col justify-between h-auto">
@@ -260,11 +275,18 @@ export default function FinancePage() {
              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                <DollarSign className="h-4 w-4 text-slate-400" /> 近期流水 (Recent)
              </h3>
-             <Link href="/finance/add">
-               <Button size="sm" variant="outline" className="h-8 text-xs font-bold rounded-full border-slate-200">
-                 <Plus className="h-3 w-3 mr-1" /> 记一笔
-               </Button>
-             </Link>
+             <div className="flex items-center gap-2">
+               <Link href="/finance/reimburse">
+                 <Button size="sm" variant="outline" className="h-8 text-xs font-bold rounded-full border-amber-200 bg-amber-50 text-amber-700">
+                   <Receipt className="h-3 w-3 mr-1" /> 报销
+                 </Button>
+               </Link>
+               <Link href="/finance/add">
+                 <Button size="sm" variant="outline" className="h-8 text-xs font-bold rounded-full border-slate-200">
+                   <Plus className="h-3 w-3 mr-1" /> 记一笔
+                 </Button>
+               </Link>
+             </div>
            </div>
 
            <div className="mx-auto mb-4 grid w-full max-w-md grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
