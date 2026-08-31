@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { createTransaction } from "../actions";
+import { createReimbursement } from "../reimburse/actions";
 import { createClient } from "@/lib/supabase/client";
 
 import { Navbar } from "@/components/Navbar";
@@ -14,10 +15,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Camera, Loader2, CheckCircle2, User, Clock } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, CheckCircle2, User, Clock, Receipt } from "lucide-react";
 import { toast } from "sonner"; 
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency"; 
 import { MobileDock } from "@/components/MobileDock";
+import { getTodayInNZ } from "@/lib/timezone";
+import { REIMBURSE_CATEGORIES, REIMBURSE_CLAIMANTS } from "@/lib/reimbursement";
+import { defaultCoachForEmail } from "@/lib/driving-booking-text";
 
 export default function AddTransactionPage() {
   const router = useRouter();
@@ -31,12 +35,13 @@ export default function AddTransactionPage() {
   
   // 表单状态
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"income" | "expense">("expense"); 
+  const [mode, setMode] = useState<"income" | "expense" | "reimburse">("expense"); 
   const [category, setCategory] = useState("");
   const [currency, setCurrency] = useState<Currency>("NZD");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => getTodayInNZ());
   const [description, setDescription] = useState("");
   const [proofUrl, setProofUrl] = useState("");
+  const [claimant, setClaimant] = useState("");
   
   // 关联表单状态
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -60,7 +65,7 @@ export default function AddTransactionPage() {
   // ✅ 2. 核心新增：自动生成备注逻辑
   useEffect(() => {
     // 只有在【收入】且【Tuition】且【已选学生】时才自动填充
-    if (type === 'income' && category === 'Tuition' && selectedStudent) {
+    if (mode === 'income' && category === 'Tuition' && selectedStudent) {
       const student = students.find(s => s.id === selectedStudent);
       if (student) {
         const hours = hoursToAdd || '0';
@@ -70,7 +75,7 @@ export default function AddTransactionPage() {
         setDescription(autoNote);
       }
     }
-  }, [selectedStudent, hoursToAdd, type, category, students]); // 依赖项：这些变了就重新生成
+  }, [selectedStudent, hoursToAdd, mode, category, students]); // 依赖项：这些变了就重新生成
 
   const incomeCategories = [
     { value: "Tuition", label: "🎓 课程收入 (Tuition)" },
@@ -83,18 +88,30 @@ export default function AddTransactionPage() {
     { value: "Rent", label: "🏠 场地租金 (Rent)" },
     { value: "Software", label: "💻 软件订阅 (Software)" },
     { value: "Marketing", label: "📣 市场推广 (Marketing)" },
-    { value: "Reimbursement", label: "🧾 报销 (Reimbursement)" },
     { value: "Other", label: "📦 其他支出 (Other)" },
   ];
 
-  const currentCategories = type === 'income' ? incomeCategories : expenseCategories;
+  const currentCategories = mode === 'income' ? incomeCategories : mode === 'reimburse' ? REIMBURSE_CATEGORIES.map((c) => ({ value: c.value, label: c.label })) : expenseCategories;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const name = profile?.full_name?.trim();
+      setClaimant(name || defaultCoachForEmail(user.email));
+    });
+  }, [supabase]);
 
   const handleTypeChange = (val: string) => {
-    setType(val as "income" | "expense");
-    setCategory(""); 
+    setMode(val as "income" | "expense" | "reimburse");
+    setCategory(val === "reimburse" ? "Fuel" : ""); 
     setSelectedStudent(""); 
     setHoursToAdd("");
-    setDescription(""); // 切换类型清空备注
+    setDescription("");
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,6 +136,36 @@ export default function AddTransactionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "reimburse") {
+      if (currentBusinessId === "tangent") {
+        toast.warning("请先切换到教培或驾校再提交报销");
+        return;
+      }
+      if (!amount || !category || !claimant) {
+        toast.warning("请填写垫付人、金额和分类");
+        return;
+      }
+      setIsLoading(true);
+      const formData = new FormData();
+      formData.append("amount", amount);
+      formData.append("category", category);
+      formData.append("claimant", claimant);
+      formData.append("date", date);
+      formData.append("notes", description);
+      formData.append("businessId", currentBusinessId);
+      formData.append("currency", currency);
+      if (proofUrl) formData.append("proofUrl", proofUrl);
+      const result = await createReimbursement(formData);
+      setIsLoading(false);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("已提交待打款，尚未计入净现金流");
+      router.push("/finance/reimburse");
+      return;
+    }
+
     if (!amount || !category) {
       toast.warning("请填写金额和分类");
       return;
@@ -128,7 +175,7 @@ export default function AddTransactionPage() {
 
     const formData = new FormData();
     formData.append("amount", amount);
-    formData.append("type", type);
+    formData.append("type", mode);
     formData.append("category", category);
     formData.append("currency", currency);
     formData.append("date", date);
@@ -137,7 +184,7 @@ export default function AddTransactionPage() {
     if (proofUrl) formData.append("proofUrl", proofUrl);
     
     // 提交关联数据
-    if (type === 'income' && category === 'Tuition' && selectedStudent) {
+    if (mode === 'income' && category === 'Tuition' && selectedStudent) {
       formData.append("studentId", selectedStudent);
       if (hoursToAdd) formData.append("hoursToAdd", hoursToAdd);
     }
@@ -148,7 +195,7 @@ export default function AddTransactionPage() {
     if (result && 'error' in result && result.error) {
       toast.error(`保存失败: ${result.error}`);
     } else {
-      const successMsg = (type === 'income' && hoursToAdd) 
+      const successMsg = (mode === 'income' && hoursToAdd) 
         ? `入账成功，且已为学生充值 ${hoursToAdd} 课时！` 
         : "记账成功！";
       toast.success(successMsg);
@@ -170,23 +217,32 @@ export default function AddTransactionPage() {
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
             <div>
-              <h1 className="text-xl font-black text-slate-900">记一笔</h1>
-              <p className="text-xs text-slate-400 font-medium">New Transaction</p>
+              <h1 className="text-xl font-black text-slate-900">{mode === "reimburse" ? "报销" : "记一笔"}</h1>
+              <p className="text-xs text-slate-400 font-medium">
+                {mode === "reimburse" ? "提交后待打款，不计入净现金流" : "New Transaction"}
+              </p>
             </div>
           </div>
+          {mode === "reimburse" ? (
+            <Button variant="outline" className="h-9 rounded-xl text-xs font-bold" onClick={() => router.push("/finance/reimburse")}>
+              待打款列表
+            </Button>
+          ) : (
           <div className="hidden md:block">
              <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-200">{currentLabel}</Badge>
           </div>
+          )}
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Type Switcher */}
-            <Tabs value={type} onValueChange={handleTypeChange} className="w-full">
-              <TabsList className="mx-auto grid h-12 w-full max-w-md grid-cols-2 rounded-2xl bg-slate-100 p-1.5">
-                <TabsTrigger value="expense" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm">支出 Out</TabsTrigger>
-                <TabsTrigger value="income" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm">收入 In</TabsTrigger>
+            <Tabs value={mode} onValueChange={handleTypeChange} className="w-full">
+              <TabsList className="mx-auto grid h-12 w-full max-w-md grid-cols-3 rounded-2xl bg-slate-100 p-1.5">
+                <TabsTrigger value="expense" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm">支出</TabsTrigger>
+                <TabsTrigger value="income" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm">收入</TabsTrigger>
+                <TabsTrigger value="reimburse" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">报销</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -207,7 +263,7 @@ export default function AddTransactionPage() {
               </div>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5">
-                  <span className={`text-3xl font-black ${type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>{currencySymbol(currency)}</span>
+                  <span className={`text-3xl font-black ${mode === 'income' ? 'text-emerald-500' : mode === 'reimburse' ? 'text-amber-600' : 'text-rose-500'}`}>{currencySymbol(currency)}</span>
                 </div>
                 <Input
                   type="number"
@@ -245,8 +301,27 @@ export default function AddTransactionPage() {
               </div>
             </div>
 
+            {mode === "reimburse" && (
+              <div className="space-y-2">
+                <Label className="text-xs text-amber-600 font-bold uppercase tracking-wider pl-1">垫付人 (谁先付的)</Label>
+                <Input
+                  list="claimant-options"
+                  value={claimant}
+                  onChange={(e) => setClaimant(e.target.value)}
+                  placeholder="例如：牛教练"
+                  className="h-12 rounded-xl border-amber-200 bg-amber-50/40"
+                />
+                <datalist id="claimant-options">
+                  {REIMBURSE_CLAIMANTS.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+                <p className="text-[11px] text-amber-700/80 pl-1">提交后进入待打款，确认打款才会记入支出。</p>
+              </div>
+            )}
+
             {/* 关联学生 + 充值面板 */}
-            {type === 'income' && category === 'Tuition' && (
+            {mode === 'income' && category === 'Tuition' && (
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 space-y-4 animate-in fade-in zoom-in-95 duration-300">
                  <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm">
                    <User className="h-4 w-4" /> 关联学员充值 (可选)
@@ -309,15 +384,29 @@ export default function AddTransactionPage() {
             {/* Notes */}
             <div className="space-y-2">
               <Label className="text-xs text-slate-400 font-bold uppercase tracking-wider pl-1">备注 (Notes)</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="例如：支付给 Alex 的本周工资..." className="resize-none rounded-xl border-slate-200 bg-slate-50 text-sm font-medium text-slate-700 focus-visible:bg-white transition-all" rows={3} />
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={mode === "reimburse" ? "例如：Albany 练车油费" : "例如：支付给 Alex 的本周工资..."} className="resize-none rounded-xl border-slate-200 bg-slate-50 text-sm font-medium text-slate-700 focus-visible:bg-white transition-all" rows={3} />
             </div>
 
             <Button
               type="submit"
               disabled={isLoading || uploading}
-              className={`h-14 w-full rounded-2xl text-base font-bold shadow-lg transition-all active:scale-[0.98] ${type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200'}`}
+              className={`h-14 w-full rounded-2xl text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
+                mode === "income"
+                  ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                  : mode === "reimburse"
+                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-200"
+                    : "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
+              }`}
             >
-              {isLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> 保存中...</> : (selectedStudent && hoursToAdd ? "保存并充值" : "确认保存")}
+              {isLoading ? (
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> 保存中...</>
+              ) : mode === "reimburse" ? (
+                <><Receipt className="mr-2 h-5 w-5" /> 提交待打款</>
+              ) : selectedStudent && hoursToAdd ? (
+                "保存并充值"
+              ) : (
+                "确认保存"
+              )}
             </Button>
           </form>
         </div>
