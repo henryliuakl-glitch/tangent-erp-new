@@ -329,11 +329,22 @@ export async function completeBooking(id: string, studentId: string, duration: n
 
   if (fetchError || !booking) return { error: "Booking not found" };
   if (booking.status === "completed") return { success: true };
+  if (booking.status !== "confirmed") return { error: "只有待办课程可以完成" };
 
-  const { error: bookingError } = await supabase.from("bookings").update({ status: "completed" }).eq("id", id);
-  if (bookingError) return { error: bookingError.message };
+  // 幂等抢占：只有第一个把 confirmed 改成 completed 的请求才能继续扣课时/记收入。
+  const { data: claimed, error: claimError } = await supabase
+    .from("bookings")
+    .update({ status: "completed" })
+    .eq("id", id)
+    .eq("status", "confirmed")
+    .select("id")
+    .maybeSingle();
+
+  if (claimError) return { error: claimError.message };
+  if (!claimed) return { success: true };
 
   const driving = isDrivingSchoolBusiness(booking.business_unit_id);
+
   if (driving) {
     const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
     const tuitionRes = await recordDrivingLessonTuition(
@@ -349,13 +360,36 @@ export async function completeBooking(id: string, studentId: string, duration: n
       },
       user?.id || ""
     );
-    if (tuitionRes.error) return { error: tuitionRes.error };
+
+    if (tuitionRes.error) {
+      await supabase
+        .from("bookings")
+        .update({ status: "confirmed" })
+        .eq("id", id)
+        .eq("status", "completed");
+      return { error: `消课收入写入失败，课程状态已回滚：${tuitionRes.error}` };
+    }
   } else {
     const targetStudentId = booking.student_id || studentId;
     const hours = Number(booking.duration) || duration;
-    if (targetStudentId && hours) {
-      const balanceRes = await incrementStudentBalance(supabase, targetStudentId, -hours);
-      if (balanceRes.error) return { error: balanceRes.error };
+
+    if (!targetStudentId || !Number.isFinite(hours) || hours <= 0) {
+      await supabase
+        .from("bookings")
+        .update({ status: "confirmed" })
+        .eq("id", id)
+        .eq("status", "completed");
+      return { error: "课程缺少有效学员或课时，未执行消课" };
+    }
+
+    const balanceRes = await incrementStudentBalance(supabase, targetStudentId, -hours);
+    if (balanceRes.error) {
+      await supabase
+        .from("bookings")
+        .update({ status: "confirmed" })
+        .eq("id", id)
+        .eq("status", "completed");
+      return { error: `扣课时失败，课程状态已回滚：${balanceRes.error}` };
     }
   }
 
@@ -369,70 +403,174 @@ export async function completeBooking(id: string, studentId: string, duration: n
 // 4. 取消预约 — scope=following 时批量取消本节及后续同系列 confirmed 课
 export async function cancelBooking(id: string, scope: BookingScope = "single") {
   const supabase = await createClient();
+
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status, student_id, duration, start_time, location")
+    .select("id, status, student_id, duration, start_time, location, business_unit_id")
     .eq("id", id)
     .single();
+
   if (!booking) return { error: "Booking not found" };
 
-  const targets = await findSeriesBookings(supabase, booking, scope);
-  const ids = targets.map((b) => b.id);
+  const targets =
+    scope === "following" && booking.status === "confirmed"
+      ? await findSeriesBookings(supabase, booking, scope)
+      : [booking];
 
-  // 已完成课取消：驾校回滚 Tuition 实收；教培回滚课时
+  let cancelledCount = 0;
+
   for (const b of targets) {
+    if (b.status === "cancelled") continue;
+
+    if (b.status === "confirmed") {
+      const { data: changed, error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", b.id)
+        .eq("status", "confirmed")
+        .select("id")
+        .maybeSingle();
+
+      if (error) return { error: error.message };
+      if (changed) cancelledCount++;
+      continue;
+    }
+
     if (b.status !== "completed") continue;
+
+    // 先抢占 completed → cancelled，避免并发重复恢复课时。
+    const { data: claimed, error: claimError } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", b.id)
+      .eq("status", "completed")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) return { error: claimError.message };
+    if (!claimed) continue;
+
     const { data: full } = await supabase
       .from("bookings")
       .select("id, business_unit_id, student_id, duration")
       .eq("id", b.id)
       .single();
-    const unitId = full?.business_unit_id;
-    if (isDrivingSchoolBusiness(unitId)) {
+
+    if (!full) {
+      await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
+      return { error: "取消失败：课程详情读取失败" };
+    }
+
+    if (isDrivingSchoolBusiness(full.business_unit_id)) {
       const reverseRes = await reverseDrivingLessonTuition(supabase, b.id);
-      if (reverseRes.error) return { error: reverseRes.error };
-    } else if (b.student_id) {
+      if (reverseRes.error) {
+        await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
+        return { error: `取消失败，课程状态已回滚：${reverseRes.error}` };
+      }
+    } else if (full.student_id) {
       const balanceRes = await incrementStudentBalance(
         supabase,
-        b.student_id,
-        Number(b.duration)
+        full.student_id,
+        Number(full.duration)
       );
-      if (balanceRes.error) return { error: balanceRes.error };
-    }
-  }
 
-  const { error } = await supabase
-    .from("bookings")
-    .update({ status: "cancelled" })
-    .in("id", ids);
-  if (error) return { error: error.message };
+      if (balanceRes.error) {
+        await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
+        return { error: `恢复课时失败，课程状态已回滚：${balanceRes.error}` };
+      }
+    }
+
+    cancelledCount++;
+  }
 
   revalidatePath("/bookings");
   revalidatePath("/students");
   revalidatePath("/finance");
-  return { success: true, cancelledCount: ids.length };
+  return { success: true, cancelledCount };
 }
 
 // 5. 删除预约
 export async function deleteBooking(id: string) {
   const supabase = await createClient();
-  const { data: booking } = await supabase
+
+  const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("status, student_id, duration, business_unit_id")
+    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, student:students(name, student_code, hourly_rate, currency)")
     .eq("id", id)
     .single();
-  if (booking && booking.status === "completed") {
+
+  if (fetchError || !booking) return { error: "Booking not found" };
+
+  // 已完成课程先抢占成 cancelled，再恢复课时/删除收入，防止并发重复回滚。
+  if (booking.status === "completed") {
+    const { data: claimed, error: claimError } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .eq("status", "completed")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) return { error: claimError.message };
+    if (!claimed) return { error: "课程状态已被其他操作修改，请刷新后重试" };
+
     if (isDrivingSchoolBusiness(booking.business_unit_id)) {
       const reverseRes = await reverseDrivingLessonTuition(supabase, id);
-      if (reverseRes.error) return { error: reverseRes.error };
+      if (reverseRes.error) {
+        await supabase.from("bookings").update({ status: "completed" }).eq("id", id).eq("status", "cancelled");
+        return { error: reverseRes.error };
+      }
     } else if (booking.student_id) {
-      const balanceRes = await incrementStudentBalance(supabase, booking.student_id, Number(booking.duration));
-      if (balanceRes.error) return { error: balanceRes.error };
+      const balanceRes = await incrementStudentBalance(
+        supabase,
+        booking.student_id,
+        Number(booking.duration)
+      );
+      if (balanceRes.error) {
+        await supabase.from("bookings").update({ status: "completed" }).eq("id", id).eq("status", "cancelled");
+        return { error: balanceRes.error };
+      }
     }
-  }
 
-  const { error } = await supabase.from("bookings").delete().eq("id", id);
-  if (error) return { error: error.message };
+    const { error: deleteError } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("id", id)
+      .eq("status", "cancelled");
+
+    if (deleteError) {
+      // 删除失败：尽力恢复到“已完成 + 已扣课时/已记收入”的原状态。
+      if (isDrivingSchoolBusiness(booking.business_unit_id)) {
+        const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+        await recordDrivingLessonTuition(
+          supabase,
+          {
+            id: booking.id,
+            student_id: booking.student_id,
+            duration: Number(booking.duration),
+            actual_rate: booking.actual_rate,
+            business_unit_id: booking.business_unit_id,
+            start_time: booking.start_time,
+            student,
+          },
+          ""
+        );
+      } else if (booking.student_id) {
+        await incrementStudentBalance(supabase, booking.student_id, -Number(booking.duration));
+      }
+
+      await supabase
+        .from("bookings")
+        .update({ status: "completed" })
+        .eq("id", id)
+        .eq("status", "cancelled");
+
+      return { error: `删除失败，已尝试恢复原状态：${deleteError.message}` };
+    }
+  } else {
+    const { error } = await supabase.from("bookings").delete().eq("id", id);
+    if (error) return { error: error.message };
+  }
 
   revalidatePath("/bookings");
   revalidatePath("/students");
