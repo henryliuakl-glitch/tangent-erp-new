@@ -14,17 +14,25 @@ export function isMissingCurrencyColumnError(message: string | undefined | null)
 export async function insertTransaction(
   supabase: SupabaseClient,
   row: Record<string, unknown> & { currency?: Currency | string | null }
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; id?: string }> {
   const currency = normalizeCurrency(row.currency as string | undefined);
   const withCurrency = { ...row, currency };
 
-  const { error: firstError } = await supabase.from("transactions").insert(withCurrency);
-  if (!firstError) return { error: null };
+  const { data: firstData, error: firstError } = await supabase
+    .from("transactions")
+    .insert(withCurrency)
+    .select("id")
+    .single();
+  if (!firstError) return { error: null, id: firstData?.id };
 
   if (isMissingCurrencyColumnError(firstError.message)) {
     const { currency: _omit, ...withoutCurrency } = withCurrency;
-    const { error: retryError } = await supabase.from("transactions").insert(withoutCurrency);
-    if (!retryError) return { error: null };
+    const { data: retryData, error: retryError } = await supabase
+      .from("transactions")
+      .insert(withoutCurrency)
+      .select("id")
+      .single();
+    if (!retryError) return { error: null, id: retryData?.id };
     return { error: retryError.message };
   }
 
