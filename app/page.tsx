@@ -22,6 +22,7 @@ import { zhCN } from "date-fns/locale";
 import { isBookingUnpaid } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import { MobileDock } from "@/components/MobileDock";
+import { DashboardCalendar } from "@/components/DashboardCalendar";
 import { completeBooking } from "@/app/bookings/actions";
 import { isTodayInNZ, utcToNzTimeStr, TZ_NZ } from "@/lib/timezone";
 import { toast } from "sonner";
@@ -420,9 +421,16 @@ export default function Home() {
           </div>
         </div>
 
-        {/* --- PART 2: LIST AREA --- */}
+        {/* --- PART 2: CALENDAR + LIST AREA --- */}
         <div className="flex-1 px-5 pt-0 pb-24 md:pb-6 md:px-6 max-w-7xl mx-auto w-full md:grid md:grid-cols-3 md:gap-8 overflow-y-auto md:overflow-visible">
           
+          <div className="md:col-span-3 mb-5 md:mb-0">
+            <DashboardCalendar
+              bookings={stats.calendarBookings || []}
+              businessId={currentBusinessId}
+            />
+          </div>
+
           <div className="md:col-span-2 flex flex-col">
              <div className="sticky top-0 bg-slate-50 z-30 py-4 border-b border-slate-100/50 mb-2 shadow-[0_4px_10px_-10px_rgba(0,0,0,0.1)]">
                <div className="flex items-center justify-between gap-3">
