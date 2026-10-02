@@ -60,6 +60,8 @@ const QUICK_SUBJECTS = [
   "道路熟悉练车",
 ] as const;
 
+const TUTORING_TEACHERS = ["Henry", "Yvetta"] as const;
+
 function subjectSelectValue(value: string) {
   return (QUICK_SUBJECTS as readonly string[]).includes(value) ? value : "custom";
 }
@@ -816,7 +818,6 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
   const [activeStudents, setActiveStudents] = useState<StudentWithMeta[]>([]);
   const [inactiveStudents, setInactiveStudents] = useState<StudentWithMeta[]>([]);
   const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
-  const [teacherOptions, setTeacherOptions] = useState<string[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>(["2 Bently Ave", "线上"]);
   
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -866,7 +867,6 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
       setInactiveStudents(inactive);
 
       setSubjectOptions(suggestions.subjects);
-      setTeacherOptions(suggestions.teachers);
       setLocationOptions(mergeLocationOptions(suggestions.locations));
     }
     fetchData();
@@ -968,12 +968,16 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
           </div>
           <div className="space-y-2">
             <Label className="text-xs text-slate-400 font-bold uppercase pl-1">老师 (Teacher)</Label>
-            <CreatableCombobox
-              value={teacher}
-              onChange={setTeacher}
-              options={teacherOptions}
-              placeholder="选择或输入老师"
-            />
+            <Select value={teacher} onValueChange={setTeacher}>
+              <SelectTrigger className="h-12 rounded-xl bg-white font-medium text-slate-900 w-full">
+                <SelectValue placeholder="选择老师" />
+              </SelectTrigger>
+              <SelectContent>
+                {TUTORING_TEACHERS.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
