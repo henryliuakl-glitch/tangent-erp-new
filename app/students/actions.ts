@@ -73,7 +73,7 @@ export async function createStudent(prevState: any, formData: FormData) {
 
     hourly_rate: hourlyRate,
 
-    balance: initialBalance,
+    balance: 0,
 
     payment_type: paymentType,
 
@@ -89,36 +89,33 @@ export async function createStudent(prevState: any, formData: FormData) {
 
 
 
-  // 自动同步流水
-
-  if (initialBalance > 0) {
+  // 初始课时与流水必须成对成功；任一步失败都回滚，避免新学员一开始就出现账实不符。
+  if (initialBalance > 0 && newStudent?.id) {
+    const balanceRes = await incrementStudentBalance(supabase, newStudent.id, initialBalance);
+    if (balanceRes.error) {
+      await supabase.from("students").delete().eq("id", newStudent.id);
+      return { error: `初始课时写入失败：${balanceRes.error}` };
+    }
 
     const amount = initialBalance * hourlyRate;
-
-    await insertTransaction(supabase, {
-
+    const txRes = await insertTransaction(supabase, {
       type: "income",
-
-      amount: amount,
-
+      amount,
       category: "Tuition",
-
       description: `初始充值: [${studentCode || '无学号'}] ${name} (+${initialBalance}课时)`,
-
       transaction_date: new Date().toISOString(),
-
       business_unit_id: businessId,
-
       created_by: user.id,
-
-      student_id: newStudent?.id,
-
+      student_id: newStudent.id,
       quantity: initialBalance,
-
       currency,
-
     });
 
+    if (txRes.error) {
+      await incrementStudentBalance(supabase, newStudent.id, -initialBalance);
+      await supabase.from("students").delete().eq("id", newStudent.id);
+      return { error: `初始充值流水写入失败，已回滚学员创建：${txRes.error}` };
+    }
   }
 
 
@@ -203,29 +200,26 @@ export async function updateStudent(id: string, data: {
 
 
 
-      await insertTransaction(supabase, {
-
+      const txRes = await insertTransaction(supabase, {
         type: "adjustment",
-
         amount: 0,
-
         category: "Tuition",
-
         description: `[系统调账] 管理员手动校正总课时：由 ${currentBalance} 修正为 ${targetBalance}，差额 ${diff} 课时`,
-
         transaction_date: new Date().toISOString(),
-
         business_unit_id: current.business_unit_id,
-
         created_by: user.id,
-
         student_id: id,
-
         quantity: diff,
-
         currency: DEFAULT_CURRENCY,
-
       });
+
+      if (txRes.error) {
+        const compensate = await incrementStudentBalance(supabase, id, -diff);
+        if (compensate.error) {
+          return { error: `调账流水失败且课时补偿失败，请立即人工核对：${txRes.error}; ${compensate.error}` };
+        }
+        return { error: `调账流水写入失败，课时已回滚：${txRes.error}` };
+      }
 
     }
 
@@ -342,6 +336,10 @@ export async function topUpStudent(
 
   const supabase = await createClient();
 
+  if (!Number.isFinite(hoursToAdd) || hoursToAdd <= 0) {
+    return { error: "充值课时必须大于 0" };
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: "用户未登录" };
@@ -378,29 +376,26 @@ export async function topUpStudent(
 
     const desc = `学员充值: [${student.student_code || '无学号'}] ${student.name} (+${hoursToAdd}课时)`;
 
-    await insertTransaction(supabase, {
-
+    const txRes = await insertTransaction(supabase, {
       type: "income",
-
       amount: incomeAmount,
-
       category: "Tuition",
-
       description: desc,
-
       transaction_date: new Date().toISOString(),
-
       business_unit_id: student.business_unit_id,
-
       created_by: user.id,
-
       student_id: studentId,
-
       quantity: hoursToAdd,
-
       currency: txCurrency,
-
     });
+
+    if (txRes.error) {
+      const compensate = await incrementStudentBalance(supabase, studentId, -hoursToAdd);
+      if (compensate.error) {
+        return { error: `充值流水失败且课时补偿失败，请立即人工核对：${txRes.error}; ${compensate.error}` };
+      }
+      return { error: `充值流水写入失败，课时已回滚：${txRes.error}` };
+    }
 
   }
 
@@ -474,29 +469,26 @@ export async function refundStudent(studentId: string, hoursToSubtract: number) 
 
 
 
-  await insertTransaction(supabase, {
-
+  const txRes = await insertTransaction(supabase, {
     type: "expense",
-
     amount: refundAmount,
-
     category: "Tuition",
-
     description: `[退课退款] 扣除学员 ${student.name} ${hoursToSubtract} 课时`,
-
     transaction_date: new Date().toISOString(),
-
     business_unit_id: student.business_unit_id,
-
     created_by: user.id,
-
     student_id: studentId,
-
     quantity: hoursToSubtract,
-
     currency: normalizeCurrency(student.currency),
-
   });
+
+  if (txRes.error) {
+    const compensate = await incrementStudentBalance(supabase, studentId, hoursToSubtract);
+    if (compensate.error) {
+      return { error: `退款流水失败且课时补偿失败，请立即人工核对：${txRes.error}; ${compensate.error}` };
+    }
+    return { error: `退款流水写入失败，课时已回滚：${txRes.error}` };
+  }
 
 
 
