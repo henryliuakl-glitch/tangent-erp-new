@@ -492,6 +492,7 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
 // 5. 删除预约
 export async function deleteBooking(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
@@ -553,7 +554,7 @@ export async function deleteBooking(id: string) {
             start_time: booking.start_time,
             student,
           },
-          ""
+          user?.id || ""
         );
       } else if (booking.student_id) {
         await incrementStudentBalance(supabase, booking.student_id, -Number(booking.duration));
