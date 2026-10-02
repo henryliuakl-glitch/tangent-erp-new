@@ -146,7 +146,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
     const code = b.student?.student_code?.toLowerCase() || "";
     const loc = b.location?.toLowerCase() || "";
     const subject = (b.subject || b.student?.subject || "").toLowerCase();
-    const coach = (b.metadata?.coach || b.student?.teacher || "").toLowerCase();
+    const coach = (b.metadata?.coach || b.teacher || b.student?.teacher || "").toLowerCase();
     return name.includes(q) || code.includes(q) || loc.includes(q) || subject.includes(q) || coach.includes(q);
   });
 
@@ -387,7 +387,11 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                                   <span className="min-w-0 truncate">{b.location || "线上"}</span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[18px]">
-                                  {coachLabel ? <span className="truncate">教练：{coachLabel}</span> : null}
+                                  {coachLabel ? (
+                                    <span className="truncate">
+                                      {isDrivingSchoolBusiness(b.business_unit_id) ? "教练" : "老师"}：{coachLabel}
+                                    </span>
+                                  ) : null}
                                   {carLabel ? <span className="truncate">用车：{carLabel}</span> : null}
                                 </div>
                               </div>
@@ -435,7 +439,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
       )}
 
       <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[425px] rounded-2xl">
           <DialogHeader><DialogTitle>编辑课程</DialogTitle></DialogHeader>
           <div className="grid gap-5 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
