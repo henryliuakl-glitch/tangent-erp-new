@@ -47,6 +47,10 @@ export async function createStudent(prevState: any, formData: FormData) {
 
   const initialBalance = Number(formData.get("balance")) || 0;
 
+  if (!Number.isFinite(initialBalance) || initialBalance < 0) {
+    return { error: "初始课时必须是有效的非负数" };
+  }
+
   const paymentType = (formData.get("paymentType") as string) || "monthly";
 
   const currency = normalizeCurrency(formData.get("currency") as string);
@@ -185,6 +189,10 @@ export async function updateStudent(id: string, data: {
 
 
   if (data.targetBalance !== undefined && data.targetBalance !== null) {
+
+    if (!Number.isFinite(Number(data.targetBalance))) {
+      return { error: "目标课时必须是有效数字" };
+    }
 
     const targetBalance = roundHours(Number(data.targetBalance));
 
