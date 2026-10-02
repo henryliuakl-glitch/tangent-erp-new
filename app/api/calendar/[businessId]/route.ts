@@ -7,11 +7,66 @@ import ical from "ical-generator";
 import { formatDualTime } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
 
+type StaffFeed = "niu" | "tong" | "henry" | "yvetta";
+
+const STAFF_LABELS: Record<StaffFeed, string> = {
+  niu: "牛教练",
+  tong: "童教练",
+  henry: "Henry",
+  yvetta: "Yvetta",
+};
+
+function normalizeName(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+function matchesStaff(
+  staff: StaffFeed | null,
+  businessId: string,
+  booking: any
+) {
+  if (!staff) return true;
+
+  const metadata = (booking.metadata as Record<string, unknown> | null) ?? {};
+  const coach = normalizeName(
+    metadata.coach != null ? String(metadata.coach) : ""
+  );
+  const teacher = normalizeName(booking.teacher || booking.student?.teacher);
+
+  if (businessId === "sine") {
+    if (staff === "niu") {
+      return ["牛教练", "牛", "henry", "henry老师", "coach henry"].includes(coach);
+    }
+    if (staff === "tong") {
+      return ["童教练", "童", "大头", "老公", "yvetta", "yvetta老师"].includes(coach);
+    }
+    return false;
+  }
+
+  if (businessId === "cus") {
+    if (staff === "henry") {
+      return ["henry", "henry老师", "牛教练"].includes(teacher);
+    }
+    if (staff === "yvetta") {
+      return ["yvetta", "yvetta老师", "童教练"].includes(teacher);
+    }
+    return false;
+  }
+
+  return true;
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ businessId: string }> }
 ) {
   const { businessId } = await params;
+  const url = new URL(request.url);
+  const rawStaff = url.searchParams.get("staff");
+  const staff: StaffFeed | null =
+    rawStaff && ["niu", "tong", "henry", "yvetta"].includes(rawStaff)
+      ? (rawStaff as StaffFeed)
+      : null;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,15 +93,25 @@ export async function GET(
   }
 
   const isSine = businessId === "sine";
+  const feedBookings = (bookings || []).filter((booking) =>
+    matchesStaff(staff, businessId, booking)
+  );
+
+  const staffLabel = staff ? STAFF_LABELS[staff] : null;
+  const calendarName = staffLabel
+    ? `${staffLabel} · ${isSine ? "Sine Driving" : "CuS Academy"}`
+    : isSine
+      ? "Sine Driving School"
+      : `Tangent Schedule (${businessId.toUpperCase()})`;
 
   const calendar = ical({
-    name: isSine ? "Sine Driving School" : `Tangent Schedule (${businessId.toUpperCase()})`,
+    name: calendarName,
     prodId: { company: "Tangent ERP", product: "Calendar", language: "EN" },
     timezone: "UTC",
     ttl: 900,
   });
 
-  for (const booking of bookings || []) {
+  for (const booking of feedBookings) {
     const start = new Date(booking.start_time);
     const end = new Date(booking.end_time);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
@@ -109,10 +174,14 @@ export async function GET(
     });
   }
 
+  const filename = staff
+    ? `tangent-${businessId}-${staff}.ics`
+    : `tangent-${businessId}.ics`;
+
   return new Response(calendar.toString(), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="tangent-${businessId}.ics"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
       Pragma: "no-cache",
       Expires: "0",
