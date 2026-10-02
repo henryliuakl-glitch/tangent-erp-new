@@ -4,17 +4,38 @@ import { BookingList, BookingsCta } from "./booking-list";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
 
+const BOOKINGS_PAGE_SIZE = 1000;
+
 export default async function BookingsPage() {
   const supabase = await createClient();
 
-  // ✅ 核心修改：增加了 hourly_rate, student_code
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select(`
-      *,
-      student:students ( id, name, teacher, subject, hourly_rate, student_code, currency )
-    `)
-    .order("start_time", { ascending: true });
+  // Supabase/PostgREST can cap a single select at 1000 rows.
+  // Fetch all bookings in pages so future bookings are not silently truncated
+  // once the table grows past the API's per-request row limit.
+  const bookings: any[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(`
+        *,
+        student:students ( id, name, teacher, subject, hourly_rate, student_code, currency )
+      `)
+      .order("start_time", { ascending: true })
+      .range(from, from + BOOKINGS_PAGE_SIZE - 1);
+
+    if (error) {
+      console.error("Failed to load bookings:", error);
+      break;
+    }
+
+    const page = data || [];
+    bookings.push(...page);
+
+    if (page.length < BOOKINGS_PAGE_SIZE) break;
+    from += BOOKINGS_PAGE_SIZE;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
@@ -36,7 +57,7 @@ export default async function BookingsPage() {
           <BookingsCta />
         </div>
 
-        <BookingList bookings={bookings || []} />
+        <BookingList bookings={bookings} />
 
       </main>
 
