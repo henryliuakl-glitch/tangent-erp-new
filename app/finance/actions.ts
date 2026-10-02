@@ -9,6 +9,7 @@ import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/
 import { getNzMonthBounds, getTodayInNZ, nzStartOfDayUtc, nzEndOfDayUtc, TZ_NZ } from "@/lib/timezone";
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { isPendingReimbursementTx } from "@/lib/reimbursement";
+import { isDrivingSchoolBusiness } from "@/lib/business";
 
 /** 流水/时间戳 → NZ 日历日 YYYY-MM-DD */
 function toNzCalendarDay(value: string | null | undefined): string {
@@ -38,7 +39,11 @@ export async function createTransaction(prevState: any, formData: FormData) {
   const studentId = formData.get("studentId") as string;
   const hoursToAdd = Number(formData.get("hoursToAdd"));
 
-  const { error: txError } = await insertTransaction(supabase, {
+  if (hoursToAdd < 0 || !Number.isFinite(hoursToAdd)) {
+    return { error: "课时必须是有效的非负数" };
+  }
+
+  const txResult = await insertTransaction(supabase, {
     type,
     amount: Number(amount),
     category,
@@ -52,11 +57,16 @@ export async function createTransaction(prevState: any, formData: FormData) {
     currency,
   });
 
-  if (txError) return { error: txError };
+  if (txResult.error) return { error: txResult.error };
 
-  if (studentId && hoursToAdd > 0 && type === "income") {
+  if (studentId && hoursToAdd > 0 && type === "income" && !isDrivingSchoolBusiness(String(businessId || ""))) {
     const balanceRes = await incrementStudentBalance(supabase, studentId, hoursToAdd);
-    if (balanceRes.error) return { error: balanceRes.error };
+    if (balanceRes.error) {
+      if (txResult.id) {
+        await supabase.from("transactions").delete().eq("id", txResult.id);
+      }
+      return { error: `课时更新失败，流水已回滚：${balanceRes.error}` };
+    }
   }
 
   revalidatePath("/finance");
@@ -68,26 +78,47 @@ export async function createTransaction(prevState: any, formData: FormData) {
 // 2. 删除流水 (带回滚逻辑)
 export async function deleteTransaction(id: string) {
   const supabase = await createClient();
-  
-  const { data: tx } = await supabase
+
+  const { data: tx, error: fetchError } = await supabase
     .from("transactions")
-    .select("student_id, quantity, type, category")
+    .select("id, student_id, quantity, type, category, description, business_unit_id")
     .eq("id", id)
     .single();
 
-  if (tx && tx.student_id && tx.quantity && tx.quantity > 0 && tx.type === "income") {
-    const balanceRes = await incrementStudentBalance(
-      supabase,
-      tx.student_id,
-      -Number(tx.quantity)
-    );
+  if (fetchError || !tx) return { error: "流水不存在" };
+
+  const quantity = Number(tx.quantity);
+  const isDriving = isDrivingSchoolBusiness(tx.business_unit_id);
+  let balanceEffect = 0;
+
+  if (!isDriving && tx.student_id && Number.isFinite(quantity) && quantity !== 0 && tx.category === "Tuition") {
+    if (tx.type === "income") {
+      balanceEffect = Math.abs(quantity);
+    } else if (tx.type === "expense" && String(tx.description || "").includes("[退课退款]")) {
+      balanceEffect = -Math.abs(quantity);
+    } else if (tx.type === "adjustment") {
+      balanceEffect = quantity;
+    }
+  }
+
+  // 先回滚这条流水曾经对课时造成的影响；若删除失败，再把课时补回原状。
+  if (balanceEffect !== 0 && tx.student_id) {
+    const balanceRes = await incrementStudentBalance(supabase, tx.student_id, -balanceEffect);
     if (balanceRes.error) return { error: balanceRes.error };
   }
 
   const { error } = await supabase.from("transactions").delete().eq("id", id);
-  
-  if (error) return { error: error.message };
-  
+
+  if (error) {
+    if (balanceEffect !== 0 && tx.student_id) {
+      const compensate = await incrementStudentBalance(supabase, tx.student_id, balanceEffect);
+      if (compensate.error) {
+        return { error: `删除流水失败，且课时补偿失败，请立即人工核对：${error.message}; ${compensate.error}` };
+      }
+    }
+    return { error: error.message };
+  }
+
   revalidatePath("/finance");
   revalidatePath("/students");
   revalidatePath("/");
