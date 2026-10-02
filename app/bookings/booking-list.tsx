@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   MapPin, Loader2, Trash2, Pencil, Check, 
   Calendar as CalendarIcon, FileText, Search, Plus
@@ -37,6 +38,7 @@ type Booking = {
   status: string;
   location: string | null;
   subject?: string | null;
+  teacher?: string | null;
   student: { id: string; name: string; teacher: string | null; subject: string | null; hourly_rate?: number; student_code?: string; } | null;
   business_unit_id: string;
   actual_rate?: number | null;
@@ -113,6 +115,9 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   const [editTime, setEditTime] = useState("");
   const [editDuration, setEditDuration] = useState("1");
   const [editLocation, setEditLocation] = useState("");
+  const [editTeacher, setEditTeacher] = useState("");
+  const [editRate, setEditRate] = useState("");
+  const [editSubject, setEditSubject] = useState("");
 
   const [scopeDialog, setScopeDialog] = useState<ScopeDialogState>(null);
   const [scopeChoice, setScopeChoice] = useState<BookingScope>("single");
@@ -191,6 +196,9 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
           time: editTime,
           duration: Number(editDuration),
           location: editLocation,
+          teacher: editTeacher,
+          actualRate: editRate.trim() === "" ? null : Number(editRate),
+          subject: editSubject,
         },
         scopeChoice
       )) as ScopedActionResult;
@@ -217,6 +225,15 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
     setEditTime(utcToNzTimeStr(b.start_time));
     setEditDuration(b.duration.toString());
     setEditLocation(b.location || "");
+    setEditTeacher(b.metadata?.coach || b.teacher || b.student?.teacher || "");
+    setEditRate(
+      b.actual_rate != null
+        ? String(b.actual_rate)
+        : b.student?.hourly_rate != null
+          ? String(b.student.hourly_rate)
+          : ""
+    );
+    setEditSubject(b.subject || b.student?.subject || "");
   };
 
   const Avatar = ({ name }: { name: string }) => {
@@ -296,7 +313,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                        ? `${studentCode} · ${studentName}`
                        : studentCode || studentName || "未知学员";
                    const subjectLabel = b.subject || b.student?.subject || "无科目";
-                   const coachLabel = b.metadata?.coach || b.student?.teacher || null;
+                   const coachLabel = b.metadata?.coach || b.teacher || b.student?.teacher || null;
                    const staffAccent = getStaffAccent(coachLabel);
                    const lineClass = isOverdue ? "border-rose-300 hover:border-rose-400" : staffAccent.line;
                    const dotClass =
@@ -441,6 +458,50 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right text-xs text-slate-500">地点</Label>
               <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="col-span-3 h-9" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right text-xs text-slate-500">
+                {editingBooking && isDrivingSchoolBusiness(editingBooking.business_unit_id) ? "教练" : "老师"}
+              </Label>
+              <div className="col-span-3">
+                <Select value={editTeacher} onValueChange={setEditTeacher}>
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue placeholder={editingBooking && isDrivingSchoolBusiness(editingBooking.business_unit_id) ? "选择教练" : "选择老师"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(editingBooking && isDrivingSchoolBusiness(editingBooking.business_unit_id)
+                      ? ["牛教练", "童教练"]
+                      : ["Henry", "Yvetta"]
+                    ).map((name) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right text-xs text-slate-500">价格</Label>
+              <div className="col-span-3 relative">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editRate}
+                  onChange={(e) => setEditRate(e.target.value)}
+                  className="h-9 pr-12"
+                  placeholder="每小时价格"
+                />
+                <span className="absolute right-3 top-2 text-xs text-slate-400">/h</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right text-xs text-slate-500">课程内容</Label>
+              <Input
+                value={editSubject}
+                onChange={(e) => setEditSubject(e.target.value)}
+                className="col-span-3 h-9"
+                placeholder={editingBooking && isDrivingSchoolBusiness(editingBooking.business_unit_id) ? "如：限制性练车" : "如：IGCSE Chemistry"}
+              />
             </div>
             <div className="flex justify-center pt-2">
                <button onClick={() => { if (editingBooking) requestCancel(editingBooking); }} className="text-xs text-rose-500 hover:underline">
