@@ -58,6 +58,38 @@ type ScopedActionResult = {
   updatedCount?: number;
 };
 
+function getStaffAccent(name?: string | null) {
+  const key = (name || "").trim().toLowerCase();
+
+  const blueNames = ["牛教练", "henry", "henry老师", "coach henry"];
+  const yellowNames = ["童教练", "yvetta", "yvetta老师", "teacher yvetta"];
+
+  if (blueNames.includes(key)) {
+    return {
+      line: "border-blue-300 hover:border-blue-400",
+      dot: "bg-blue-500",
+      card: "border-blue-200 bg-blue-50/40",
+      label: "bg-blue-50 text-blue-700 border-blue-200",
+    };
+  }
+
+  if (yellowNames.includes(key)) {
+    return {
+      line: "border-amber-300 hover:border-amber-400",
+      dot: "bg-amber-400",
+      card: "border-amber-200 bg-amber-50/50",
+      label: "bg-amber-50 text-amber-700 border-amber-200",
+    };
+  }
+
+  return {
+    line: "border-slate-200 hover:border-indigo-300",
+    dot: "bg-indigo-500",
+    card: "border-slate-100 bg-white",
+    label: "bg-slate-50 text-slate-600 border-slate-200",
+  };
+}
+
 export function BookingsCta() {
   const { currentBusinessId } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
@@ -265,6 +297,17 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                        : studentCode || studentName || "未知学员";
                    const subjectLabel = b.subject || b.student?.subject || "无科目";
                    const coachLabel = b.metadata?.coach || b.student?.teacher || null;
+                   const staffAccent = getStaffAccent(coachLabel);
+                   const lineClass = isOverdue ? "border-rose-300 hover:border-rose-400" : staffAccent.line;
+                   const dotClass =
+                     isOverdue
+                       ? "bg-rose-500"
+                       : b.status === "completed" || b.status === "cancelled"
+                         ? "bg-slate-300"
+                         : staffAccent.dot;
+                   const cardClass = isOverdue
+                     ? "border-rose-200 bg-rose-50/30"
+                     : staffAccent.card;
                    const carLabel =
                      b.metadata?.useInstructorCar === true
                        ? "教练车"
@@ -274,10 +317,10 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                    const rateLabel = b.actual_rate || b.student?.hourly_rate || null;
                    
                    return (
-                     <div key={b.id} className="relative border-l-2 border-slate-200 py-1 pl-3 transition-colors hover:border-indigo-300 group">
-                        <div className={`absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full border-2 border-slate-50 ${isOverdue ? 'bg-rose-500' : b.status === 'completed' ? 'bg-slate-300' : 'bg-indigo-500'}`}></div>
+                     <div key={b.id} className={`relative border-l-2 py-1 pl-3 transition-colors group ${lineClass}`}>
+                        <div className={`absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
                         
-                        <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4">
+                        <div className={`rounded-2xl border p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
                            <div className="mb-3 flex items-start justify-between gap-3">
                               <div className="flex min-w-0 items-start gap-3">
                                  <Avatar name={studentName || studentCode || "?"} />
@@ -293,6 +336,14 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                                           已过期
                                         </Badge>
                                       )}
+                                      {coachLabel ? (
+                                        <Badge
+                                          variant="outline"
+                                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${staffAccent.label}`}
+                                        >
+                                          {coachLabel}
+                                        </Badge>
+                                      ) : null}
                                     </div>
                                  </div>
                               </div>
