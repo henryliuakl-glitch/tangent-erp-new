@@ -144,6 +144,11 @@ async function findSeriesBookings(
     duration: number;
     location: string | null;
     status?: string;
+    business_unit_id?: string | null;
+    subject?: string | null;
+    teacher?: string | null;
+    actual_rate?: number | null;
+    metadata?: Record<string, unknown> | null;
   },
   scope: BookingScope
 ) {
@@ -153,7 +158,7 @@ async function findSeriesBookings(
 
   let query = supabase
     .from("bookings")
-    .select("id, student_id, start_time, end_time, duration, location, status")
+    .select("id, student_id, start_time, end_time, duration, location, status, business_unit_id, subject, teacher, actual_rate, metadata")
     .eq("student_id", booking.student_id)
     .eq("status", "confirmed")
     .eq("duration", booking.duration)
@@ -233,14 +238,22 @@ export async function createBooking(prevState: any, formData: FormData) {
 // scope=following 时：对本节及后续同系列 confirmed 课施加相同时间偏移，并同步 duration/location
 export async function updateBooking(
   id: string,
-  data: { date: string; time: string; duration: number; location: string },
+  data: {
+    date: string;
+    time: string;
+    duration: number;
+    location: string;
+    teacher: string;
+    actualRate: number | null;
+    subject: string;
+  },
   scope: BookingScope = "single"
 ) {
   const supabase = await createClient();
 
   const { data: current, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, student_id, start_time, end_time, duration, location, status")
+    .select("id, student_id, start_time, end_time, duration, location, status, business_unit_id, subject, teacher, actual_rate, metadata")
     .eq("id", id)
     .single();
 
@@ -253,12 +266,29 @@ export async function updateBooking(
   const targets = await findSeriesBookings(supabase, current, scope);
 
   for (const b of targets) {
+    const driving = isDrivingSchoolBusiness(b.business_unit_id || current.business_unit_id);
+    const baseMetadata = (b.metadata as Record<string, unknown> | null) ?? {};
+    const staffPayload = driving
+      ? {
+          teacher: null,
+          metadata: {
+            ...baseMetadata,
+            coach: data.teacher || null,
+          },
+        }
+      : {
+          teacher: data.teacher || null,
+        };
+
     if (b.id === id) {
       const { error } = await supabase.from("bookings").update({
         start_time: newStart.toISOString(),
         end_time: newEnd.toISOString(),
         duration: data.duration,
         location: data.location,
+        subject: data.subject || null,
+        actual_rate: data.actualRate,
+        ...staffPayload,
       }).eq("id", id);
       if (error) return { error: error.message };
     } else {
@@ -269,6 +299,9 @@ export async function updateBooking(
         end_time: shiftedEnd.toISOString(),
         duration: data.duration,
         location: data.location,
+        subject: data.subject || null,
+        actual_rate: data.actualRate,
+        ...staffPayload,
       }).eq("id", b.id);
       if (error) return { error: error.message };
     }
