@@ -202,6 +202,7 @@ export async function createBooking(prevState: any, formData: FormData) {
   const endDateStr = formData.get("endDate") as string;
 
   if (!studentId || !dateStr) return { error: "信息不完整" };
+  if (!Number.isFinite(duration) || duration <= 0) return { error: "课时必须大于 0" };
 
   const sessionSlots = buildBookingSessions({
     dateStr,
@@ -250,6 +251,13 @@ export async function updateBooking(
   scope: BookingScope = "single"
 ) {
   const supabase = await createClient();
+
+  if (!Number.isFinite(data.duration) || data.duration <= 0) {
+    return { error: "课时必须大于 0" };
+  }
+  if (data.actualRate != null && (!Number.isFinite(data.actualRate) || data.actualRate < 0)) {
+    return { error: "价格必须是有效的非负数" };
+  }
 
   const { data: current, error: fetchError } = await supabase
     .from("bookings")
@@ -609,6 +617,8 @@ export async function quickCreateDrivingBooking(formData: FormData) {
   };
 
   if (!identifier || !dateStr) return { error: "信息不完整" };
+  if (!Number.isFinite(duration) || duration <= 0) return { error: "课时必须大于 0" };
+  if (!Number.isFinite(actualRate) || actualRate < 0) return { error: "价格必须是有效的非负数" };
   // 一单一结：不校验课时/余额，直接排课
 
   let studentId = "";
