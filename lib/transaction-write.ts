@@ -2,9 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeCurrency, type Currency } from "@/lib/currency";
 
 /** PostgREST / schema cache 报缺 currency 列 */
-export function isMissingCurrencyColumnError(message: string | undefined | null): boolean {
+export function isMissingOptionalColumnError(message: string | undefined | null): boolean {
   if (!message) return false;
-  return /currency/i.test(message) && /(schema cache|could not find|column)/i.test(message);
+  return /(currency|income_source)/i.test(message) && /(schema cache|could not find|column)/i.test(message);
+}
+
+export function isMissingCurrencyColumnError(message: string | undefined | null): boolean {
+  return isMissingOptionalColumnError(message) && /currency/i.test(message || "");
 }
 
 /**
@@ -25,11 +29,11 @@ export async function insertTransaction(
     .single();
   if (!firstError) return { error: null, id: firstData?.id };
 
-  if (isMissingCurrencyColumnError(firstError.message)) {
-    const { currency: _omit, ...withoutCurrency } = withCurrency;
+  if (isMissingOptionalColumnError(firstError.message)) {
+    const { currency: _omitCurrency, income_source: _omitIncomeSource, ...withoutOptionalColumns } = withCurrency;
     const { data: retryData, error: retryError } = await supabase
       .from("transactions")
-      .insert(withoutCurrency)
+      .insert(withoutOptionalColumns)
       .select("id")
       .single();
     if (!retryError) return { error: null, id: retryData?.id };
@@ -59,11 +63,11 @@ export async function updateTransactionRow(
 
   if (!firstError) return { error: null };
 
-  if (isMissingCurrencyColumnError(firstError.message) && "currency" in payload) {
-    const { currency: _omit, ...withoutCurrency } = payload;
+  if (isMissingOptionalColumnError(firstError.message)) {
+    const { currency: _omitCurrency, income_source: _omitIncomeSource, ...withoutOptionalColumns } = payload;
     const { error: retryError } = await supabase
       .from("transactions")
-      .update(withoutCurrency)
+      .update(withoutOptionalColumns)
       .eq("id", id);
     if (!retryError) return { error: null };
     return { error: retryError.message };
