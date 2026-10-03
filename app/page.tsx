@@ -30,6 +30,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import { completeBooking } from "@/app/bookings/actions";
 import { isBookingUnpaid } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -153,6 +154,8 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [businessList, setBusinessList] = useState<any[]>([]);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completeTarget, setCompleteTarget] = useState<any>(null);
+  const [completeIncomeSource, setCompleteIncomeSource] = useState("");
   const [stats, setStats] = useState<any>({
     cashIncome: 0,
     netCashFlow: 0,
@@ -235,6 +238,12 @@ export default function Home() {
       return;
     }
 
+    if (isDrivingSchoolBusiness(booking.business_unit_id)) {
+      setCompleteTarget(booking);
+      setCompleteIncomeSource(booking.metadata?.incomeSource || "");
+      return;
+    }
+
     if (!confirm(`确认完成 ${booking.student?.name || "该学员"} 的课程？`)) return;
 
     setCompletingId(booking.id);
@@ -247,6 +256,29 @@ export default function Home() {
     }
 
     toast.success("课程已完成");
+    await reloadStats();
+  };
+
+  const confirmDrivingComplete = async () => {
+    if (!completeTarget?.student?.id || !completeIncomeSource) return;
+
+    setCompletingId(completeTarget.id);
+    const result = await completeBooking(
+      completeTarget.id,
+      completeTarget.student.id,
+      completeTarget.duration,
+      completeIncomeSource
+    );
+    setCompletingId(null);
+
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(`课程已完成 · ${completeIncomeSource}`);
+    setCompleteTarget(null);
+    setCompleteIncomeSource("");
     await reloadStats();
   };
 
@@ -558,6 +590,52 @@ export default function Home() {
             {today} · Tangent ERP
           </div>
         </div>
+
+        <Dialog
+          open={!!completeTarget}
+          onOpenChange={(open) => {
+            if (!open && !completingId) {
+              setCompleteTarget(null);
+              setCompleteIncomeSource("");
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[420px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>确认课程完成</DialogTitle>
+              <DialogDescription>
+                {completeTarget?.student?.name || "该学员"} · {completeTarget?.duration || 0}h
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-3">
+              <IncomeSourceSelect
+                value={completeIncomeSource}
+                onChange={setCompleteIncomeSource}
+                label="本次实际收入来源"
+              />
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+                驾校课程完成后会按该来源写入实际收入流水。
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setCompleteTarget(null)}
+                disabled={!!completingId}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={confirmDrivingComplete}
+                disabled={!completeIncomeSource || !!completingId}
+                className="bg-slate-900 hover:bg-slate-800"
+              >
+                {completingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                确认完成并入账
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <MobileDock />
       </main>
