@@ -4,44 +4,49 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 import {
-  Home as HomeIcon,
+  CalendarDays,
+  CirclePlus,
+  Home,
+  ReceiptText,
   Users,
-  Calendar as CalendarIcon,
-  FileBarChart,
-  PenLine,
-  Plus,
 } from "lucide-react";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 
-function TabItem({
+function NavItem({
   href,
   icon: Icon,
   label,
-  isActive,
+  active,
+  primary = false,
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
-  isActive: boolean;
+  active: boolean;
+  primary?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 group active:scale-95 transition-transform ${
-        isActive ? "text-indigo-600" : "text-slate-400"
+      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 transition-transform active:scale-95 ${
+        primary ? "text-indigo-600" : active ? "text-slate-950" : "text-slate-400"
       }`}
     >
       <div
-        className={`h-6 w-6 ${
-          isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
-        } transition-colors`}
+        className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
+          primary
+            ? "bg-indigo-600 text-white shadow-sm"
+            : active
+              ? "bg-slate-100 text-slate-950"
+              : "text-slate-400"
+        }`}
       >
-        <Icon className="h-full w-full" />
+        <Icon className="h-4.5 w-4.5" />
       </div>
       <span
-        className={`text-[10px] font-medium ${
-          isActive ? "text-indigo-600" : "text-slate-500 group-hover:text-slate-800"
+        className={`max-w-full truncate text-[10px] font-semibold ${
+          primary ? "text-indigo-600" : active ? "text-slate-800" : "text-slate-400"
         }`}
       >
         {label}
@@ -55,58 +60,37 @@ export function MobileDock() {
   const { currentBusinessId } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
 
-  const isHome = pathname === "/";
-  const isStudents = pathname.startsWith("/students");
-  const isBookings = pathname.startsWith("/bookings");
-  const isFinance = pathname === "/finance" || pathname.startsWith("/finance/transactions") || pathname.startsWith("/finance/reimburse");
-  const isFinanceAdd = pathname.startsWith("/finance/add");
+  const createHref = driving ? "/bookings/quick" : "/bookings/new";
+  const createLabel = driving ? "排课" : "新建";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 w-full max-w-full overflow-visible border-t border-slate-200/60 bg-white/95 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-1 backdrop-blur-md md:hidden">
-      <div className="flex items-end justify-between overflow-visible">
-        <TabItem href="/" icon={HomeIcon} label="首页" isActive={isHome} />
-        <TabItem href="/students" icon={Users} label="学生" isActive={isStudents} />
-
-        {driving ? (
-          <Link
-            href="/bookings/quick"
-            className="relative -top-5 flex flex-col items-center justify-center active:scale-90 transition-transform"
-            aria-label="极速排课"
-          >
-            <div className={`flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 text-white shadow-lg ${
-              pathname.startsWith("/bookings/quick") || pathname.startsWith("/bookings/new")
-                ? "bg-indigo-700 shadow-indigo-400/60"
-                : "bg-indigo-600 shadow-indigo-400/50"
-            }`}>
-              <Plus className="h-7 w-7" strokeWidth={2.5} />
-            </div>
-            <span className="mt-1 text-[10px] font-semibold leading-none text-indigo-600">
-              极速排课
-            </span>
-          </Link>
-        ) : (
-          <Link
-            href="/finance/add"
-            className="relative -top-5 flex flex-col items-center justify-center active:scale-90 transition-transform"
-            aria-label="记一笔"
-          >
-            <div className={`flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-50 text-white shadow-lg ${
-              isFinanceAdd ? "bg-slate-800 shadow-slate-400/60" : "bg-slate-900 shadow-slate-400/50"
-            }`}>
-              <PenLine className="h-6 w-6" />
-            </div>
-            <span className="mt-1 text-[10px] font-semibold leading-none text-slate-700">
-              记一笔
-            </span>
-          </Link>
-        )}
-
-        <TabItem href="/bookings" icon={CalendarIcon} label="排课" isActive={isBookings && !pathname.startsWith("/bookings/quick") && !pathname.startsWith("/bookings/new")} />
-        <TabItem
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+      <div className="mx-auto flex h-[66px] max-w-lg items-stretch px-2">
+        <NavItem href="/" icon={Home} label="首页" active={pathname === "/"} />
+        <NavItem
+          href="/students"
+          icon={Users}
+          label="学员"
+          active={pathname.startsWith("/students")}
+        />
+        <NavItem
+          href={createHref}
+          icon={CirclePlus}
+          label={createLabel}
+          active={pathname.startsWith("/bookings/quick") || pathname.startsWith("/bookings/new")}
+          primary
+        />
+        <NavItem
+          href="/bookings"
+          icon={CalendarDays}
+          label="日程"
+          active={pathname === "/bookings"}
+        />
+        <NavItem
           href="/finance"
-          icon={FileBarChart}
-          label="报表"
-          isActive={isFinance || (!driving && isFinanceAdd)}
+          icon={ReceiptText}
+          label="财务"
+          active={pathname.startsWith("/finance")}
         />
       </div>
     </div>
