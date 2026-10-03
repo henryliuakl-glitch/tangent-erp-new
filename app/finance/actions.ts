@@ -132,7 +132,7 @@ export async function deleteTransaction(id: string) {
 // 3. 编辑流水
 export async function updateTransaction(
   id: string, 
-  data: { amount: number; category: string; description: string; date: string; type: string; currency?: string }
+  data: { amount: number; category: string; description: string; date: string; type: string; currency?: string; incomeSource?: string | null }
 ) {
   const supabase = await createClient();
   
@@ -143,6 +143,10 @@ export async function updateTransaction(
     transaction_date: data.date,
     type: data.type,
     ...(data.currency ? { currency: normalizeCurrency(data.currency) } : {}),
+    income_source:
+      data.type === "income" && isIncomeSource(data.incomeSource)
+        ? data.incomeSource
+        : null,
   });
 
   if (error) return { error };
@@ -303,6 +307,21 @@ export async function getFinanceStats(businessId: string, range: string) {
     else realized += value;
   });
 
+  const incomeBySource = Object.entries(
+    transactions
+      .filter((t: any) => t.type === "income")
+      .reduce((acc: Record<string, { NZD: number; RMB: number; count: number }>, t: any) => {
+        const source = t.income_source || "未记录来源";
+        if (!acc[source]) acc[source] = { NZD: 0, RMB: 0, count: 0 };
+        const cur = normalizeCurrency(t.currency);
+        acc[source][cur] += Number(t.amount) || 0;
+        acc[source].count += 1;
+        return acc;
+      }, {})
+  )
+    .map(([source, totals]) => ({ source, ...totals }))
+    .sort((a, b) => (b.NZD + b.RMB) - (a.NZD + a.RMB));
+
   const daysInterval = eachDayOfInterval({ start: startDate, end: endDate });
   const chartData = daysInterval.map(day => {
     const dateStr = format(day, 'yyyy-MM-dd');
@@ -359,5 +378,6 @@ export async function getFinanceStats(businessId: string, range: string) {
     pendingReimburseCount: pendingReimburse.length,
     pendingReimburseNzd: pendingReimburseByCurrency.NZD.expense,
     pendingReimburseRmb: pendingReimburseByCurrency.RMB.expense,
+    incomeBySource,
   };
 }
