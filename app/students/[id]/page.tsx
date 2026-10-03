@@ -124,7 +124,16 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             </div>
 
             {!driving && (
-              <div className="mt-4"><TopUpButton studentId={student.id} defaultCurrency={student.currency || "NZD"} /></div>
+              <>
+                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">默认收款来源</div>
+                  <div className="mt-1 text-sm font-bold text-slate-800">
+                    {student.income_source || "未设置"}
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-400">该学员后续充值会自动同步到财务流水。</p>
+                </div>
+                <div className="mt-4"><TopUpButton studentId={student.id} defaultCurrency={student.currency || "NZD"} /></div>
+              </>
             )}
           </div>
         </div>
@@ -183,6 +192,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                       <div className="text-sm font-bold text-slate-900">{t.category}</div>
                       <div className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">
                         {format(new Date(t.transaction_date), "MMM d")} · {t.description}
+                        {t.income_source ? ` · 收款：${t.income_source}` : ""}
                       </div>
                     </div>
                   </div>
