@@ -454,6 +454,21 @@ export default function FinancePage() {
                  <Label className="text-right mt-2">备注</Label>
                  <Textarea value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} className="col-span-3 h-20" />
                </div>
+               {editForm.type === "income" && (
+                 <div className="grid grid-cols-4 items-center gap-4">
+                   <Label className="text-right">收入来源</Label>
+                   <Select value={editForm.incomeSource} onValueChange={(val) => setEditForm({...editForm, incomeSource: val})}>
+                     <SelectTrigger className="col-span-3">
+                       <SelectValue placeholder="选择收入来源" />
+                     </SelectTrigger>
+                     <SelectContent className="max-h-72">
+                       {INCOME_SOURCE_OPTIONS.map((source) => (
+                         <SelectItem key={source} value={source}>{source}</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               )}
             </div>
             <DialogFooter>
               <Button onClick={handleSaveEdit} disabled={editLoading}>
