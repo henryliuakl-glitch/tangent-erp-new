@@ -12,6 +12,7 @@ import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PAYMENT_TYPE_OPTIONS } from "@/lib/student-payment";
+import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
 export default function EditStudentButton({ student }: { student: any }) {
   const [open, setOpen] = useState(false);
@@ -40,6 +41,7 @@ export default function EditStudentButton({ student }: { student: any }) {
       targetBalance: Number(data.targetBalance),
       paymentType: data.payment_type,
       currency: data.currency || "NZD",
+      incomeSource: data.income_source || null,
     });
     setLoading(false);
 
@@ -137,6 +139,21 @@ export default function EditStudentButton({ student }: { student: any }) {
                    ))}
                  </SelectContent>
                </Select>
+             </div>
+             <div className="space-y-2">
+               <Label>默认收款来源</Label>
+               <Select
+                 value={data.income_source || ""}
+                 onValueChange={(val) => setData({ ...data, income_source: val })}
+               >
+                 <SelectTrigger><SelectValue placeholder="选择默认收款来源" /></SelectTrigger>
+                 <SelectContent className="max-h-72">
+                   {INCOME_SOURCE_OPTIONS.map((source) => (
+                     <SelectItem key={source} value={source}>{source}</SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+               <p className="text-[11px] text-slate-400">教培充值流水会自动继承该来源。</p>
              </div>
              <div className="space-y-2">
                <Label>当前总课时</Label>
