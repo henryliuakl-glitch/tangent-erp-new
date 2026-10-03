@@ -336,7 +336,7 @@ export async function completeBooking(
     .from("bookings")
     .select(`
       id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata,
-      student:students ( id, name, student_code, hourly_rate, currency, level, income_source )
+      student:students ( id, name, student_code, hourly_rate, currency, level )
     `)
     .eq("id", id)
     .single();
