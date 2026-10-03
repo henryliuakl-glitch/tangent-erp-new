@@ -11,6 +11,13 @@ export function isMissingCurrencyColumnError(message: string | undefined | null)
   return isMissingOptionalColumnError(message) && /currency/i.test(message || "");
 }
 
+function optionalColumnMissing(message: string | undefined | null): "currency" | "income_source" | null {
+  if (!isMissingOptionalColumnError(message)) return null;
+  if (/income_source/i.test(message || "")) return "income_source";
+  if (/currency/i.test(message || "")) return "currency";
+  return null;
+}
+
 /**
  * 写入 transactions：优先带 currency；若生产库尚未加列 / schema cache 未刷新，自动降级去掉 currency 再试。
  * 记账不被「Could not find the 'currency' column」阻断。
@@ -29,14 +36,31 @@ export async function insertTransaction(
     .single();
   if (!firstError) return { error: null, id: firstData?.id };
 
-  if (isMissingOptionalColumnError(firstError.message)) {
-    const { currency: _omitCurrency, income_source: _omitIncomeSource, ...withoutOptionalColumns } = withCurrency;
+  const missing = optionalColumnMissing(firstError.message);
+  if (missing) {
+    const retryPayload = { ...withCurrency } as Record<string, unknown>;
+    delete retryPayload[missing];
+
     const { data: retryData, error: retryError } = await supabase
       .from("transactions")
-      .insert(withoutOptionalColumns)
+      .insert(retryPayload)
       .select("id")
       .single();
+
     if (!retryError) return { error: null, id: retryData?.id };
+
+    const secondMissing = optionalColumnMissing(retryError.message);
+    if (secondMissing && secondMissing !== missing) {
+      delete retryPayload[secondMissing];
+      const { data: finalData, error: finalError } = await supabase
+        .from("transactions")
+        .insert(retryPayload)
+        .select("id")
+        .single();
+      if (!finalError) return { error: null, id: finalData?.id };
+      return { error: finalError.message };
+    }
+
     return { error: retryError.message };
   }
 
@@ -63,13 +87,29 @@ export async function updateTransactionRow(
 
   if (!firstError) return { error: null };
 
-  if (isMissingOptionalColumnError(firstError.message)) {
-    const { currency: _omitCurrency, income_source: _omitIncomeSource, ...withoutOptionalColumns } = payload;
+  const missing = optionalColumnMissing(firstError.message);
+  if (missing) {
+    const retryPayload = { ...payload } as Record<string, unknown>;
+    delete retryPayload[missing];
+
     const { error: retryError } = await supabase
       .from("transactions")
-      .update(withoutOptionalColumns)
+      .update(retryPayload)
       .eq("id", id);
+
     if (!retryError) return { error: null };
+
+    const secondMissing = optionalColumnMissing(retryError.message);
+    if (secondMissing && secondMissing !== missing) {
+      delete retryPayload[secondMissing];
+      const { error: finalError } = await supabase
+        .from("transactions")
+        .update(retryPayload)
+        .eq("id", id);
+      if (!finalError) return { error: null };
+      return { error: finalError.message };
+    }
+
     return { error: retryError.message };
   }
 
