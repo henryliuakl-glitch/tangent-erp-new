@@ -19,6 +19,7 @@ import { zhCN } from "date-fns/locale";
 import { InvoiceModal } from "@/components/InvoiceModal";
 import { DualTimezoneTime, DualTimezonePreview } from "@/components/DualTimezoneTime";
 import { toast } from "sonner";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import Link from "next/link";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
@@ -46,6 +47,7 @@ type Booking = {
     coach?: string | null;
     useInstructorCar?: boolean | null;
     plateNumber?: string | null;
+    incomeSource?: string | null;
   } | null;
 };
 
@@ -125,6 +127,8 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   const [invoiceBooking, setInvoiceBooking] = useState<Booking | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [completeBookingTarget, setCompleteBookingTarget] = useState<Booking | null>(null);
+  const [completeIncomeSource, setCompleteIncomeSource] = useState("");
 
   const filteredByBusiness = bookings.filter((b) => {
     if (currentBusinessId === "tangent") return true;
@@ -158,10 +162,43 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   });
 
   const handleComplete = async (b: Booking) => {
+    if (isDrivingSchoolBusiness(b.business_unit_id)) {
+      setCompleteBookingTarget(b);
+      setCompleteIncomeSource(b.metadata?.incomeSource || "");
+      return;
+    }
+
     if (!confirm(`确认完成 ${b.student?.name} 的课程？`)) return;
     setLoadingId(b.id);
-    if (b.student?.id) await completeBooking(b.id, b.student.id, b.duration);
+    if (b.student?.id) {
+      const res = await completeBooking(b.id, b.student.id, b.duration);
+      if (res?.error) toast.error(res.error);
+      else toast.success("课程已完成");
+    }
     setLoadingId(null);
+  };
+
+  const confirmDrivingComplete = async () => {
+    const b = completeBookingTarget;
+    if (!b?.student?.id || !completeIncomeSource) return;
+
+    setLoadingId(b.id);
+    const res = await completeBooking(
+      b.id,
+      b.student.id,
+      b.duration,
+      completeIncomeSource
+    );
+    setLoadingId(null);
+
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+
+    toast.success(`课程已完成 · ${completeIncomeSource}`);
+    setCompleteBookingTarget(null);
+    setCompleteIncomeSource("");
   };
 
   const requestCancel = (b: Booking) => {
@@ -437,6 +474,52 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
           );
         })
       )}
+
+      <Dialog
+        open={!!completeBookingTarget}
+        onOpenChange={(open) => {
+          if (!open && !loadingId) {
+            setCompleteBookingTarget(null);
+            setCompleteIncomeSource("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>确认课程完成</DialogTitle>
+            <DialogDescription>
+              {completeBookingTarget?.student?.name || "该学员"} · {completeBookingTarget?.duration || 0}h
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3">
+            <IncomeSourceSelect
+              value={completeIncomeSource}
+              onChange={setCompleteIncomeSource}
+              label="本次实际收入来源"
+            />
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+              驾校每次完成课程时记录实际收款去向，并同步写入财务流水。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCompleteBookingTarget(null)}
+              disabled={!!loadingId}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={confirmDrivingComplete}
+              disabled={!completeIncomeSource || !!loadingId}
+              className="bg-slate-900 hover:bg-slate-800"
+            >
+              {loadingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+              确认完成并入账
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[425px] rounded-2xl">
