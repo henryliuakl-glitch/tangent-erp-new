@@ -12,6 +12,7 @@ import { roundHours } from "@/lib/utils";
 
 import { DEFAULT_CURRENCY, normalizeCurrency, type Currency } from "@/lib/currency";
 import { insertTransaction } from "@/lib/transaction-write";
+import { isIncomeSource } from "@/lib/income-source";
 
 
 
@@ -54,6 +55,8 @@ export async function createStudent(prevState: any, formData: FormData) {
   const paymentType = (formData.get("paymentType") as string) || "monthly";
 
   const currency = normalizeCurrency(formData.get("currency") as string);
+  const rawIncomeSource = formData.get("incomeSource") as string;
+  const incomeSource = isIncomeSource(rawIncomeSource) ? rawIncomeSource : null;
 
 
 
@@ -82,6 +85,7 @@ export async function createStudent(prevState: any, formData: FormData) {
     payment_type: paymentType,
 
     currency,
+    income_source: incomeSource,
 
     business_unit_id: businessId,
 
@@ -113,6 +117,7 @@ export async function createStudent(prevState: any, formData: FormData) {
       student_id: newStudent.id,
       quantity: initialBalance,
       currency,
+      income_source: incomeSource,
     });
 
     if (txRes.error) {
@@ -157,6 +162,7 @@ export async function updateStudent(id: string, data: {
   paymentType?: string;
 
   currency?: Currency | string;
+  incomeSource?: string | null;
 
 }) {
 
@@ -256,6 +262,9 @@ export async function updateStudent(id: string, data: {
       ...(data.paymentType !== undefined ? { payment_type: data.paymentType } : {}),
 
       ...(data.currency !== undefined ? { currency: normalizeCurrency(data.currency) } : {}),
+      ...(data.incomeSource !== undefined
+        ? { income_source: isIncomeSource(data.incomeSource) ? data.incomeSource : null }
+        : {}),
 
     })
 
@@ -358,7 +367,7 @@ export async function topUpStudent(
 
     .from("students")
 
-    .select("name, student_code, balance, hourly_rate, business_unit_id, currency")
+    .select("name, student_code, balance, hourly_rate, business_unit_id, currency, income_source")
 
     .eq("id", studentId)
 
@@ -395,6 +404,7 @@ export async function topUpStudent(
       student_id: studentId,
       quantity: hoursToAdd,
       currency: txCurrency,
+      income_source: isIncomeSource(student.income_source) ? student.income_source : null,
     });
 
     if (txRes.error) {
