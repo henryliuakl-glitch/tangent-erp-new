@@ -15,6 +15,7 @@ import { CreatableCombobox } from "@/components/CreatableCombobox";
 import { fetchFormSuggestions } from "@/lib/form-suggestions";
 import { PAYMENT_TYPE_OPTIONS } from "@/lib/student-payment";
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency";
+import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 import { 
   Loader2, ArrowLeft, Wallet, GraduationCap, User, BookOpen, Car
 } from "lucide-react";
@@ -32,6 +33,7 @@ export default function NewStudentPage() {
   const [balance, setBalance] = useState("0");
   const [level, setLevel] = useState("Year 11");
   const [paymentType, setPaymentType] = useState("monthly");
+  const [incomeSource, setIncomeSource] = useState("");
   const [subject, setSubject] = useState("");
   const [teacher, setTeacher] = useState("");
   const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
@@ -84,6 +86,7 @@ export default function NewStudentPage() {
     formData.append("level", level);
     formData.append("paymentType", paymentType);
     formData.append("currency", currency);
+    formData.append("incomeSource", incomeSource);
     formData.set("subject", subject);
     formData.set("teacher", teacher);
 
@@ -200,6 +203,20 @@ export default function NewStudentPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label className="text-xs text-slate-500">默认收款来源</Label>
+                    <Select value={incomeSource} onValueChange={setIncomeSource}>
+                      <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                        <SelectValue placeholder="选择该学员通常付款到哪里" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {INCOME_SOURCE_OPTIONS.map((source) => (
+                          <SelectItem key={source} value={source}>{source}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-slate-400">后续为该学员充值时，会自动把这项写入财务流水的“收入来源”。</p>
                   </div>
                </div>
             </div>
