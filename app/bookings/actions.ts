@@ -16,6 +16,7 @@ import {
   nzEndOfDayUtc,
   nzLocalToUtc,
 } from "@/lib/timezone";
+import { isIncomeSource } from "@/lib/income-source";
 import {
   getWeekStep,
   isRecurringMode,
@@ -322,15 +323,20 @@ export async function updateBooking(
 // 3. 完成预约
 // 驾校一单一结：消课即 Tuition 实收，不扣预付课时（避免负余额欠费）
 // 教培预付：仅扣课时，现金已在充值时入账
-export async function completeBooking(id: string, studentId: string, duration: number) {
+export async function completeBooking(
+  id: string,
+  studentId: string,
+  duration: number,
+  incomeSource?: string | null
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
     .select(`
-      id, status, student_id, duration, actual_rate, business_unit_id, start_time,
-      student:students ( id, name, student_code, hourly_rate, currency, level )
+      id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata,
+      student:students ( id, name, student_code, hourly_rate, currency, level, income_source )
     `)
     .eq("id", id)
     .single();
@@ -353,7 +359,27 @@ export async function completeBooking(id: string, studentId: string, duration: n
 
   const driving = isDrivingSchoolBusiness(booking.business_unit_id);
 
+  if (driving && !isIncomeSource(incomeSource)) {
+    await supabase
+      .from("bookings")
+      .update({ status: "confirmed" })
+      .eq("id", id)
+      .eq("status", "completed");
+    return { error: "请选择实际收入来源后再完成课程" };
+  }
+
   if (driving) {
+    const baseMetadata = (booking.metadata as Record<string, unknown> | null) ?? {};
+    await supabase
+      .from("bookings")
+      .update({
+        metadata: {
+          ...baseMetadata,
+          incomeSource,
+        },
+      })
+      .eq("id", id)
+      .eq("status", "completed");
     const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
     const tuitionRes = await recordDrivingLessonTuition(
       supabase,
@@ -365,6 +391,7 @@ export async function completeBooking(id: string, studentId: string, duration: n
         business_unit_id: booking.business_unit_id,
         start_time: booking.start_time,
         student,
+        income_source: incomeSource,
       },
       user?.id || ""
     );
@@ -504,7 +531,7 @@ export async function deleteBooking(id: string) {
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, student:students(name, student_code, hourly_rate, currency)")
+    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata, student:students(name, student_code, hourly_rate, currency)")
     .eq("id", id)
     .single();
 
@@ -561,6 +588,9 @@ export async function deleteBooking(id: string) {
             business_unit_id: booking.business_unit_id,
             start_time: booking.start_time,
             student,
+            income_source: (booking.metadata as Record<string, unknown> | null)?.incomeSource
+              ? String((booking.metadata as Record<string, unknown>).incomeSource)
+              : null,
           },
           user?.id || ""
         );
