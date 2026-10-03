@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { currencySymbol, formatMoney, normalizeCurrency, type Currency, CURRENCY_OPTIONS } from "@/lib/currency";
 import { MobileDock } from "@/components/MobileDock";
+import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
 export default function FinancePage() {
   const { currentBusinessId } = useBusiness();
@@ -54,6 +55,7 @@ export default function FinancePage() {
     description: "",
     type: "expense",
     currency: "NZD" as Currency,
+    incomeSource: "",
   });
 
   // 分类选项 (与 Add Page 保持一致)
@@ -111,6 +113,7 @@ export default function FinancePage() {
       description: tx.description || "",
       type: tx.type,
       currency: normalizeCurrency(tx.currency),
+      incomeSource: tx.income_source || "",
     });
   };
 
@@ -126,6 +129,7 @@ export default function FinancePage() {
       date: editForm.date,
       type: editForm.type,
       currency: editForm.currency,
+      incomeSource: editForm.incomeSource || null,
     });
 
     setEditLoading(false);
@@ -240,6 +244,30 @@ export default function FinancePage() {
           </Card>
         </div>
 
+        {data.incomeBySource?.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <div className="mb-3">
+              <h3 className="text-sm font-bold text-slate-900">收入来源</h3>
+              <p className="mt-0.5 text-[11px] text-slate-400">当前筛选时段内，实际收到各账户/方式的收入</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {data.incomeBySource.map((row: any) => (
+                <div key={row.source} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                  <div className="truncate text-xs font-bold text-slate-700">{row.source}</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    {Number(row.NZD || 0) > 0 && (
+                      <span className="text-sm font-black text-slate-900">${Number(row.NZD).toLocaleString()}</span>
+                    )}
+                    {Number(row.RMB || 0) > 0 && (
+                      <span className="text-sm font-black text-slate-900">¥{Number(row.RMB).toLocaleString()}</span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-slate-400">{row.count} 笔</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Chart */}
         <div className="mt-6 md:mt-8">
           <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -332,6 +360,9 @@ export default function FinancePage() {
                          <div className="text-xs text-slate-400 mt-0.5 line-clamp-1 max-w-[150px] md:max-w-md font-medium">
                            {t.description || format(new Date(t.transaction_date), "MMM d, HH:mm")}
                          </div>
+                         {t.type === "income" && t.income_source ? (
+                           <div className="mt-1 text-[10px] font-semibold text-indigo-500">收款：{t.income_source}</div>
+                         ) : null}
                        </div>
                     </div>
                     <div className="flex items-center gap-3">
