@@ -20,6 +20,7 @@ type Transaction = {
   business_unit_id: string;
   proof_img_url: string | null;
   currency?: string | null;
+  income_source?: string | null;
 };
 
 export function TransactionList({ initialTransactions }: { initialTransactions: Transaction[] }) {
@@ -77,6 +78,11 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
                 {new Date(t.transaction_date).toLocaleDateString()} 
                 {t.description && ` · ${t.description}`}
               </p>
+              {t.type === "income" && t.income_source ? (
+                <p className="mt-1 text-[10px] font-semibold text-indigo-500">
+                  收款：{t.income_source}
+                </p>
+              ) : null}
             </div>
           </div>
 
