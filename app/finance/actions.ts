@@ -10,6 +10,7 @@ import { getNzMonthBounds, getTodayInNZ, nzStartOfDayUtc, nzEndOfDayUtc, TZ_NZ }
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { isPendingReimbursementTx } from "@/lib/reimbursement";
 import { isDrivingSchoolBusiness } from "@/lib/business";
+import { isIncomeSource } from "@/lib/income-source";
 
 /** 流水/时间戳 → NZ 日历日 YYYY-MM-DD */
 function toNzCalendarDay(value: string | null | undefined): string {
@@ -35,6 +36,8 @@ export async function createTransaction(prevState: any, formData: FormData) {
   const businessId = formData.get("businessId");
   const proofUrl = formData.get("proofUrl") as string;
   const currency = normalizeCurrency(formData.get("currency") as string);
+  const rawIncomeSource = formData.get("incomeSource") as string;
+  const incomeSource = isIncomeSource(rawIncomeSource) ? rawIncomeSource : null;
   
   const studentId = formData.get("studentId") as string;
   const hoursToAdd = Number(formData.get("hoursToAdd"));
@@ -55,6 +58,7 @@ export async function createTransaction(prevState: any, formData: FormData) {
     student_id: studentId || null,
     quantity: hoursToAdd > 0 ? hoursToAdd : null,
     currency,
+    income_source: type === "income" ? incomeSource : null,
   });
 
   if (txResult.error) return { error: txResult.error };
