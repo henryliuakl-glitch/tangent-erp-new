@@ -345,6 +345,11 @@ export async function completeBooking(
   if (booking.status === "completed") return { success: true };
   if (booking.status !== "confirmed") return { error: "只有待办课程可以完成" };
 
+  const driving = isDrivingSchoolBusiness(booking.business_unit_id);
+  if (driving && !isIncomeSource(incomeSource)) {
+    return { error: "请选择实际收入来源后再完成课程" };
+  }
+
   // 幂等抢占：只有第一个把 confirmed 改成 completed 的请求才能继续扣课时/记收入。
   const { data: claimed, error: claimError } = await supabase
     .from("bookings")
@@ -356,17 +361,6 @@ export async function completeBooking(
 
   if (claimError) return { error: claimError.message };
   if (!claimed) return { success: true };
-
-  const driving = isDrivingSchoolBusiness(booking.business_unit_id);
-
-  if (driving && !isIncomeSource(incomeSource)) {
-    await supabase
-      .from("bookings")
-      .update({ status: "confirmed" })
-      .eq("id", id)
-      .eq("status", "completed");
-    return { error: "请选择实际收入来源后再完成课程" };
-  }
 
   if (driving) {
     const baseMetadata = (booking.metadata as Record<string, unknown> | null) ?? {};
