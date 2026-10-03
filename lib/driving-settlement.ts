@@ -26,6 +26,7 @@ type LessonBooking = {
   business_unit_id?: string | null;
   start_time?: string | null;
   student?: LessonStudent;
+  income_source?: string | null;
 };
 
 /** 驾校消课：按时长 × 单价记 Tuition 实收，不扣预付课时 */
@@ -64,6 +65,7 @@ export async function recordDrivingLessonTuition(
     student_id: booking.student_id,
     quantity: duration,
     currency: normalizeCurrency(booking.student?.currency),
+    income_source: booking.income_source || null,
   });
 }
 
