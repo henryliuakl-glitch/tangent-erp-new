@@ -22,6 +22,7 @@ import { MobileDock } from "@/components/MobileDock";
 import { getTodayInNZ } from "@/lib/timezone";
 import { REIMBURSE_CATEGORIES, REIMBURSE_CLAIMANTS } from "@/lib/reimbursement";
 import { defaultCoachForEmail } from "@/lib/driving-booking-text";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
 export default function AddTransactionPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function AddTransactionPage() {
   const [description, setDescription] = useState("");
   const [proofUrl, setProofUrl] = useState("");
   const [claimant, setClaimant] = useState("");
+  const [incomeSource, setIncomeSource] = useState("");
   
   // 关联表单状态
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -53,7 +55,7 @@ export default function AddTransactionPage() {
       if (!currentBusinessId) return;
       const { data } = await supabase
         .from("students")
-        .select("id, name, student_code")
+        .select("id, name, student_code, income_source")
         .eq("business_unit_id", currentBusinessId)
         .order("name");
       
@@ -68,6 +70,7 @@ export default function AddTransactionPage() {
     if (mode === 'income' && category === 'Tuition' && selectedStudent) {
       const student = students.find(s => s.id === selectedStudent);
       if (student) {
+        if (student.income_source) setIncomeSource(student.income_source);
         const hours = hoursToAdd || '0';
         const codePart = student.student_code ? `[${student.student_code}] ` : '';
         // 自动生成的格式：学员充值: [S123] Name (+10课时)
@@ -112,6 +115,7 @@ export default function AddTransactionPage() {
     setSelectedStudent(""); 
     setHoursToAdd("");
     setDescription("");
+    setIncomeSource("");
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,6 +174,10 @@ export default function AddTransactionPage() {
       toast.warning("请填写金额和分类");
       return;
     }
+    if (mode === "income" && !incomeSource) {
+      toast.warning("请选择收入来源");
+      return;
+    }
 
     setIsLoading(true);
 
@@ -181,6 +189,7 @@ export default function AddTransactionPage() {
     formData.append("date", date);
     formData.append("description", description);
     formData.append("businessId", currentBusinessId);
+    if (mode === "income" && incomeSource) formData.append("incomeSource", incomeSource);
     if (proofUrl) formData.append("proofUrl", proofUrl);
     
     // 提交关联数据
@@ -367,6 +376,20 @@ export default function AddTransactionPage() {
                      💡 保存后，将自动为 <strong>{students.find(s=>s.id===selectedStudent)?.name}</strong> 增加 {hoursToAdd} 课时
                    </p>
                  )}
+              </div>
+            )}
+
+            {mode === "income" && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+                <IncomeSourceSelect
+                  value={incomeSource}
+                  onChange={setIncomeSource}
+                  label="收入来源"
+                  placeholder="选择这笔钱实际收到了哪里"
+                />
+                <p className="mt-2 text-[10px] text-slate-400">
+                  选择学员后，如果学员档案设置了默认收款来源，会自动带入；仍可在本次手动修改。
+                </p>
               </div>
             )}
 
