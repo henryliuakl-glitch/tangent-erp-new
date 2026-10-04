@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useBusiness } from "@/contexts/BusinessContext";
@@ -18,16 +18,14 @@ import { ArrowLeft, Loader2, MapPin, Repeat, CalendarCheck, Trash2 } from "lucid
 import { toast } from "sonner";
 import { DualTimezonePreview } from "@/components/DualTimezoneTime";
 import { CreatableCombobox } from "@/components/CreatableCombobox";
-import { addCalendarDaysInNZ, addHoursToNzDateTime, getTodayInNZ } from "@/lib/timezone";
+import { addHoursToNzDateTime, getTodayInNZ } from "@/lib/timezone";
 import {
   DEFAULT_DRIVING_COACH,
   DEFAULT_DRIVING_SUBJECT,
   DRIVING_COACHES,
   defaultCoachForEmail,
-  parseDrivingBookingText,
   type DrivingCoach,
 } from "@/lib/driving-booking-text";
-import { cn } from "@/lib/utils";
 import {
   fetchFormSuggestions,
   formatDrivingPrefillSummary,
@@ -97,7 +95,7 @@ export default function NewBookingPage() {
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 rounded-xl border-slate-200 bg-white shadow-sm" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
-            <h1 className="hidden text-lg font-black text-slate-900 md:block">极速排课</h1>
+            <h1 className="text-base font-black text-slate-900 md:text-lg">新增练车预约</h1>
           </div>
           <DrivingBookingForm businessId={currentBusinessId} router={router} />
         </main>
@@ -362,9 +360,6 @@ function DrivingStudentPicker({
 function DrivingBookingForm({ businessId, router }: { businessId: string, router: AppRouterInstance }) {
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
-  const parseTimerRef = useRef<number | null>(null);
-
-  const [magicInput, setMagicInput] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [date, setDate] = useState(() => getTodayInNZ());
   const [time, setTime] = useState("10:00");
@@ -372,13 +367,11 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
   const [location, setLocation] = useState("");
   const [subject, setSubject] = useState<string>(DEFAULT_DRIVING_SUBJECT);
   const [coach, setCoach] = useState<DrivingCoach | "">(DEFAULT_DRIVING_COACH);
-  const dateInputRef = useRef<HTMLInputElement>(null);
   const [notes, setNotes] = useState("");
 
   const [useInstructorCar, setUseInstructorCar] = useState(true);
   const [actualRate, setActualRate] = useState("85");
   const [needPickup, setNeedPickup] = useState(true);
-  const [pickupAddress, setPickupAddress] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
   const [locationOptions, setLocationOptions] = useState<string[]>(
     VTNZ_LOCATIONS.filter((l) => l !== "其他 (Other)")
@@ -397,36 +390,6 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       );
     });
   }, [supabase, businessId]);
-
-  useEffect(() => {
-    return () => {
-      if (parseTimerRef.current) window.clearTimeout(parseTimerRef.current);
-    };
-  }, []);
-
-  const applyMagicParse = (text: string) => {
-    const parsed = parseDrivingBookingText(text, Number(duration) || 1);
-    if (!parsed) return false;
-
-    if (parsed.studentIdentifier) setIdentifier(parsed.studentIdentifier);
-    setSubject(parsed.subject);
-    if (parsed.coach) setCoach(parsed.coach);
-    if (parsed.useInstructorCar != null) setUseInstructorCar(parsed.useInstructorCar);
-    if (parsed.needPickup) setNeedPickup(true);
-    if (parsed.plateNumber) setPlateNumber(parsed.plateNumber);
-    if (parsed.resolvedLocation) setLocation(parsed.resolvedLocation);
-    if (parsed.suggestedHourlyRate != null) {
-      setActualRate(String(parsed.suggestedHourlyRate));
-    }
-    return true;
-  };
-
-  const scheduleMagicParse = (text: string) => {
-    if (parseTimerRef.current) window.clearTimeout(parseTimerRef.current);
-    parseTimerRef.current = window.setTimeout(() => {
-      if (text.trim().length >= 4) applyMagicParse(text);
-    }, 200);
-  };
 
   const applyStudentPrefill = (row: DrivingStudentPrefill) => {
     const nextId = row.student_code?.trim() || row.name;
@@ -452,7 +415,6 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
     if (last.duration != null && last.duration > 0) setDuration(String(last.duration));
     setSubject(last.subject?.trim() || DEFAULT_DRIVING_SUBJECT);
     setNeedPickup(last.needPickup);
-    if (last.pickupAddress) setPickupAddress(last.pickupAddress);
     if (last.plateNumber) setPlateNumber(last.plateNumber);
   };
 
@@ -491,7 +453,6 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
     formData.append("weeklySchedule", JSON.stringify([]));
 
     if (notes) formData.append("notes", notes);
-    if (pickupAddress) formData.append("pickupAddress", pickupAddress);
     if (plateNumber) formData.append("plateNumber", plateNumber);
 
     const result = await quickCreateDrivingBooking(formData);
@@ -509,9 +470,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       setDate(next.date);
       setTime(next.time);
       setIdentifier("");
-      setMagicInput("");
       setNotes("");
-      setPickupAddress("");
       setPlateNumber("");
     }
   };
@@ -520,54 +479,6 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
     e.preventDefault();
     await submitBooking();
   };
-
-  const handleMagicKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    const text = magicInput.trim();
-    if (text) applyMagicParse(text);
-    await submitBooking();
-  };
-
-  const todayNz = getTodayInNZ();
-  const tomorrowNz = addCalendarDaysInNZ(todayNz, 1);
-  const dayAfterNz = addCalendarDaysInNZ(todayNz, 2);
-  const nextWeekNz = addCalendarDaysInNZ(todayNz, 7);
-  const isCustomDate =
-    date !== todayNz &&
-    date !== tomorrowNz &&
-    date !== dayAfterNz &&
-    date !== nextWeekNz;
-
-  const openCustomCalendar = () => {
-    const el = dateInputRef.current;
-    if (!el) return;
-    if (typeof el.showPicker === "function") el.showPicker();
-    else el.focus();
-  };
-
-  const DatePill = ({
-    label,
-    active,
-    onClick,
-  }: {
-    label: string;
-    active: boolean;
-    onClick: () => void;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-8 w-full min-w-0 rounded-full px-1 text-[10px] font-bold leading-tight transition-all active:scale-95 sm:text-[11px]",
-        active
-          ? "bg-indigo-600 text-white shadow-sm"
-          : "border border-slate-200 bg-white text-slate-600"
-      )}
-    >
-      {label}
-    </button>
-  );
 
   const durationMode = durationSelectValue(duration);
   const subjectMode = subjectSelectValue(subject);
@@ -578,17 +489,10 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-3.5 overflow-y-auto overscroll-contain py-1">
-        <div className="grid w-full min-w-0 grid-cols-5 gap-2">
-          <DatePill label="今天" active={date === todayNz} onClick={() => setDate(todayNz)} />
-          <DatePill label="明天" active={date === tomorrowNz} onClick={() => setDate(tomorrowNz)} />
-          <DatePill label="后天" active={date === dayAfterNz} onClick={() => setDate(dayAfterNz)} />
-          <DatePill label="下周今天" active={date === nextWeekNz} onClick={() => setDate(nextWeekNz)} />
-          <DatePill label="自定义" active={isCustomDate} onClick={openCustomCalendar} />
-        </div>
 
-        <div className="grid w-full min-w-0 grid-cols-3 gap-3">
+
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
           <Input
-            ref={dateInputRef}
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -602,6 +506,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
             className={FIELD}
             aria-label="开始时间"
           />
+          <div className="col-span-2 min-w-0">
           {durationMode === "custom" ? (
             <div className="relative min-w-0">
               <Input
@@ -644,27 +549,18 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
               </SelectContent>
             </Select>
           )}
-        </div>
 
-        <Input
-          placeholder="极速排课"
-          value={magicInput}
-          onChange={(e) => {
-            const v = e.target.value;
-            setMagicInput(v);
-            scheduleMagicParse(v);
-          }}
-          onKeyDown={handleMagicKeyDown}
-          className={`${FIELD} border-indigo-200 bg-indigo-50/40`}
-        />
+          </div>        </div>
 
-        <div className="grid w-full min-w-0 grid-cols-3 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
+          <div className="col-span-2 min-w-0">
           <DrivingStudentPicker
             businessId={businessId}
             value={identifier}
             onChange={setIdentifier}
             onSelectPrefill={applyStudentPrefill}
           />
+          </div>
           {subjectMode === "custom" ? (
             <div className="relative min-w-0">
               <Input
@@ -719,11 +615,11 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
           value={location}
           onChange={setLocation}
           options={locationOptions}
-          placeholder="练车地点"
+          placeholder="见面地址"
           inputClassName={FIELD}
         />
 
-        <div className="grid w-full min-w-0 grid-cols-3 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
           <Select
             value={useInstructorCar ? "instructor" : "own"}
             onValueChange={(v) => {
@@ -754,34 +650,21 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
           </Select>
           <Input
             type="number"
-            placeholder="单价 $/h"
+            placeholder="课费 $/h"
             value={actualRate}
             onChange={(e) => setActualRate(e.target.value)}
             className={`${FIELD} text-right font-semibold text-emerald-600`}
           />
         </div>
 
-        {(needPickup || !useInstructorCar) && (
-          <div className={`grid w-full min-w-0 gap-3 ${needPickup && !useInstructorCar ? "grid-cols-2" : "grid-cols-1"}`}>
-            {needPickup && (
-              <Input
-                placeholder="接送地址"
-                value={pickupAddress}
-                onChange={(e) => setPickupAddress(e.target.value)}
-                className={FIELD}
-              />
-            )}
-            {!useInstructorCar && (
-              <Input
-                placeholder="车牌号"
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
-                className={FIELD}
-              />
-            )}
-          </div>
+        {!useInstructorCar && (
+          <Input
+            placeholder="学员车辆车牌（选填）"
+            value={plateNumber}
+            onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+            className={FIELD}
+          />
         )}
-
         <Input
           placeholder="备注信息 (选填)"
           value={notes}
@@ -793,7 +676,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       <Button
         type="submit"
         disabled={isLoading}
-        className="mt-3 h-10 md:h-12 w-full min-w-0 shrink-0 rounded-2xl bg-indigo-600 text-base font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98]"
+        className="mt-3 h-11 w-full min-w-0 shrink-0 rounded-xl bg-indigo-600 text-sm font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 active:scale-[0.99]"
       >
         {isLoading ? (
           <>
@@ -801,7 +684,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
             提交中...
           </>
         ) : (
-          "一键排课"
+          "保存排课"
         )}
       </Button>
     </form>
