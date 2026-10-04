@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { incrementStudentBalance } from "@/lib/student-balance";
-import { startOfWeek, endOfWeek, format, eachDayOfInterval } from "date-fns";
+import { format, eachDayOfInterval } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/currency";
 import { getNzMonthBounds, getTodayInNZ, nzStartOfDayUtc, nzEndOfDayUtc, TZ_NZ } from "@/lib/timezone";
@@ -20,6 +20,56 @@ function toNzCalendarDay(value: string | null | undefined): string {
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return raw.slice(0, 10);
   return formatInTimeZone(d, TZ_NZ, "yyyy-MM-dd");
+}
+
+function parseDayKey(day: string) {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
+}
+
+function formatDayKey(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function addDaysKey(day: string, amount: number) {
+  const d = parseDayKey(day);
+  d.setUTCDate(d.getUTCDate() + amount);
+  return formatDayKey(d);
+}
+
+function periodBounds(
+  mode: "week" | "month" | "year",
+  anchorDay: string
+) {
+  const anchor = parseDayKey(anchorDay);
+  const y = anchor.getUTCFullYear();
+  const m = anchor.getUTCMonth();
+
+  if (mode === "week") {
+    const dow = anchor.getUTCDay();
+    const daysSinceMonday = (dow + 6) % 7;
+    const startDay = addDaysKey(anchorDay, -daysSinceMonday);
+    const endExclusiveDay = addDaysKey(startDay, 7);
+    return { startDay, endExclusiveDay };
+  }
+
+  if (mode === "year") {
+    return {
+      startDay: `${y}-01-01`,
+      endExclusiveDay: `${y + 1}-01-01`,
+    };
+  }
+
+  const startDay = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  const next = new Date(Date.UTC(y, m + 1, 1, 12));
+  return {
+    startDay,
+    endExclusiveDay: formatDayKey(next),
+  };
 }
 
 // 1. 创建流水
@@ -156,65 +206,25 @@ export async function updateTransaction(
 }
 
 // 4. 获取概览 — 双币种独立汇总；「本月」与 Dashboard 共用 NZT 月界
-export async function getFinanceStats(businessId: string, range: string) {
+export async function getFinanceStats(
+  businessId: string,
+  mode: "week" | "month" | "year" = "month",
+  anchorDate?: string
+) {
   const supabase = await createClient();
-  const now = new Date();
-  let startStr: string;
-  let endStr: string;
-  let startDate: Date;
-  let endDate: Date;
 
-  switch (range) {
-    case "week": {
-      startDate = startOfWeek(now, { weekStartsOn: 1 });
-      endDate = endOfWeek(now, { weekStartsOn: 1 });
-      startStr = startDate.toISOString();
-      endStr = endDate.toISOString();
-      break;
-    }
-    case "month": {
-      const bounds = getNzMonthBounds(0);
-      // 半开区间 [月初, 下月1日)：兼容 DATE 与 timestamptz 两种存法
-      startStr = bounds.startDate;
-      endStr = bounds.nextMonthStart;
-      startDate = new Date(bounds.startIso);
-      endDate = new Date(bounds.endIso);
-      break;
-    }
-    case "prev_month": {
-      const bounds = getNzMonthBounds(-1);
-      startStr = bounds.startDate;
-      endStr = bounds.nextMonthStart;
-      startDate = new Date(bounds.startIso);
-      endDate = new Date(bounds.endIso);
-      break;
-    }
-    case "3months": {
-      const endBounds = getNzMonthBounds(0);
-      const startBounds = getNzMonthBounds(-2);
-      startStr = startBounds.startDate;
-      endStr = endBounds.nextMonthStart;
-      startDate = new Date(startBounds.startIso);
-      endDate = new Date(endBounds.endIso);
-      break;
-    }
-    case "year": {
-      const todayNz = getTodayInNZ();
-      const y = Number(todayNz.slice(0, 4));
-      startStr = `${y}-01-01`;
-      endStr = `${y + 1}-01-01`;
-      startDate = nzStartOfDayUtc(`${y}-01-01`);
-      endDate = nzEndOfDayUtc(`${y}-12-31`);
-      break;
-    }
-    default: {
-      const bounds = getNzMonthBounds(0);
-      startStr = bounds.startDate;
-      endStr = bounds.nextMonthStart;
-      startDate = new Date(bounds.startIso);
-      endDate = new Date(bounds.endIso);
-    }
-  }
+  const todayNz = getTodayInNZ();
+  const safeAnchor = /^\d{4}-\d{2}-\d{2}$/.test(anchorDate || "")
+    ? String(anchorDate)
+    : todayNz;
+
+  const { startDay, endExclusiveDay } = periodBounds(mode, safeAnchor);
+  const startDate = nzStartOfDayUtc(startDay);
+  const endExclusiveDate = nzStartOfDayUtc(endExclusiveDay);
+  const endDate = new Date(endExclusiveDate.getTime() - 1);
+
+  const startStr = startDay;
+  const endStr = endExclusiveDay;
 
   // 流水查询：按 business_unit_id 隔离；月界用半开区间，兼容 DATE / timestamptz
   // select *：避免因 currency 等列尚未迁移导致整查询失败 → 空数组 → 净现金流 $0
@@ -224,13 +234,12 @@ export async function getFinanceStats(businessId: string, range: string) {
     .eq("business_unit_id", businessId)
     .order("transaction_date", { ascending: false });
 
-  txQuery =
-    range === "week"
-      ? txQuery.gte("transaction_date", startStr).lte("transaction_date", endStr)
-      : txQuery.gte("transaction_date", startStr).lt("transaction_date", endStr);
+  txQuery = txQuery
+    .gte("transaction_date", startStr)
+    .lt("transaction_date", endStr);
 
-  const bookingStartIso = range === "week" ? startStr : startDate.toISOString();
-  const bookingEndIso = range === "week" ? endStr : endDate.toISOString();
+  const bookingStartIso = startDate.toISOString();
+  const bookingEndIso = endExclusiveDate.toISOString();
 
   const [transactionsRes, bookingsPrimary, pendingRes] = await Promise.all([
     txQuery,
@@ -240,7 +249,7 @@ export async function getFinanceStats(businessId: string, range: string) {
       .eq("business_unit_id", businessId)
       .eq("status", "completed")
       .gte("start_time", bookingStartIso)
-      .lte("start_time", bookingEndIso),
+      .lt("start_time", bookingEndIso),
     supabase
       .from("transactions")
       .select("amount, currency, description")
@@ -259,32 +268,25 @@ export async function getFinanceStats(businessId: string, range: string) {
       .eq("business_unit_id", businessId)
       .eq("status", "completed")
       .gte("start_time", bookingStartIso)
-      .lte("start_time", bookingEndIso);
+      .lt("start_time", bookingEndIso);
     bookings = bookingsFallback.data || [];
   }
 
   if (transactionsRes.error) {
     console.error("[getFinanceStats] transactions error:", transactionsRes.error.message, {
       businessId,
-      range,
+      mode,
+      anchorDate: safeAnchor,
       startStr,
       endStr,
     });
   }
 
-  // 再按 NZ 日历日收紧，防止 DATE/timestamptz 边界漏数或串月
-  const monthStartDay =
-    range === "week" ? "" : formatInTimeZone(startDate, TZ_NZ, "yyyy-MM-dd");
-  const monthEndDay =
-    range === "week" ? "" : formatInTimeZone(endDate, TZ_NZ, "yyyy-MM-dd");
-
-  let transactions = transactionsRes.data || [];
-  if (monthStartDay && monthEndDay) {
-    transactions = transactions.filter((t) => {
-      const day = toNzCalendarDay(t.transaction_date);
-      return day >= monthStartDay && day <= monthEndDay;
-    });
-  }
+  // 再按 NZ 日历日收紧，统一使用半开区间 [start, end)
+  let transactions = (transactionsRes.data || []).filter((t) => {
+    const day = toNzCalendarDay(t.transaction_date);
+    return day >= startDay && day < endExclusiveDay;
+  });
 
   const pendingReimburse = (pendingRes.data || []).filter((t) =>
     isPendingReimbursementTx(t.description)
@@ -322,37 +324,98 @@ export async function getFinanceStats(businessId: string, range: string) {
     .map(([source, totals]) => ({ source, ...totals }))
     .sort((a, b) => (b.NZD + b.RMB) - (a.NZD + a.RMB));
 
-  const daysInterval = eachDayOfInterval({ start: startDate, end: endDate });
-  const chartData = daysInterval.map(day => {
-    const dateStr = format(day, 'yyyy-MM-dd');
-    let dailyIncome = 0;
-    let dailyExpense = 0;
-    let dailyRealized = 0;
-    let dailyIncomeRmb = 0;
-    let dailyExpenseRmb = 0;
+  const bookingDay = (value: string) =>
+    formatInTimeZone(new Date(value), TZ_NZ, "yyyy-MM-dd");
 
-    transactions.forEach(t => {
-      if (String(t.transaction_date).startsWith(dateStr)) {
+  let chartData: any[] = [];
+
+  if (mode === "year") {
+    const year = Number(startDay.slice(0, 4));
+    chartData = Array.from({ length: 12 }, (_, index) => {
+      const monthKey = `${year}-${String(index + 1).padStart(2, "0")}`;
+      let income = 0;
+      let expense = 0;
+      let incomeRmb = 0;
+      let expenseRmb = 0;
+      let realizedMonth = 0;
+
+      transactions.forEach((t: any) => {
+        if (!toNzCalendarDay(t.transaction_date).startsWith(monthKey)) return;
         const cur = normalizeCurrency(t.currency);
-        const amt = Number(t.amount);
+        const amt = Number(t.amount) || 0;
         if (cur === "RMB") {
-          if (t.type === 'income') dailyIncomeRmb += amt;
-          else if (t.type === 'expense') dailyExpenseRmb += Math.abs(amt);
+          if (t.type === "income") incomeRmb += amt;
+          else if (t.type === "expense") expenseRmb += Math.abs(amt);
         } else {
-          if (t.type === 'income') dailyIncome += amt;
-          else if (t.type === 'expense') dailyExpense += Math.abs(amt);
+          if (t.type === "income") income += amt;
+          else if (t.type === "expense") expense += Math.abs(amt);
         }
-      }
-    });
+      });
 
-    bookings.forEach((b: any) => {
-      if (String(b.start_time).startsWith(dateStr)) {
+      bookings.forEach((b: any) => {
+        if (!bookingDay(b.start_time).startsWith(monthKey)) return;
+        const rate = Number(b.actual_rate ?? b.student?.hourly_rate ?? 70);
+        realizedMonth += Number(b.duration) * rate;
+      });
+
+      return {
+        date: `${index + 1}月`,
+        fullDate: monthKey,
+        income,
+        expense,
+        incomeRmb,
+        expenseRmb,
+        realized: realizedMonth,
+        net: income - expense,
+        netRmb: incomeRmb - expenseRmb,
+      };
+    });
+  } else {
+    const daysInterval = eachDayOfInterval({ start: startDate, end: endDate });
+    chartData = daysInterval.map((day) => {
+      const dateStr = formatInTimeZone(day, TZ_NZ, "yyyy-MM-dd");
+      let dailyIncome = 0;
+      let dailyExpense = 0;
+      let dailyRealized = 0;
+      let dailyIncomeRmb = 0;
+      let dailyExpenseRmb = 0;
+
+      transactions.forEach((t: any) => {
+        if (toNzCalendarDay(t.transaction_date) !== dateStr) return;
+        const cur = normalizeCurrency(t.currency);
+        const amt = Number(t.amount) || 0;
+        if (cur === "RMB") {
+          if (t.type === "income") dailyIncomeRmb += amt;
+          else if (t.type === "expense") dailyExpenseRmb += Math.abs(amt);
+        } else {
+          if (t.type === "income") dailyIncome += amt;
+          else if (t.type === "expense") dailyExpense += Math.abs(amt);
+        }
+      });
+
+      bookings.forEach((b: any) => {
+        if (bookingDay(b.start_time) !== dateStr) return;
         const rate = Number(b.actual_rate ?? b.student?.hourly_rate ?? 70);
         dailyRealized += Number(b.duration) * rate;
-      }
-    });
+      });
 
-    return {
+      return {
+        date: mode === "week"
+          ? formatInTimeZone(day, TZ_NZ, "EEE dd")
+          : formatInTimeZone(day, TZ_NZ, "dd"),
+        fullDate: dateStr,
+        income: dailyIncome,
+        expense: dailyExpense,
+        incomeRmb: dailyIncomeRmb,
+        expenseRmb: dailyExpenseRmb,
+        realized: dailyRealized,
+        net: dailyIncome - dailyExpense,
+        netRmb: dailyIncomeRmb - dailyExpenseRmb,
+      };
+    });
+  }
+
+  return {
       date: format(day, ['year', '3months'].includes(range) ? 'MM-dd' : 'dd'),
       fullDate: dateStr,
       income: dailyIncome,
@@ -379,5 +442,11 @@ export async function getFinanceStats(businessId: string, range: string) {
     pendingReimburseNzd: pendingReimburseByCurrency.NZD.expense,
     pendingReimburseRmb: pendingReimburseByCurrency.RMB.expense,
     incomeBySource,
+    period: {
+      mode,
+      anchorDate: safeAnchor,
+      startDay,
+      endExclusiveDay,
+    },
   };
 }
