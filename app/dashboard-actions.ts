@@ -20,17 +20,17 @@ export async function getDashboardStats(businessId: string) {
   const { startIso, endIso, startDate, nextMonthStart } = getNzMonthBounds(0);
 
   // --- 与 Finance「本月」共用同一套流水/产值计算 ---
-  // tangent 汇总：分别拉 cus + sine 再合并；其余业务单元单查
-  const finance =
-    resolvedBusinessId === "tangent"
-      ? await mergeFinanceUnits(["cus", "sine"])
-      : await getFinanceStats(resolvedBusinessId, "month");
+  // getFinanceStats 已原生支持 tangent 聚合，避免集团视图重复发两套财务查询。
+  const finance = await getFinanceStats(resolvedBusinessId, "month");
 
   // --- 日历待办 + 资金池（需独立查学员/排课）---
   const unitFilter =
     resolvedBusinessId === "tangent"
       ? ["cus", "sine"]
       : [resolvedBusinessId];
+
+  const calendarStart = new Date(Date.now() - 62 * 24 * 60 * 60 * 1000).toISOString();
+  const calendarEnd = new Date(Date.now() + 370 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     { data: calendarBookings, error: calErr },
@@ -45,7 +45,9 @@ export async function getDashboardStats(businessId: string) {
         )
       `)
       .in("business_unit_id", unitFilter)
-      .neq("status", "cancelled"),
+      .neq("status", "cancelled")
+      .gte("start_time", calendarStart)
+      .lt("start_time", calendarEnd),
 
     supabase
       .from("students")
@@ -92,44 +94,5 @@ export async function getDashboardStats(businessId: string) {
     lowBalanceStudents,
     monthRange: { startIso, endIso, startDate, nextMonthStart },
     businessUnitId: resolvedBusinessId,
-  };
-}
-
-/** Tangent 集团视图：合并多个业务单元的 Finance 本月数据 */
-async function mergeFinanceUnits(unitIds: string[]) {
-  const parts = await Promise.all(unitIds.map((id) => getFinanceStats(id, "month")));
-  const byCurrency = emptyDualTotals();
-  let realized = 0;
-  let realizedRmb = 0;
-  const chartMap = new Map<string, number>();
-
-  for (const part of parts) {
-    byCurrency.NZD.income += part.byCurrency?.NZD?.income || 0;
-    byCurrency.NZD.expense += part.byCurrency?.NZD?.expense || 0;
-    byCurrency.RMB.income += part.byCurrency?.RMB?.income || 0;
-    byCurrency.RMB.expense += part.byCurrency?.RMB?.expense || 0;
-    realized += part.realized || 0;
-    realizedRmb += part.realizedRmb || 0;
-    (part.chartData || []).forEach((d: any) => {
-      chartMap.set(d.fullDate || d.date, (chartMap.get(d.fullDate || d.date) || 0) + (d.net || 0));
-    });
-  }
-
-  byCurrency.NZD.net = byCurrency.NZD.income - byCurrency.NZD.expense;
-  byCurrency.RMB.net = byCurrency.RMB.income - byCurrency.RMB.expense;
-
-  const chartData = Array.from(chartMap.entries())
-    .map(([date, net]) => ({ date, fullDate: date, net }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  return {
-    income: byCurrency.NZD.income,
-    expense: byCurrency.NZD.expense,
-    net: byCurrency.NZD.net,
-    realized,
-    realizedRmb,
-    byCurrency,
-    chartData,
-    transactions: [],
   };
 }
