@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type BusinessContextType = {
   currentBusinessId: string;
@@ -11,6 +12,7 @@ type BusinessContextType = {
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 export function BusinessProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   // 默认值，防止服务端渲染时为空
   const [currentBusinessId, setCurrentBusinessIdState] = useState<string>("cus");
   const [currentLabel, setCurrentLabel] = useState("CuS Academy (教培)");
@@ -43,8 +45,8 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     // 写入 Cookie，过期时间设置长一点 (365天)
     document.cookie = `businessId=${id}; path=/; max-age=31536000; SameSite=Lax`;
     
-    // 强制刷新页面以确保数据重新获取 (可选，视需求而定，为了稳妥建议刷新)
-    window.location.reload(); 
+    // 只刷新 Server Components，不做整页浏览器重载；客户端页面会立即响应 context。
+    router.refresh();
   };
 
   return (
