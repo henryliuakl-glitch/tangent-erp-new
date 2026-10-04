@@ -29,12 +29,12 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 transition-transform active:scale-95 ${
+      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-transform active:scale-95 ${
         primary ? "text-indigo-600" : active ? "text-slate-950" : "text-slate-400"
       }`}
     >
       <div
-        className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
+        className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
           primary
             ? "bg-indigo-600 text-white shadow-sm"
             : active
@@ -42,10 +42,10 @@ function NavItem({
               : "text-slate-400"
         }`}
       >
-        <Icon className="h-4.5 w-4.5" />
+        <Icon className="h-4 w-4" />
       </div>
       <span
-        className={`max-w-full truncate text-[10px] font-semibold ${
+        className={`max-w-full truncate text-[9px] font-semibold ${
           primary ? "text-indigo-600" : active ? "text-slate-800" : "text-slate-400"
         }`}
       >
@@ -65,7 +65,7 @@ export function MobileDock() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
-      <div className="mx-auto flex h-[66px] max-w-lg items-stretch px-2">
+      <div className="mx-auto flex h-[58px] max-w-lg items-stretch px-2">
         <NavItem href="/" icon={Home} label="首页" active={pathname === "/"} />
         <NavItem
           href="/students"
