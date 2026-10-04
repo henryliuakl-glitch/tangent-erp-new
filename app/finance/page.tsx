@@ -180,6 +180,16 @@ export default function FinancePage() {
     return `${startDateObj.getUTCMonth() + 1}月${startDateObj.getUTCDate()}日 – ${end.getUTCMonth() + 1}月${end.getUTCDate()}日`;
   })();
 
+  const setMonthAnchor = (value: string) => {
+    if (!/^\d{4}-\d{2}$/.test(value)) return;
+    setAnchorDate(`${value}-01`);
+  };
+
+  const setYearAnchor = (value: string) => {
+    if (!/^\d{4}$/.test(value)) return;
+    setAnchorDate(`${value}-01-01`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-10 font-sans text-slate-900">
       <div className="hidden md:block"><Navbar /></div>
@@ -249,6 +259,33 @@ export default function FinancePage() {
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="shrink-0 text-[10px] font-semibold text-slate-400">跳转到</span>
+              {periodMode === "week" ? (
+                <Input
+                  type="date"
+                  value={anchorDate}
+                  onChange={(e) => setAnchorDate(e.target.value)}
+                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
+                />
+              ) : periodMode === "month" ? (
+                <Input
+                  type="month"
+                  value={anchorDate.slice(0, 7)}
+                  onChange={(e) => setMonthAnchor(e.target.value)}
+                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
+                />
+              ) : (
+                <Input
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={anchorDate.slice(0, 4)}
+                  onChange={(e) => setYearAnchor(e.target.value)}
+                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
+                />
+              )}
             </div>
           </div>
         </div>
