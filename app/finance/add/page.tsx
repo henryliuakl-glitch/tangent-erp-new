@@ -27,6 +27,9 @@ import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 export default function AddTransactionPage() {
   const router = useRouter();
   const { currentBusinessId, currentLabel } = useBusiness();
+  const isTangent = currentBusinessId === "tangent";
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const supabase = createClient();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -52,17 +55,17 @@ export default function AddTransactionPage() {
   // 1. 进入页面自动加载学生列表
   useEffect(() => {
     async function fetchStudents() {
-      if (!currentBusinessId) return;
+      if (!effectiveBusinessId) return;
       const { data } = await supabase
         .from("students")
         .select("id, name, student_code, income_source")
-        .eq("business_unit_id", currentBusinessId)
+        .eq("business_unit_id", effectiveBusinessId)
         .order("name");
       
       if (data) setStudents(data);
     }
     fetchStudents();
-  }, [currentBusinessId]);
+  }, [effectiveBusinessId, supabase]);
 
   // ✅ 2. 核心新增：自动生成备注逻辑
   useEffect(() => {
@@ -124,7 +127,7 @@ export default function AddTransactionPage() {
     const file = e.target.files[0];
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${currentBusinessId}/${fileName}`;
+    const filePath = `${effectiveBusinessId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
     if (uploadError) {
@@ -141,10 +144,6 @@ export default function AddTransactionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "reimburse") {
-      if (currentBusinessId === "tangent") {
-        toast.warning("请先切换到教培或驾校再提交报销");
-        return;
-      }
       if (!amount || !category || !claimant) {
         toast.warning("请填写垫付人、金额和分类");
         return;
@@ -156,7 +155,7 @@ export default function AddTransactionPage() {
       formData.append("claimant", claimant);
       formData.append("date", date);
       formData.append("notes", description);
-      formData.append("businessId", currentBusinessId);
+      formData.append("businessId", effectiveBusinessId);
       formData.append("currency", currency);
       if (proofUrl) formData.append("proofUrl", proofUrl);
       const result = await createReimbursement(formData);
@@ -188,7 +187,7 @@ export default function AddTransactionPage() {
     formData.append("currency", currency);
     formData.append("date", date);
     formData.append("description", description);
-    formData.append("businessId", currentBusinessId);
+    formData.append("businessId", effectiveBusinessId);
     if (mode === "income" && incomeSource) formData.append("incomeSource", incomeSource);
     if (proofUrl) formData.append("proofUrl", proofUrl);
     
@@ -238,7 +237,9 @@ export default function AddTransactionPage() {
             </Button>
           ) : (
           <div className="hidden md:block">
-             <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-200">{currentLabel}</Badge>
+             <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-200">
+               {isTangent ? (effectiveBusinessId === "cus" ? "Tangent · CuS" : "Tangent · Sine") : currentLabel}
+             </Badge>
           </div>
           )}
         </div>
@@ -246,6 +247,40 @@ export default function AddTransactionPage() {
         <div className="rounded-xl md:rounded-3xl border border-slate-200 bg-white p-3 md:p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-3 md:space-y-6">
             
+
+            {isTangent && (
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetBusinessId("cus");
+                    setSelectedStudent("");
+                  }}
+                  className={`h-9 rounded-lg text-xs font-bold transition-all ${
+                    targetBusinessId === "cus"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-white"
+                  }`}
+                >
+                  CuS 教培
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetBusinessId("sine");
+                    setSelectedStudent("");
+                  }}
+                  className={`h-9 rounded-lg text-xs font-bold transition-all ${
+                    targetBusinessId === "sine"
+                      ? "bg-slate-950 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-white"
+                  }`}
+                >
+                  Sine 驾校
+                </button>
+              </div>
+            )}
+
             {/* Type Switcher */}
             <Tabs value={mode} onValueChange={handleTypeChange} className="w-full">
               <TabsList className="mx-auto grid h-10 md:h-12 w-full max-w-md grid-cols-3 rounded-xl md:rounded-2xl bg-slate-100 p-1">
