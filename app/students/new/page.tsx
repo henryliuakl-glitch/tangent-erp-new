@@ -107,21 +107,21 @@ export default function NewStudentPage() {
       {/* 1. Desktop Navbar */}
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-2xl px-4 md:px-6 py-6 md:py-8">
+      <main className="mx-auto max-w-2xl px-3 py-3 md:px-6 md:py-8">
         
         {/* 2. Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50" onClick={() => router.back()}>
+        <div className="flex items-center gap-2 mb-3 md:gap-3 md:mb-6">
+          <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg md:h-10 md:w-10 md:rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </Button>
           <div>
-            <h1 className="text-xl font-black text-slate-900">录入新学员</h1>
+            <h1 className="text-lg md:text-xl font-black text-slate-900">录入新学员</h1>
             <p className="text-xs text-slate-400 font-medium">Create New Profile</p>
           </div>
         </div>
 
         {/* 3. Form Card */}
-        <Card className="p-6 md:p-8 rounded-3xl shadow-sm border-slate-200 bg-white">
+        <Card className="p-3 md:p-6 md:p-8 rounded-xl md:rounded-3xl shadow-sm border-slate-200 bg-white">
           <form onSubmit={handleSubmit} className="space-y-8">
             
             {/* Section 1: Basic Info */}
@@ -132,11 +132,11 @@ export default function NewStudentPage() {
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs text-slate-500">学员姓名 (Name)</Label>
-                  <Input name="name" placeholder="例如: Michael Wang" required className="h-11 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-indigo-500" />
+                  <Input name="name" placeholder="例如: Michael Wang" required className="h-10 md:h-11 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-indigo-500" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-slate-500">学员编号 (Student ID)</Label>
-                  <Input name="studentId" placeholder="例如: S2026001" className="h-11 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-indigo-500" />
+                  <Input name="studentId" placeholder="例如: S2026001" className="h-10 md:h-11 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-indigo-500" />
                 </div>
               </div>
             </div>
@@ -161,11 +161,11 @@ export default function NewStudentPage() {
                           type="number" 
                           value={hourlyRate}
                           onChange={(e) => setHourlyRate(e.target.value)}
-                          className="h-11 pl-7 rounded-xl border-slate-200 bg-white" 
+                          className="h-10 md:h-11 pl-7 rounded-xl border-slate-200 bg-white" 
                         />
                       </div>
                       <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
-                        <SelectTrigger className="h-11 w-[120px] rounded-xl border-slate-200 bg-white font-bold text-xs shrink-0">
+                        <SelectTrigger className="h-10 md:h-11 w-[120px] rounded-xl border-slate-200 bg-white font-bold text-xs shrink-0">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -185,7 +185,7 @@ export default function NewStudentPage() {
                         type="number" 
                         value={balance}
                         onChange={(e) => setBalance(e.target.value)}
-                        className="h-11 pr-10 rounded-xl border-slate-200 bg-white" 
+                        className="h-10 md:h-11 pr-10 rounded-xl border-slate-200 bg-white" 
                         placeholder="0"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">Hrs</span>
@@ -194,7 +194,7 @@ export default function NewStudentPage() {
                   <div className="space-y-2">
                     <Label className="text-xs text-slate-500">缴费类型</Label>
                     <Select value={paymentType} onValueChange={setPaymentType}>
-                      <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                      <SelectTrigger className="h-10 md:h-11 rounded-xl border-slate-200 bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -207,7 +207,7 @@ export default function NewStudentPage() {
                   <div className="space-y-2 col-span-2">
                     <Label className="text-xs text-slate-500">默认收款来源</Label>
                     <Select value={incomeSource} onValueChange={setIncomeSource}>
-                      <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                      <SelectTrigger className="h-10 md:h-11 rounded-xl border-slate-200 bg-white">
                         <SelectValue placeholder="选择该学员通常付款到哪里" />
                       </SelectTrigger>
                       <SelectContent className="max-h-72">
@@ -232,7 +232,7 @@ export default function NewStudentPage() {
                   <div className="space-y-2">
                     <Label className="text-xs text-slate-500">当前年级 (Level)</Label>
                     <Select value={level} onValueChange={setLevel}>
-                      <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-200">
+                      <SelectTrigger className="h-10 md:h-11 rounded-xl bg-slate-50 border-slate-200">
                         <SelectValue placeholder="选择年级..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -254,7 +254,7 @@ export default function NewStudentPage() {
                       onChange={setSubject}
                       options={subjectOptions}
                       placeholder="例如: NCEA L1 Math"
-                      inputClassName="h-11 rounded-xl bg-slate-50 border-slate-200"
+                      inputClassName="h-10 md:h-11 rounded-xl bg-slate-50 border-slate-200"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -265,13 +265,13 @@ export default function NewStudentPage() {
                       onChange={setTeacher}
                       options={teacherOptions}
                       placeholder="例如: Henry Liu"
-                      inputClassName="h-11 rounded-xl bg-slate-50 border-slate-200"
+                      inputClassName="h-10 md:h-11 rounded-xl bg-slate-50 border-slate-200"
                     />
                   </div>
                </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 rounded-xl text-base font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 mt-4 transition-all active:scale-[0.98]" disabled={loading}>
+            <Button type="submit" className="w-full h-11 md:h-12 rounded-xl text-base font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 mt-4 transition-all active:scale-[0.98]" disabled={loading}>
               {loading ? <Loader2 className="animate-spin" /> : "确认创建档案"}
             </Button>
           </form>
