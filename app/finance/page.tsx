@@ -501,7 +501,18 @@ export default function FinancePage() {
                          {t.type === 'income' ? <ArrowDownRight className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
                        </div>
                        <div>
-                         <div className="text-sm font-bold text-slate-900 line-clamp-1">{t.category || "未分类"}</div>
+                         <div className="flex items-center gap-1.5">
+                                                    <div className="text-sm font-bold text-slate-900 line-clamp-1">{t.category || "未分类"}</div>
+                           {currentBusinessId === "tangent" && (
+                             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                               t.business_unit_id === "sine"
+                                 ? "bg-slate-900 text-white"
+                                 : "bg-indigo-50 text-indigo-600"
+                             }`}>
+                               {t.business_unit_id === "sine" ? "Sine" : "CuS"}
+                             </span>
+                           )}
+                         </div>
                          <div className="text-xs text-slate-400 mt-0.5 line-clamp-1 max-w-[150px] md:max-w-md font-medium">
                            {t.description || format(new Date(t.transaction_date), "MMM d, HH:mm")}
                          </div>
