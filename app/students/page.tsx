@@ -28,21 +28,21 @@ export default async function StudentsPage() {
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
+      <main className="mx-auto max-w-7xl px-3 py-3 md:px-6 md:py-8">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3 md:mb-6">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <Users className="h-6 w-6 text-indigo-600" />
+            <h1 className="text-lg md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+              <Users className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
               学员管理 (Students)
             </h1>
-            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider pl-8">
+            <p className="text-[9px] md:text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
               Directory & Balance
             </p>
           </div>
           <Link href="/students/new">
-            <Button className="rounded-xl bg-indigo-600 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 h-10 w-10 p-0 active:scale-95 transition-transform">
+            <Button className="rounded-xl bg-indigo-600 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 h-9 w-9 md:h-10 md:w-10 p-0 active:scale-95 transition-transform">
               <Plus className="h-5 w-5" />
             </Button>
           </Link>
