@@ -84,7 +84,10 @@ function durationSelectValue(value: string) {
 export default function NewBookingPage() {
   const router = useRouter();
   const { currentBusinessId } = useBusiness();
-  const isDrivingSchool = currentBusinessId.includes('sine');
+  const isTangent = currentBusinessId === "tangent";
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
+  const isDrivingSchool = effectiveBusinessId === "sine";
 
   if (isDrivingSchool) {
     return (
@@ -97,7 +100,34 @@ export default function NewBookingPage() {
             </Button>
             <h1 className="text-[17px] font-black tracking-tight text-slate-950 md:text-lg">新增练车预约</h1>
           </div>
-          <DrivingBookingForm businessId={currentBusinessId} router={router} />
+
+          {isTangent && (
+            <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setTargetBusinessId("cus")}
+                className={`h-8 rounded-lg text-xs font-bold transition-all ${
+                  targetBusinessId === "cus"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                CuS 教培
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetBusinessId("sine")}
+                className={`h-8 rounded-lg text-xs font-bold transition-all ${
+                  targetBusinessId === "sine"
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                Sine 驾校
+              </button>
+            </div>
+          )}
+          <DrivingBookingForm businessId={effectiveBusinessId} router={router} />
         </main>
         <MobileDock />
       </div>
@@ -119,7 +149,34 @@ export default function NewBookingPage() {
           </div>
         </div>
 
-        <TutoringBookingForm businessId={currentBusinessId} router={router} />
+
+          {isTangent && (
+            <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setTargetBusinessId("cus")}
+                className={`h-8 rounded-lg text-xs font-bold transition-all ${
+                  targetBusinessId === "cus"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                CuS 教培
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetBusinessId("sine")}
+                className={`h-8 rounded-lg text-xs font-bold transition-all ${
+                  targetBusinessId === "sine"
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                Sine 驾校
+              </button>
+            </div>
+          )}
+        <TutoringBookingForm businessId={effectiveBusinessId} router={router} />
 
       </main>
       <MobileDock />
