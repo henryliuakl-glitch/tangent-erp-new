@@ -29,6 +29,27 @@ import { currencySymbol, formatMoney, normalizeCurrency, type Currency, CURRENCY
 import { MobileDock } from "@/components/MobileDock";
 import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
+const financeCache = new Map<string, any>();
+
+function shiftFinanceAnchor(
+  anchorDate: string,
+  mode: "week" | "month" | "year",
+  direction: -1 | 1
+) {
+  const [year, month, day] = anchorDate.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day, 12));
+
+  if (mode === "week") d.setUTCDate(d.getUTCDate() + direction * 7);
+  if (mode === "month") d.setUTCMonth(d.getUTCMonth() + direction, 1);
+  if (mode === "year") d.setUTCFullYear(d.getUTCFullYear() + direction, 0, 1);
+
+  return [
+    d.getUTCFullYear(),
+    String(d.getUTCMonth() + 1).padStart(2, "0"),
+    String(d.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 export default function FinancePage() {
   const { currentBusinessId } = useBusiness();
   const [loading, setLoading] = useState(true);
@@ -79,12 +100,37 @@ export default function FinancePage() {
   // 加载数据
   async function loadData() {
     if (!currentBusinessId) return;
-    setLoading(true);
+
+    const key = `${currentBusinessId}:${periodMode}:${anchorDate}`;
+    const cached = financeCache.get(key);
+
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await getFinanceStats(currentBusinessId, periodMode, anchorDate);
+      financeCache.set(key, res);
       setData(res);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+
+      // 背景预取相邻期间；用户点左右箭头时多数情况下可瞬时显示。
+      for (const direction of [-1, 1] as const) {
+        const neighborAnchor = shiftFinanceAnchor(anchorDate, periodMode, direction);
+        const neighborKey = `${currentBusinessId}:${periodMode}:${neighborAnchor}`;
+        if (!financeCache.has(neighborKey)) {
+          void getFinanceStats(currentBusinessId, periodMode, neighborAnchor)
+            .then((neighbor) => financeCache.set(neighborKey, neighbor))
+            .catch(() => undefined);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -146,18 +192,11 @@ export default function FinancePage() {
 
 
   const shiftPeriod = (direction: -1 | 1) => {
-    const [year, month, day] = anchorDate.split("-").map(Number);
-    const d = new Date(Date.UTC(year, month - 1, day, 12));
-
-    if (periodMode === "week") d.setUTCDate(d.getUTCDate() + direction * 7);
-    if (periodMode === "month") d.setUTCMonth(d.getUTCMonth() + direction, 1);
-    if (periodMode === "year") d.setUTCFullYear(d.getUTCFullYear() + direction, 0, 1);
-
-    setAnchorDate([
-      d.getUTCFullYear(),
-      String(d.getUTCMonth() + 1).padStart(2, "0"),
-      String(d.getUTCDate()).padStart(2, "0"),
-    ].join("-"));
+    const nextAnchor = shiftFinanceAnchor(anchorDate, periodMode, direction);
+    const nextKey = `${currentBusinessId}:${periodMode}:${nextAnchor}`;
+    const cached = financeCache.get(nextKey);
+    if (cached) setData(cached);
+    setAnchorDate(nextAnchor);
   };
 
   const resetToCurrentPeriod = () => {
