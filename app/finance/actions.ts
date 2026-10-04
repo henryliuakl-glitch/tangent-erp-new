@@ -9,7 +9,7 @@ import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/
 import { getTodayInNZ, nzStartOfDayUtc, TZ_NZ } from "@/lib/timezone";
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { isPendingReimbursementTx } from "@/lib/reimbursement";
-import { isDrivingSchoolBusiness } from "@/lib/business";
+import { isDrivingSchoolBusiness, isOperationalBusinessId } from "@/lib/business";
 import { isIncomeSource } from "@/lib/income-source";
 
 /** 流水/时间戳 → NZ 日历日 YYYY-MM-DD */
@@ -91,6 +91,10 @@ export async function createTransaction(prevState: any, formData: FormData) {
   
   const studentId = formData.get("studentId") as string;
   const hoursToAdd = Number(formData.get("hoursToAdd"));
+
+  if (!isOperationalBusinessId(String(businessId || ""))) {
+    return { error: "请选择 CuS 或 Sine 业务实体" };
+  }
 
   if (hoursToAdd < 0 || !Number.isFinite(hoursToAdd)) {
     return { error: "课时必须是有效的非负数" };
