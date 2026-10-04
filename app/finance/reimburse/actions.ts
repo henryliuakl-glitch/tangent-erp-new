@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { normalizeCurrency } from "@/lib/currency";
+import { isOperationalBusinessId } from "@/lib/business";
 import {
   formatReimburseDescription,
   isPaidReimbursementTx,
@@ -37,6 +38,9 @@ export async function createReimbursement(formData: FormData) {
   if (!(amount > 0) || !category || !claimant || !date || !businessId) {
     return { error: "请填写垫付人、金额、分类和日期" };
   }
+  if (!isOperationalBusinessId(businessId)) {
+    return { error: "请选择 CuS 或 Sine 业务实体" };
+  }
 
   const { error } = await insertTransaction(supabase, {
     type: "expense",
@@ -67,7 +71,9 @@ export async function listReimbursements(businessId: string) {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  if (businessId !== "tangent") {
+  if (businessId === "tangent") {
+    query = query.in("business_unit_id", ["cus", "sine"]);
+  } else {
     query = query.eq("business_unit_id", businessId);
   }
 
