@@ -30,7 +30,7 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
   // 1. 客户端过滤：只显示当前公司的
   const filteredTransactions = initialTransactions.filter((t) => {
     if (isPendingReimbursementTx(t.description)) return false;
-    if (currentBusinessId === "tangent") return true;
+    if (currentBusinessId === "tangent") return t.business_unit_id === "cus" || t.business_unit_id === "sine";
     return t.business_unit_id === currentBusinessId;
   });
 
@@ -68,6 +68,15 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xs md:text-sm font-bold text-slate-900">{t.category}</h3>
+                {currentBusinessId === "tangent" && (
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    t.business_unit_id === "sine"
+                      ? "bg-slate-900 text-white"
+                      : "bg-indigo-50 text-indigo-600"
+                  }`}>
+                    {t.business_unit_id === "sine" ? "Sine" : "CuS"}
+                  </span>
+                )}
                 {t.proof_img_url && (
                   <Link href={t.proof_img_url} target="_blank" className="text-indigo-500 hover:text-indigo-700">
                     <FileText className="h-3.5 w-3.5" />
