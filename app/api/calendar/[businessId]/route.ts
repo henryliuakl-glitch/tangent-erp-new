@@ -35,11 +35,11 @@ function buildAppleCalendarLocation(value?: string | null) {
   // Tangent 当前主要在奥克兰运营。对明显是街道地址但未写城市/国家的记录补足地理上下文，
   // 提高 iOS Calendar/Maps 自动识别地址的成功率。
   const hasAucklandContext = /auckland|new zealand|nz\b/i.test(location);
-  const looksLikeStreetAddress =
-    /\d/.test(location) &&
-    /\b(st|street|rd|road|ave|avenue|pl|place|ln|lane|dr|drive|cres|crescent|way|terrace|tce|highway|hwy)\b/i.test(location);
 
-  if (!hasAucklandContext && looksLikeStreetAddress) {
+  // 当前业务地点基本都在奥克兰。无论是街道地址还是 POI（例如
+  // Constellation Park & Ride / VTNZ Albany），都补齐城市和国家，
+  // 让 Apple Calendar / Apple Maps 更容易把 LOCATION 当作真实地点解析。
+  if (!hasAucklandContext) {
     location += ", Auckland, New Zealand";
   }
 
@@ -215,7 +215,26 @@ export async function GET(
     ? `tangent-${businessId}-${staff}.ics`
     : `tangent-${businessId}.ics`;
 
-  return new Response(calendar.toString(), {
+  // ical-generator 对 Apple 私有字段的 TS 类型支持有限。
+  // 这里在最终 ICS 文本层追加标准 VALARM 和 Apple travel advisory，
+  // 不影响编译，同时 iOS Calendar 可以直接读取。
+  const calendarText = calendar
+    .toString()
+    .replace(
+      /END:VEVENT/g,
+      [
+        "X-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC",
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "TRIGGER:-PT30M",
+        "DESCRIPTION:课程将在 30 分钟后开始",
+        "X-APPLE-DEFAULT-ALARM:TRUE",
+        "END:VALARM",
+        "END:VEVENT",
+      ].join("\r\n")
+    );
+
+  return new Response(calendarText, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
