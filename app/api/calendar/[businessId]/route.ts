@@ -207,13 +207,6 @@ export async function GET(
       // 会导致 Apple Calendar 有时无法识别为地址。
       location: calendarLocation || undefined,
       url: mapsUrl,
-      alarms: [
-        {
-          type: "display",
-          trigger: 30 * 60,
-          description: `30 分钟后：${summaryText}`,
-        },
-      ],
       lastModified: new Date(),
     });
   }
