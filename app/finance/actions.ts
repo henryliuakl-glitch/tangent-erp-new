@@ -233,7 +233,9 @@ export async function getFinanceStats(
     .select("id,type,amount,category,description,transaction_date,business_unit_id,student_id,quantity,currency,income_source")
     .order("transaction_date", { ascending: false });
 
-  if (businessId !== "tangent") {
+  if (businessId === "tangent") {
+    txQuery = txQuery.in("business_unit_id", ["cus", "sine"]);
+  } else {
     txQuery = txQuery.eq("business_unit_id", businessId);
   }
 
@@ -256,7 +258,10 @@ export async function getFinanceStats(
     .select("amount, currency, description")
     .ilike("description", "%[报销待打款]%");
 
-  if (businessId !== "tangent") {
+  if (businessId === "tangent") {
+    bookingQuery = bookingQuery.in("business_unit_id", ["cus", "sine"]);
+    pendingQuery = pendingQuery.in("business_unit_id", ["cus", "sine"]);
+  } else {
     bookingQuery = bookingQuery.eq("business_unit_id", businessId);
     pendingQuery = pendingQuery.eq("business_unit_id", businessId);
   }
@@ -279,7 +284,9 @@ export async function getFinanceStats(
       .gte("start_time", bookingStartIso)
       .lt("start_time", bookingEndIso);
 
-    if (businessId !== "tangent") {
+    if (businessId === "tangent") {
+      fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
+    } else {
       fallbackQuery = fallbackQuery.eq("business_unit_id", businessId);
     }
 
