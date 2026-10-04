@@ -46,31 +46,31 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-2xl px-4 md:px-6 py-6 md:py-8">
+      <main className="mx-auto max-w-3xl px-3 py-3 md:px-6 md:py-8">
         
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-2 mb-3 md:gap-3 md:mb-6">
           <Link href="/students">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50">
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg md:h-10 md:w-10 md:rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50">
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-black text-slate-900">学员档案</h1>
+            <h1 className="text-lg md:text-xl font-black text-slate-900">学员档案</h1>
             <p className="text-xs text-slate-400 font-medium">Student Profile & History</p>
           </div>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative mb-6">
-          <div className="h-24 bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-100 relative">
+        <div className="bg-white rounded-xl md:rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative mb-3 md:mb-6">
+          <div className="h-14 md:h-24 bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-100 relative">
              <div className="absolute top-4 right-4"><EditStudentButton student={student} /></div>
           </div>
-          <div className="px-6 pb-8 relative">
-            <div className="absolute -top-10 left-6 h-20 w-20 rounded-full border-4 border-white shadow-md bg-white overflow-hidden">
+          <div className="px-4 pb-4 md:px-6 md:pb-8 relative">
+            <div className="absolute -top-7 left-4 h-14 w-14 md:-top-10 md:left-6 md:h-20 md:w-20 rounded-full border-4 border-white shadow-md bg-white overflow-hidden">
               <img src={avatarUrl} alt={student.name} className="h-full w-full object-cover" />
             </div>
-            <div className="pt-12 mb-6">
+            <div className="pt-8 mb-3 md:pt-12 md:mb-6">
                <div className="flex items-center gap-2">
                  <h2 className="text-2xl font-black text-slate-900">{student.name}</h2>
                  {student.student_code && <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-mono text-xs border-slate-200">{student.student_code}</Badge>}
@@ -85,7 +85,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                {driving ? (
-                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                 <div className="p-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-slate-400" />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-400">缴费方式</span>
@@ -95,7 +95,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                     </div>
                  </div>
                ) : (
-               <div className={`p-4 rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
+               <div className={`p-4 rounded-xl md:rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <Clock className={`h-4 w-4 ${paymentAlert ? 'text-rose-500' : 'text-emerald-500'}`} />
                     <span className={`text-xs font-bold uppercase tracking-wider ${paymentAlert ? 'text-rose-400' : 'text-emerald-400'}`}>剩余课时</span>
@@ -106,7 +106,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                   </div>
                </div>
                )}
-               <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/50">
+               <div className="p-4 rounded-xl md:rounded-2xl border border-indigo-100 bg-indigo-50/50">
                   <div className="flex items-center gap-2 mb-1">
                     <Wallet className="h-4 w-4 text-indigo-500" />
                     <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">当前费率</span>
@@ -125,7 +125,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
             {!driving && (
               <>
-                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="mt-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">默认收款来源</div>
                   <div className="mt-1 text-sm font-bold text-slate-800">
                     {student.income_source || "未设置"}
@@ -140,7 +140,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
         {/* ✅ History Tabs */}
         <Tabs defaultValue="classes" className="w-full">
-          <TabsList className="mx-auto mb-4 grid h-12 w-full max-w-md grid-cols-2 rounded-2xl bg-slate-200/50 p-1">
+          <TabsList className="mx-auto mb-4 grid h-12 w-full max-w-md grid-cols-2 rounded-xl md:rounded-2xl bg-slate-200/50 p-1">
             <TabsTrigger value="classes" className="rounded-xl text-xs font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
               📚 上课记录 ({bookings?.length || 0})
             </TabsTrigger>
