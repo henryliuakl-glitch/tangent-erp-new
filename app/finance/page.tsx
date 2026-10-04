@@ -18,7 +18,7 @@ import {
 import { 
   Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, 
   Loader2, Plus, DollarSign, Calendar as CalendarIcon,
-  FileBarChart, MoreVertical, Trash2, Pencil, Receipt
+  FileBarChart, MoreVertical, Trash2, Pencil, Receipt, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -32,7 +32,8 @@ import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 export default function FinancePage() {
   const { currentBusinessId } = useBusiness();
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState("month"); 
+  const [periodMode, setPeriodMode] = useState<"week" | "month" | "year">("month");
+  const [anchorDate, setAnchorDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [txFilter, setTxFilter] = useState<"all" | "income" | "expense">("all");
   const [data, setData] = useState<any>({
     income: 0, expense: 0, net: 0, realized: 0, realizedRmb: 0,
@@ -80,7 +81,7 @@ export default function FinancePage() {
     if (!currentBusinessId) return;
     setLoading(true);
     try {
-      const res = await getFinanceStats(currentBusinessId, range);
+      const res = await getFinanceStats(currentBusinessId, periodMode, anchorDate);
       setData(res);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -88,7 +89,7 @@ export default function FinancePage() {
 
   useEffect(() => {
     loadData();
-  }, [range, currentBusinessId]);
+  }, [periodMode, anchorDate, currentBusinessId]);
 
   // 删除流水
   const handleDelete = async (id: string) => {
@@ -143,6 +144,38 @@ export default function FinancePage() {
     }
   };
 
+
+  const shiftPeriod = (direction: -1 | 1) => {
+    const [year, month, day] = anchorDate.split("-").map(Number);
+    const d = new Date(Date.UTC(year, month - 1, day, 12));
+
+    if (periodMode === "week") d.setUTCDate(d.getUTCDate() + direction * 7);
+    if (periodMode === "month") d.setUTCMonth(d.getUTCMonth() + direction, 1);
+    if (periodMode === "year") d.setUTCFullYear(d.getUTCFullYear() + direction, 0, 1);
+
+    setAnchorDate(format(d, "yyyy-MM-dd"));
+  };
+
+  const resetToCurrentPeriod = () => {
+    setAnchorDate(format(new Date(), "yyyy-MM-dd"));
+  };
+
+  const periodLabel = (() => {
+    const start = data.period?.startDay;
+    const endExclusive = data.period?.endExclusiveDay;
+    if (!start || !endExclusive) return "加载中";
+
+    const end = new Date(`${endExclusive}T12:00:00Z`);
+    end.setUTCDate(end.getUTCDate() - 1);
+    const startDateObj = new Date(`${start}T12:00:00Z`);
+
+    if (periodMode === "year") return `${startDateObj.getUTCFullYear()}年`;
+    if (periodMode === "month") {
+      return `${startDateObj.getUTCFullYear()}年${startDateObj.getUTCMonth() + 1}月`;
+    }
+    return `${startDateObj.getUTCMonth() + 1}月${startDateObj.getUTCDate()}日 – ${end.getUTCMonth() + 1}月${end.getUTCDate()}日`;
+  })();
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-10 font-sans text-slate-900">
       <div className="hidden md:block"><Navbar /></div>
@@ -161,26 +194,58 @@ export default function FinancePage() {
              </p>
           </div>
           
-          <div className="mx-auto grid w-full max-w-lg grid-cols-5 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm md:mx-0 md:w-auto">
-            {[
-              { id: 'week', label: '本周' },
-              { id: 'month', label: '本月' },
-              { id: 'prev_month', label: '上月' },
-              { id: '3months', label: '近3月' },
-              { id: 'year', label: '全年' }
-            ].map((r) => (
+          <div className="w-full md:w-auto">
+            <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              {([
+                { id: "week" as const, label: "按周" },
+                { id: "month" as const, label: "按月" },
+                { id: "year" as const, label: "按年" },
+              ]).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setPeriodMode(item.id)}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:text-xs ${
+                    periodMode === item.id
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-1.5 py-1 shadow-sm">
               <button
-                key={r.id}
-                onClick={() => setRange(r.id)}
-                className={`rounded-lg px-2 py-1.5 text-center text-[11px] font-bold whitespace-nowrap transition-all sm:text-xs ${
-                  range === r.id 
-                    ? 'bg-slate-900 text-white shadow-md' 
-                    : 'text-slate-500 hover:bg-slate-50'
-                }`}
+                type="button"
+                onClick={() => shiftPeriod(-1)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                aria-label="上一个期间"
               >
-                {r.label}
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            ))}
+
+              <button
+                type="button"
+                onClick={resetToCurrentPeriod}
+                className="min-w-0 flex-1 px-2 text-center"
+                title="点击返回当前期间"
+              >
+                <div className="truncate text-xs font-black text-slate-900">{periodLabel}</div>
+                <div className="mt-0.5 text-[9px] font-semibold text-slate-400">
+                  {periodMode === "week" ? "每周单独查看" : periodMode === "month" ? "每月单独查看" : "每年单独查看"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => shiftPeriod(1)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                aria-label="下一个期间"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -286,9 +351,9 @@ export default function FinancePage() {
                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                        <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
-                       <Bar dataKey="income" name="收入 In" fill="#10b981" radius={[4, 4, 0, 0]} barSize={range === 'week' ? 20 : 8} />
-                       <Bar dataKey="expense" name="支出 Out" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={range === 'week' ? 20 : 8} />
-                       <Bar dataKey="realized" name="产值 Realized" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={range === 'week' ? 20 : 8} />
+                       <Bar dataKey="income" name="收入 In" fill="#10b981" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
+                       <Bar dataKey="expense" name="支出 Out" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
+                       <Bar dataKey="realized" name="产值 Realized" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
                      </BarChart>
                    </ResponsiveContainer>
                  )}
