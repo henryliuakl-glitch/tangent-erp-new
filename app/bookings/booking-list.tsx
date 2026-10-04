@@ -379,6 +379,15 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                             <div className="min-w-0 flex-1">
                               <div className="flex min-w-0 items-center gap-1.5">
                                 <h4 className="truncate text-[13px] font-bold leading-4 text-slate-900">{studentTitle}</h4>
+                                {currentBusinessId === "tangent" && (
+                                  <span className={`shrink-0 rounded px-1.5 py-px text-[9px] font-bold leading-4 ${
+                                    isDrivingSchoolBusiness(b.business_unit_id)
+                                      ? "bg-slate-900 text-white"
+                                      : "bg-indigo-50 text-indigo-600"
+                                  }`}>
+                                    {isDrivingSchoolBusiness(b.business_unit_id) ? "Sine" : "CuS"}
+                                  </span>
+                                )}
                                 {coachLabel ? (
                                   <span className={`shrink-0 rounded border px-1.5 py-px text-[9px] font-semibold leading-4 ${staffAccent.label}`}>
                                     {coachLabel}
@@ -472,7 +481,21 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                               <div className="flex min-w-0 items-start gap-2 md:gap-3">
                                  <Avatar name={studentName || studentCode || "?"} />
                                  <div className="min-w-0 flex-1">
-                                    <h4 className="truncate text-sm md:text-base font-semibold text-slate-900">{studentTitle}</h4>
+                                    <div className="flex min-w-0 items-center gap-2">
+                                                                          <h4 className="truncate text-sm md:text-base font-semibold text-slate-900">{studentTitle}</h4>
+                                      {currentBusinessId === "tangent" && (
+                                        <Badge
+                                          variant="outline"
+                                          className={`h-5 shrink-0 px-1.5 text-[9px] font-bold ${
+                                            isDrivingSchoolBusiness(b.business_unit_id)
+                                              ? "border-slate-300 bg-slate-900 text-white"
+                                              : "border-indigo-200 bg-indigo-50 text-indigo-600"
+                                          }`}
+                                        >
+                                          {isDrivingSchoolBusiness(b.business_unit_id) ? "Sine" : "CuS"}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <p className="mt-0.5 truncate text-sm font-medium text-slate-700">{subjectLabel}</p>
                                     <div className="mt-1 md:mt-2 flex flex-wrap items-center gap-1.5">
                                       <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[11px] font-medium">
