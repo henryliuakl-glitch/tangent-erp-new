@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { durationToMs } from "@/lib/utils";
 import { incrementStudentBalance } from "@/lib/student-balance";
-import { isDrivingSchoolBusiness } from "@/lib/business";
+import { isDrivingSchoolBusiness, isOperationalBusinessId } from "@/lib/business";
 import {
   recordDrivingLessonTuition,
   reverseDrivingLessonTuition,
@@ -196,6 +196,8 @@ export async function createBooking(prevState: any, formData: FormData) {
   const subject = formData.get("subject") as string;
   const teacher = formData.get("teacher") as string;
   const notes = formData.get("notes") as string;
+
+  if (!isOperationalBusinessId(businessId)) return { error: "请选择 CuS 或 Sine 业务实体" };
 
   const repeatMode = (formData.get("repeatMode") as string) || "none";
   const endMode = (formData.get("endMode") as string) || "count";
@@ -626,6 +628,8 @@ export async function quickCreateDrivingBooking(formData: FormData) {
   const actualRate = Number(formData.get("actualRate"));
   const subject = formData.get("subject") as string;
   const notes = formData.get("notes") as string;
+
+  if (businessId !== "sine") return { error: "驾校排课必须归属 Sine" };
 
   const repeatMode = (formData.get("repeatMode") as string) || "none";
   const endMode = (formData.get("endMode") as string) || "count";
