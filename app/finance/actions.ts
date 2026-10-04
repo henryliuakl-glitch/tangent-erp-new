@@ -3,10 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { incrementStudentBalance } from "@/lib/student-balance";
-import { format, eachDayOfInterval } from "date-fns";
+import { eachDayOfInterval } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/currency";
-import { getNzMonthBounds, getTodayInNZ, nzStartOfDayUtc, nzEndOfDayUtc, TZ_NZ } from "@/lib/timezone";
+import { getTodayInNZ, nzStartOfDayUtc, TZ_NZ } from "@/lib/timezone";
 import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { isPendingReimbursementTx } from "@/lib/reimbursement";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -414,19 +414,6 @@ export async function getFinanceStats(
       };
     });
   }
-
-  return {
-      date: format(day, ['year', '3months'].includes(range) ? 'MM-dd' : 'dd'),
-      fullDate: dateStr,
-      income: dailyIncome,
-      expense: dailyExpense,
-      incomeRmb: dailyIncomeRmb,
-      expenseRmb: dailyExpenseRmb,
-      realized: dailyRealized,
-      net: dailyIncome - dailyExpense,
-      netRmb: dailyIncomeRmb - dailyExpenseRmb,
-    };
-  });
 
   return {
     income,
