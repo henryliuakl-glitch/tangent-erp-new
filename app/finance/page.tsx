@@ -153,7 +153,11 @@ export default function FinancePage() {
     if (periodMode === "month") d.setUTCMonth(d.getUTCMonth() + direction, 1);
     if (periodMode === "year") d.setUTCFullYear(d.getUTCFullYear() + direction, 0, 1);
 
-    setAnchorDate(format(d, "yyyy-MM-dd"));
+    setAnchorDate([
+      d.getUTCFullYear(),
+      String(d.getUTCMonth() + 1).padStart(2, "0"),
+      String(d.getUTCDate()).padStart(2, "0"),
+    ].join("-"));
   };
 
   const resetToCurrentPeriod = () => {
