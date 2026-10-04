@@ -231,8 +231,11 @@ export async function getFinanceStats(
   let txQuery = supabase
     .from("transactions")
     .select("*")
-    .eq("business_unit_id", businessId)
     .order("transaction_date", { ascending: false });
+
+  if (businessId !== "tangent") {
+    txQuery = txQuery.eq("business_unit_id", businessId);
+  }
 
   txQuery = txQuery
     .gte("transaction_date", startStr)
@@ -241,20 +244,27 @@ export async function getFinanceStats(
   const bookingStartIso = startDate.toISOString();
   const bookingEndIso = endExclusiveDate.toISOString();
 
+  let bookingQuery = supabase
+    .from("bookings")
+    .select(`start_time, duration, actual_rate, student:students(hourly_rate, currency)`)
+    .eq("status", "completed")
+    .gte("start_time", bookingStartIso)
+    .lt("start_time", bookingEndIso);
+
+  let pendingQuery = supabase
+    .from("transactions")
+    .select("amount, currency, description")
+    .ilike("description", "%[报销待打款]%");
+
+  if (businessId !== "tangent") {
+    bookingQuery = bookingQuery.eq("business_unit_id", businessId);
+    pendingQuery = pendingQuery.eq("business_unit_id", businessId);
+  }
+
   const [transactionsRes, bookingsPrimary, pendingRes] = await Promise.all([
     txQuery,
-    supabase
-      .from("bookings")
-      .select(`start_time, duration, actual_rate, student:students(hourly_rate, currency)`)
-      .eq("business_unit_id", businessId)
-      .eq("status", "completed")
-      .gte("start_time", bookingStartIso)
-      .lt("start_time", bookingEndIso),
-    supabase
-      .from("transactions")
-      .select("amount, currency, description")
-      .eq("business_unit_id", businessId)
-      .ilike("description", "%[报销待打款]%"),
+    bookingQuery,
+    pendingQuery,
   ]);
 
   let bookings: any[] = bookingsPrimary.data || [];
@@ -262,13 +272,18 @@ export async function getFinanceStats(
   // 若显式关联 currency 失败，回退不带 student.currency
   if (bookingsPrimary.error) {
     console.error("[getFinanceStats] bookings error, retry without currency:", bookingsPrimary.error.message);
-    const bookingsFallback = await supabase
+    let fallbackQuery = supabase
       .from("bookings")
       .select(`start_time, duration, actual_rate, student:students(hourly_rate)`)
-      .eq("business_unit_id", businessId)
       .eq("status", "completed")
       .gte("start_time", bookingStartIso)
       .lt("start_time", bookingEndIso);
+
+    if (businessId !== "tangent") {
+      fallbackQuery = fallbackQuery.eq("business_unit_id", businessId);
+    }
+
+    const bookingsFallback = await fallbackQuery;
     bookings = bookingsFallback.data || [];
   }
 
