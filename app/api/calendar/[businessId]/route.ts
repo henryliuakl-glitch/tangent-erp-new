@@ -20,6 +20,37 @@ function normalizeName(value?: string | null) {
   return (value || "").trim().toLowerCase();
 }
 
+function isOnlineLocation(value?: string | null) {
+  const key = normalizeName(value);
+  return !key || ["线上", "online", "zoom", "remote"].some((token) => key.includes(token));
+}
+
+function buildAppleCalendarLocation(value?: string | null) {
+  const raw = (value || "").trim();
+  if (!raw || isOnlineLocation(raw)) return "";
+
+  // 把 “VTNZ Albany (5 Saturn Pl)” 这类内部展示格式改成更适合 Apple Maps 地理编码的格式。
+  let location = raw.replace(/\s*\(([^)]+)\)\s*$/, ", $1").trim();
+
+  // Tangent 当前主要在奥克兰运营。对明显是街道地址但未写城市/国家的记录补足地理上下文，
+  // 提高 iOS Calendar/Maps 自动识别地址的成功率。
+  const hasAucklandContext = /auckland|new zealand|nz\b/i.test(location);
+  const looksLikeStreetAddress =
+    /\d/.test(location) &&
+    /\b(st|street|rd|road|ave|avenue|pl|place|ln|lane|dr|drive|cres|crescent|way|terrace|tce|highway|hwy)\b/i.test(location);
+
+  if (!hasAucklandContext && looksLikeStreetAddress) {
+    location += ", Auckland, New Zealand";
+  }
+
+  return location;
+}
+
+function appleMapsUrl(location: string) {
+  if (!location) return undefined;
+  return `https://maps.apple.com/?q=${encodeURIComponent(location)}`;
+}
+
 function matchesStaff(
   staff: StaffFeed | null,
   businessId: string,
@@ -123,7 +154,8 @@ export async function GET(
     const notes = booking.notes || "";
     const statusLabel = booking.status === "completed" ? "已完成" : "待进行";
     const placeLabel = booking.location?.trim() || "未指定";
-    const locationWithTz = `${placeLabel} | ${formatDualTime(booking.start_time)}`;
+    const calendarLocation = buildAppleCalendarLocation(booking.location);
+    const mapsUrl = appleMapsUrl(calendarLocation);
     const metadata = (booking.metadata as Record<string, unknown> | null) ?? {};
 
     let summaryText: string;
@@ -168,8 +200,28 @@ export async function GET(
       start,
       end,
       summary: summaryText,
-      description: descriptionText,
-      location: locationWithTz,
+      description: mapsUrl
+        ? `${descriptionText}\n\nApple Maps: ${mapsUrl}`
+        : descriptionText,
+      // LOCATION 必须只放可地理编码的地点。之前混入 NZT/BJT 时间，
+      // 会导致 Apple Calendar 有时无法识别为地址。
+      location: calendarLocation || undefined,
+      url: mapsUrl,
+      alarms: [
+        {
+          type: "display",
+          trigger: 30 * 60,
+          description: `30 分钟后：${summaryText}`,
+        },
+      ],
+      x: calendarLocation
+        ? [
+            {
+              key: "X-APPLE-TRAVEL-ADVISORY-BEHAVIOR",
+              value: "AUTOMATIC",
+            },
+          ]
+        : [],
       lastModified: new Date(),
     });
   }
