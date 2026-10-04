@@ -207,25 +207,25 @@ export default function ReimbursePage() {
         <Navbar />
       </div>
 
-      <main className="mx-auto max-w-xl px-4 md:px-6 py-6 md:py-8">
-        <div className="mb-5 flex items-center gap-3">
+      <main className="mx-auto max-w-xl px-3 py-3 md:px-6 md:py-8">
+        <div className="mb-3 md:mb-5 flex items-center gap-2 md:gap-3">
           <Button
             variant="outline"
             size="icon"
-            className="h-10 w-10 rounded-xl border-slate-200 bg-white shadow-sm"
+            className="h-9 w-9 rounded-lg md:h-10 md:w-10 md:rounded-xl border-slate-200 bg-white shadow-sm"
             onClick={() => router.push("/finance")}
           >
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black text-slate-900">报销平账</h1>
+            <h1 className="text-lg md:text-xl font-black text-slate-900">报销平账</h1>
             <p className="text-xs font-medium text-slate-400">{currentLabel} · 待打款不计入净现金流</p>
           </div>
           <Receipt className="h-5 w-5 text-indigo-500" />
         </div>
 
         {pending.length > 0 && (
-          <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+          <div className="mb-3 md:mb-5 rounded-xl md:rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
             <p className="text-xs font-bold uppercase tracking-wider text-amber-700">待打款合计</p>
             <p className="mt-1 text-lg font-black text-slate-900">
               {pendingTotal.NZD > 0 ? `$${pendingTotal.NZD.toLocaleString()}` : null}
@@ -236,8 +236,8 @@ export default function ReimbursePage() {
           </div>
         )}
 
-        <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="mb-3 md:mb-6 rounded-xl md:rounded-3xl border border-slate-200 bg-white p-3 md:p-5 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">垫付人</Label>
@@ -246,7 +246,7 @@ export default function ReimbursePage() {
                   value={claimant}
                   onChange={(e) => setClaimant(e.target.value)}
                   placeholder="谁垫的钱"
-                  className="h-11 rounded-xl"
+                  className="h-10 rounded-lg md:h-11 md:rounded-xl"
                 />
                 <datalist id="claimant-options">
                   {claimantOptions.map((c) => (
@@ -257,7 +257,7 @@ export default function ReimbursePage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">分类</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-11 rounded-xl">
+                  <SelectTrigger className="h-10 rounded-lg md:h-11 md:rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -298,17 +298,17 @@ export default function ReimbursePage() {
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="h-14 rounded-2xl border-slate-200 bg-slate-50 pl-10 text-center text-3xl font-black"
+                  className="h-12 md:h-14 rounded-xl md:rounded-2xl border-slate-200 bg-slate-50 pl-10 text-center text-3xl font-black"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">发生日期</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 rounded-xl" />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-lg md:h-11 md:rounded-xl" />
             </div>
 
-            <div className={`relative flex h-20 w-full items-center justify-center rounded-xl border-2 border-dashed transition-all ${proofUrl ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+            <div className={`relative flex h-16 md:h-20 w-full items-center justify-center rounded-xl border-2 border-dashed transition-all ${proofUrl ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
               <input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} className="absolute inset-0 z-10 cursor-pointer opacity-0" />
               {uploading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
