@@ -99,8 +99,8 @@ export function BookingsCta() {
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   return (
     <Link href={driving ? "/bookings/quick" : "/bookings/new"} className="self-end sm:self-auto">
-      <Button className="h-9 rounded-xl bg-indigo-600 px-3 text-xs font-bold shadow-lg shadow-indigo-200 transition-transform active:scale-95 hover:bg-indigo-700 sm:h-10 sm:w-auto sm:px-4 sm:text-sm">
-        <Plus className="mr-1 h-4 w-4 sm:mr-2 sm:h-5 sm:w-5" />
+      <Button className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[11px] font-bold shadow-md shadow-indigo-100 transition-transform active:scale-95 hover:bg-indigo-700 sm:h-10 sm:w-auto sm:rounded-xl sm:px-4 sm:text-sm">
+        <Plus className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-5 sm:w-5" />
         {driving ? "极速排课" : "新建排课"}
       </Button>
     </Link>
@@ -283,20 +283,20 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   };
 
   return (
-    <div className="space-y-1.5 md:space-y-3 md:space-y-6">
+    <div className="space-y-1 md:space-y-6">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           placeholder="搜索学员、编号、地点、教练…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-10 md:h-11 rounded-lg md:rounded-xl border-slate-200 bg-white pl-9 text-sm"
+          className="h-9 md:h-11 rounded-lg md:rounded-xl border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
         />
       </div>
       <div className="mx-auto w-full max-w-md bg-slate-100 p-0.5 md:p-1 rounded-lg md:rounded-xl grid grid-cols-2">
         <button 
           onClick={() => setActiveTab('upcoming')}
-          className={`py-1.5 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
+          className={`py-1 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'upcoming' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -304,7 +304,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
         </button>
         <button 
           onClick={() => setActiveTab('history')}
-          className={`py-1.5 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
+          className={`py-1 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -333,14 +333,14 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
 
           return (
             <div key={dateKey} className="relative">
-              <div className="sticky top-0 z-10 bg-slate-50 py-1.5 md:py-3 flex items-center gap-2 md:gap-3">
-                 <h3 className={`text-sm font-bold ${isDateToday ? 'text-indigo-600' : 'text-slate-500'}`}>
+              <div className="sticky top-0 z-10 bg-slate-50 py-1 md:py-3 flex items-center gap-2 md:gap-3">
+                 <h3 className={`text-[12px] md:text-sm font-bold ${isDateToday ? 'text-indigo-600' : 'text-slate-500'}`}>
                    {dateLabel}
                  </h3>
                  <div className="h-px flex-1 bg-slate-200"></div>
               </div>
 
-              <div className="space-y-1.5 md:space-y-3">
+              <div className="space-y-1 md:space-y-3">
                 {items.map(b => {
                    const isOverdue = activeTab === 'upcoming' && isPast(new Date(b.start_time)) && !isTodayInNZ(b.start_time);
                    const studentCode = b.student?.student_code?.trim() || "";
@@ -371,10 +371,103 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                    const rateLabel = b.actual_rate || b.student?.hourly_rate || null;
                    
                    return (
-                     <div key={b.id} className={`relative border-l-2 py-0.5 pl-2 md:py-1 md:pl-3 transition-colors group ${lineClass}`}>
-                        <div className={`absolute -left-[5px] top-3 h-2 w-2 md:top-4 md:h-2.5 md:w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
+                     <div key={b.id} className={`relative border-l-2 py-0 pl-1.5 md:py-1 md:pl-3 transition-colors group ${lineClass}`}>
+                        <div className={`absolute -left-[4px] top-2.5 h-1.5 w-1.5 md:top-4 md:h-2.5 md:w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
                         
-                        <div className={`rounded-xl md:rounded-2xl border p-2.5 md:p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
+                        <div className={`sm:hidden rounded-lg border px-2.5 py-2 shadow-sm ${cardClass}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                <h4 className="truncate text-[13px] font-bold leading-4 text-slate-900">{studentTitle}</h4>
+                                {coachLabel ? (
+                                  <span className={`shrink-0 rounded border px-1.5 py-px text-[9px] font-semibold leading-4 ${staffAccent.label}`}>
+                                    {coachLabel}
+                                  </span>
+                                ) : null}
+                                {isOverdue ? (
+                                  <span className="shrink-0 rounded bg-rose-50 px-1.5 py-px text-[9px] font-semibold leading-4 text-rose-600">过期</span>
+                                ) : null}
+                              </div>
+                              <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4">
+                                <span className="truncate font-medium text-slate-600">{subjectLabel}</span>
+                                <span className="shrink-0 text-slate-300">·</span>
+                                <span className="shrink-0 text-slate-400">{b.duration}h</span>
+                                {rateLabel ? (
+                                  <>
+                                    <span className="shrink-0 text-slate-300">·</span>
+                                    <span className="shrink-0 font-bold text-emerald-600">${rateLabel}</span>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-right">
+                              <div className={`text-[13px] font-black leading-4 ${isOverdue ? "text-rose-500" : "text-slate-900"}`}>
+                                {utcToNzTimeStr(b.start_time)}–{utcToNzTimeStr(b.end_time)}
+                              </div>
+                              <div className="mt-0.5 text-[9px] leading-3 text-slate-400">
+                                NZT · {b.status === "completed" ? "已完成" : b.status === "cancelled" ? "已取消" : "待办"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-1.5 flex items-center gap-2 border-t border-slate-100 pt-1.5">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-1 text-[10px] leading-4 text-slate-500">
+                                <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                                <span className="truncate">{b.location || "线上"}</span>
+                              </div>
+                              {(coachLabel || carLabel) ? (
+                                <div className="mt-0.5 truncate pl-4 text-[9px] leading-3 text-slate-400">
+                                  {coachLabel ? `${isDrivingSchoolBusiness(b.business_unit_id) ? "教练" : "老师"}：${coachLabel}` : ""}
+                                  {coachLabel && carLabel ? " · " : ""}
+                                  {carLabel ? `用车：${carLabel}` : ""}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {activeTab === "upcoming" ? (
+                              <div className="flex shrink-0 items-center gap-1">
+                                <button
+                                  onClick={() => openEdit(b)}
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                  aria-label="编辑课程"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleComplete(b)}
+                                  disabled={!!loadingId}
+                                  className="flex h-7 items-center gap-1 rounded-md bg-slate-900 px-2 text-[10px] font-bold text-white shadow-sm disabled:opacity-50"
+                                >
+                                  {loadingId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                  完成
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex shrink-0 items-center gap-1">
+                                {b.status === "completed" ? (
+                                  <button
+                                    onClick={() => { setInvoiceBooking(b); setInvoiceOpen(true); }}
+                                    className="flex h-7 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 text-[9px] font-semibold text-indigo-600"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                    单据
+                                  </button>
+                                ) : null}
+                                <button
+                                  onClick={() => handleDelete(b.id)}
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                                  aria-label="删除记录"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className={`hidden sm:block rounded-xl md:rounded-2xl border p-2.5 md:p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
                            <div className="mb-2 md:mb-3 flex items-start justify-between gap-2 md:gap-3">
                               <div className="flex min-w-0 items-start gap-2 md:gap-3">
                                  <Avatar name={studentName || studentCode || "?"} />
