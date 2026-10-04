@@ -28,7 +28,11 @@ export default async function StudentsPage() {
     .select("student_id, duration, status, start_time")
     .gte("start_time", recentCutoff);
 
-  if (businessId !== "tangent") {
+  if (businessId === "tangent") {
+    studentQuery = studentQuery.in("business_unit_id", ["cus", "sine"]);
+    confirmedQuery = confirmedQuery.in("business_unit_id", ["cus", "sine"]);
+    recentQuery = recentQuery.in("business_unit_id", ["cus", "sine"]);
+  } else {
     studentQuery = studentQuery.eq("business_unit_id", businessId);
     confirmedQuery = confirmedQuery.eq("business_unit_id", businessId);
     recentQuery = recentQuery.eq("business_unit_id", businessId);
