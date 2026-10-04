@@ -276,27 +276,27 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   const Avatar = ({ name }: { name: string }) => {
     const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
     return (
-      <div className="h-10 w-10 rounded-full border border-slate-200 shadow-sm bg-white overflow-hidden flex-shrink-0">
+      <div className="h-8 w-8 md:h-10 md:w-10 rounded-full border border-slate-200 shadow-sm bg-white overflow-hidden flex-shrink-0">
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-1.5 md:space-y-3 md:space-y-6">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           placeholder="搜索学员、编号、地点、教练…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-11 rounded-xl border-slate-200 bg-white pl-9 text-sm"
+          className="h-10 md:h-11 rounded-lg md:rounded-xl border-slate-200 bg-white pl-9 text-sm"
         />
       </div>
-      <div className="mx-auto w-full max-w-md bg-slate-100 p-1 rounded-xl grid grid-cols-2">
+      <div className="mx-auto w-full max-w-md bg-slate-100 p-0.5 md:p-1 rounded-lg md:rounded-xl grid grid-cols-2">
         <button 
           onClick={() => setActiveTab('upcoming')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
+          className={`py-1.5 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'upcoming' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -304,7 +304,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
         </button>
         <button 
           onClick={() => setActiveTab('history')}
-          className={`py-2 text-xs font-bold rounded-lg transition-all ${
+          className={`py-1.5 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -313,8 +313,8 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
       </div>
 
       {Object.keys(groupedBookings).length === 0 ? (
-        <div className="text-center py-20">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-300 mb-4">
+        <div className="text-center py-10 md:py-20">
+          <div className="inline-flex h-10 w-10 md:h-16 md:w-16 items-center justify-center rounded-full bg-slate-50 text-slate-300 mb-2 md:mb-4">
             <CalendarIcon className="h-8 w-8" />
           </div>
           <p className="text-slate-400 text-sm font-medium">
@@ -333,14 +333,14 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
 
           return (
             <div key={dateKey} className="relative">
-              <div className="sticky top-0 z-10 bg-slate-50 py-3 flex items-center gap-3">
+              <div className="sticky top-0 z-10 bg-slate-50 py-1.5 md:py-3 flex items-center gap-2 md:gap-3">
                  <h3 className={`text-sm font-bold ${isDateToday ? 'text-indigo-600' : 'text-slate-500'}`}>
                    {dateLabel}
                  </h3>
                  <div className="h-px flex-1 bg-slate-200"></div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-1.5 md:space-y-3">
                 {items.map(b => {
                    const isOverdue = activeTab === 'upcoming' && isPast(new Date(b.start_time)) && !isTodayInNZ(b.start_time);
                    const studentCode = b.student?.student_code?.trim() || "";
@@ -371,17 +371,17 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                    const rateLabel = b.actual_rate || b.student?.hourly_rate || null;
                    
                    return (
-                     <div key={b.id} className={`relative border-l-2 py-1 pl-3 transition-colors group ${lineClass}`}>
-                        <div className={`absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
+                     <div key={b.id} className={`relative border-l-2 py-0.5 pl-2 md:py-1 md:pl-3 transition-colors group ${lineClass}`}>
+                        <div className={`absolute -left-[5px] top-3 h-2 w-2 md:top-4 md:h-2.5 md:w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
                         
-                        <div className={`rounded-2xl border p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
-                           <div className="mb-3 flex items-start justify-between gap-3">
-                              <div className="flex min-w-0 items-start gap-3">
+                        <div className={`rounded-xl md:rounded-2xl border p-2.5 md:p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
+                           <div className="mb-2 md:mb-3 flex items-start justify-between gap-2 md:gap-3">
+                              <div className="flex min-w-0 items-start gap-2 md:gap-3">
                                  <Avatar name={studentName || studentCode || "?"} />
                                  <div className="min-w-0 flex-1">
-                                    <h4 className="truncate text-base font-semibold text-slate-900">{studentTitle}</h4>
+                                    <h4 className="truncate text-sm md:text-base font-semibold text-slate-900">{studentTitle}</h4>
                                     <p className="mt-0.5 truncate text-sm font-medium text-slate-700">{subjectLabel}</p>
-                                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <div className="mt-1 md:mt-2 flex flex-wrap items-center gap-1.5">
                                       <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[11px] font-medium">
                                         {b.status === "completed" ? "已完成" : b.status === "cancelled" ? "已取消" : "待办"}
                                       </Badge>
@@ -417,7 +417,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                               </div>
                            </div>
 
-                           <div className="space-y-2 border-t border-slate-50 pt-2">
+                           <div className="space-y-1 md:space-y-2 border-t border-slate-50 pt-1.5 md:pt-2">
                               <div className="space-y-1 text-xs text-slate-500">
                                 <div className="flex items-start gap-1.5">
                                   <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
@@ -590,7 +590,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                 placeholder={editingBooking && isDrivingSchoolBusiness(editingBooking.business_unit_id) ? "如：限制性练车" : "如：IGCSE Chemistry"}
               />
             </div>
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-1.5 md:pt-2">
                <button onClick={() => { if (editingBooking) requestCancel(editingBooking); }} className="text-xs text-rose-500 hover:underline">
                  取消该预约
                </button>
@@ -616,16 +616,16 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
           <RadioGroup
             value={scopeChoice}
             onValueChange={(v) => setScopeChoice(v as BookingScope)}
-            className="gap-3 py-2"
+            className="gap-2 md:gap-3 py-2"
           >
-            <label className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${scopeChoice === "single" ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"}`}>
+            <label className={`flex items-start gap-2 md:gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${scopeChoice === "single" ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"}`}>
               <RadioGroupItem value="single" id="scope-single" className="mt-0.5" />
               <div>
                 <div className="text-sm font-bold text-slate-800">仅操作此课程</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">只影响当前这一节课</div>
               </div>
             </label>
-            <label className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${scopeChoice === "following" ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"}`}>
+            <label className={`flex items-start gap-2 md:gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${scopeChoice === "following" ? "border-indigo-300 bg-indigo-50/50" : "border-slate-200"}`}>
               <RadioGroupItem value="following" id="scope-following" className="mt-0.5" />
               <div>
                 <div className="text-sm font-bold text-slate-800">操作此课程及后续所有课程</div>
