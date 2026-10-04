@@ -24,6 +24,9 @@ import { MobileDock } from "@/components/MobileDock";
 
 export default function NewStudentPage() {
   const { currentBusinessId } = useBusiness();
+  const isTangent = currentBusinessId === "tangent";
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -41,19 +44,22 @@ export default function NewStudentPage() {
 
   useEffect(() => {
     async function loadSuggestions() {
-      const { subjects, teachers } = await fetchFormSuggestions(supabase, currentBusinessId);
+      const { subjects, teachers } = await fetchFormSuggestions(supabase, effectiveBusinessId);
       setSubjectOptions(subjects);
       setTeacherOptions(teachers);
     }
-    if (!currentBusinessId.includes("sine")) {
+    if (effectiveBusinessId !== "sine") {
       loadSuggestions();
+    } else {
+      setSubjectOptions([]);
+      setTeacherOptions([]);
     }
-  }, [currentBusinessId, supabase]);
+  }, [effectiveBusinessId, supabase]);
 
   // ==========================================
   // 🚗 拦截器：驾校模式下不需要此页面，直接引导去排课
   // ==========================================
-  if (currentBusinessId.includes('sine')) {
+  if (currentBusinessId === "sine") {
     return (
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
         <div className="hidden md:block"><Navbar /></div>
@@ -82,7 +88,7 @@ export default function NewStudentPage() {
     e.preventDefault();
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    formData.append("businessId", currentBusinessId);
+    formData.append("businessId", effectiveBusinessId);
     formData.append("level", level);
     formData.append("paymentType", paymentType);
     formData.append("currency", currency);
@@ -119,6 +125,50 @@ export default function NewStudentPage() {
             <p className="text-xs text-slate-400 font-medium">Create New Profile</p>
           </div>
         </div>
+
+
+        {isTangent && (
+          <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setTargetBusinessId("cus");
+                setHourlyRate("70");
+                setLevel("Year 11");
+                setPaymentType("monthly");
+                setSubject("");
+                setTeacher("");
+              }}
+              className={`h-9 rounded-lg text-xs font-bold transition-all ${
+                targetBusinessId === "cus"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              CuS 教培学员
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTargetBusinessId("sine");
+                setHourlyRate("85");
+                setLevel("Driving");
+                setPaymentType("single");
+                setSubject("Driving");
+                setTeacher("");
+                setBalance("0");
+                setCurrency("NZD");
+              }}
+              className={`h-9 rounded-lg text-xs font-bold transition-all ${
+                targetBusinessId === "sine"
+                  ? "bg-slate-950 text-white shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              Sine 驾校学员
+            </button>
+          </div>
+        )}
 
         {/* 3. Form Card */}
         <Card className="p-3 md:p-6 md:p-8 rounded-xl md:rounded-3xl shadow-sm border-slate-200 bg-white">
