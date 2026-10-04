@@ -71,7 +71,7 @@ const DURATION_PRESETS = [
 ] as const;
 
 const FIELD =
-  "h-11 w-full min-w-0 rounded-xl border-slate-200 bg-slate-50/80 px-3 text-sm shadow-none transition-colors focus-visible:border-indigo-300 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-indigo-100";
+  "h-9 w-full min-w-0 max-w-full rounded-xl border-slate-200 bg-white px-2.5 text-[13px] shadow-none transition-colors focus-visible:border-indigo-300 focus-visible:ring-2 focus-visible:ring-indigo-100";
 
 function durationSelectValue(value: string) {
   const n = Number(value);
@@ -90,12 +90,12 @@ export default function NewBookingPage() {
     return (
       <div className="flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-slate-50 font-sans text-slate-900">
         <div className="hidden shrink-0 md:block"><Navbar /></div>
-        <main className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom,16px))] md:px-6 md:py-4">
-          <div className="mb-4 flex shrink-0 items-start gap-3">
-            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white shadow-sm" onClick={() => router.back()}>
+        <main className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden px-3 pt-2 pb-[calc(4.5rem+env(safe-area-inset-bottom,8px))] md:px-5 md:py-3">
+          <div className="mb-2 flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 rounded-xl border-slate-200 bg-white shadow-sm" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
-            <div className="min-w-0 pt-0.5"><h1 className="text-lg font-black tracking-tight text-slate-950 md:text-xl">新增练车预约</h1><p className="mt-0.5 text-[11px] font-medium text-slate-400">Sine Driving Booking</p></div>
+            <h1 className="text-[17px] font-black tracking-tight text-slate-950 md:text-lg">新增练车预约</h1>
           </div>
           <DrivingBookingForm businessId={currentBusinessId} router={router} />
         </main>
@@ -483,216 +483,227 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
   const durationMode = durationSelectValue(duration);
   const subjectMode = subjectSelectValue(subject);
 
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex min-h-0 flex-1 flex-col"
-    >
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pb-3">
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
 
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
-          <div className="mb-2.5"><div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">时间安排</div></div>
-          <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">日期</div><Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={FIELD}
-            aria-label="日期"
-          /></div>
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">时间</div><Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className={FIELD}
-            aria-label="开始时间"
-          /></div>
-          <div className="col-span-2 min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">时长</div>
-          {durationMode === "custom" ? (
-            <div className="relative min-w-0">
-              <Input
-                type="number"
-                step="0.5"
-                min="0.5"
-                placeholder="时长 h"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className={`${FIELD} pr-8`}
-                aria-label="自定义时长"
-              />
-              <button
-                type="button"
-                onClick={() => setDuration("1")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-500"
-              >
-                预设
-              </button>
-            </div>
-          ) : (
-            <Select
-              value={durationMode}
-              onValueChange={(v) => {
-                if (v === "custom") {
-                  setDuration("");
-                  return;
-                }
-                setDuration(v);
-              }}
-            >
-              <SelectTrigger className={FIELD}>
-                <SelectValue placeholder="时长" />
-              </SelectTrigger>
-              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-                {DURATION_PRESETS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-                <SelectItem value="custom">自定义</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-
-          </div></div></section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
-          <div className="mb-2.5"><div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">课程信息</div></div>
-        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
-          <div className="col-span-2 min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">学员</div>
+        <div className="min-w-0">
+          <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">学员</Label>
           <DrivingStudentPicker
             businessId={businessId}
             value={identifier}
             onChange={setIdentifier}
             onSelectPrefill={applyStudentPrefill}
           />
+        </div>
+
+        <div className="grid min-w-0 grid-cols-[1.35fr_0.85fr_1fr] gap-1.5">
+          <div className="min-w-0 overflow-hidden">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">日期</Label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={FIELD}
+              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
+            />
           </div>
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">课程类型</div>{subjectMode === "custom" ? (
-            <div className="relative min-w-0">
+          <div className="min-w-0 overflow-hidden">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">时间</Label>
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className={FIELD}
+              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
+            />
+          </div>
+          <div className="min-w-0 overflow-hidden">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">时长</Label>
+            {durationMode === "custom" ? (
               <Input
-                placeholder="自定义科目"
+                type="number"
+                step="0.5"
+                min="0.5"
+                placeholder="小时"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className={FIELD}
+              />
+            ) : (
+              <Select
+                value={durationMode}
+                onValueChange={(v) => {
+                  if (v === "custom") {
+                    setDuration("");
+                    return;
+                  }
+                  setDuration(v);
+                }}
+              >
+                <SelectTrigger className={FIELD}>
+                  <SelectValue placeholder="时长" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                  {DURATION_PRESETS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">自定义</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+
+        <div className="grid min-w-0 grid-cols-2 gap-1.5">
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">课程类型</Label>
+            {subjectMode === "custom" ? (
+              <Input
+                placeholder="自定义课程"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className={`${FIELD} pr-8`}
+                className={FIELD}
               />
-              <button
-                type="button"
-                onClick={() => setSubject(DEFAULT_DRIVING_SUBJECT)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-500"
+            ) : (
+              <Select
+                value={subjectMode}
+                onValueChange={(v) => {
+                  if (v === "custom") {
+                    setSubject("");
+                    return;
+                  }
+                  setSubject(v);
+                }}
               >
-                预设
-              </button>
-            </div>
-          ) : (
+                <SelectTrigger className={FIELD}>
+                  <SelectValue placeholder="课程类型" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                  {QUICK_SUBJECTS.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">自定义</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">教练</Label>
+            <Select value={coach || undefined} onValueChange={(v) => setCoach(v as DrivingCoach)}>
+              <SelectTrigger className={FIELD}>
+                <SelectValue placeholder="教练" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                {DRIVING_COACHES.map((item) => (
+                  <SelectItem key={item} value={item}>{item}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">见面地址</Label>
+          <CreatableCombobox
+            value={location}
+            onChange={setLocation}
+            options={locationOptions}
+            placeholder="输入或选择见面地址"
+            inputClassName={FIELD}
+          />
+        </div>
+
+        <div className="grid min-w-0 grid-cols-3 gap-1.5">
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">用车</Label>
             <Select
-              value={subjectMode}
+              value={useInstructorCar ? "instructor" : "own"}
               onValueChange={(v) => {
-                if (v === "custom") {
-                  setSubject("");
-                  return;
-                }
-                setSubject(v);
+                const instructor = v === "instructor";
+                setUseInstructorCar(instructor);
+                setActualRate(instructor ? "85" : "75");
               }}
             >
               <SelectTrigger className={FIELD}>
-                <SelectValue placeholder="课程阶段" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-                {QUICK_SUBJECTS.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-                <SelectItem value="custom">自定义</SelectItem>
+                <SelectItem value="instructor">教练车</SelectItem>
+                <SelectItem value="own">自己车</SelectItem>
               </SelectContent>
             </Select>
-          )}</div>
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">教练</div><Select value={coach || undefined} onValueChange={(v) => setCoach(v as DrivingCoach)}>
-            <SelectTrigger className={FIELD}>
-              <SelectValue placeholder="教练" />
-            </SelectTrigger>
-            <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-              {DRIVING_COACHES.map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select></div>
-        </div></section>
+          </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
-          <div className="mb-2.5"><div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">安排信息</div></div>
-          <div className="mb-2.5"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">见面地址</div><CreatableCombobox
-          value={location}
-          onChange={setLocation}
-          options={locationOptions}
-          placeholder="见面地址"
-          inputClassName={FIELD}
-        /></div>
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">接送</Label>
+            <Select
+              value={needPickup ? "pickup" : "self"}
+              onValueChange={(v) => setNeedPickup(v === "pickup")}
+            >
+              <SelectTrigger className={FIELD}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                <SelectItem value="pickup">上门接送</SelectItem>
+                <SelectItem value="self">自行前往</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5">
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">用车</div><Select
-            value={useInstructorCar ? "instructor" : "own"}
-            onValueChange={(v) => {
-              const instructor = v === "instructor";
-              setUseInstructorCar(instructor);
-              setActualRate(instructor ? "85" : "75");
-            }}
-          >
-            <SelectTrigger className={FIELD}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-              <SelectItem value="instructor">教练车</SelectItem>
-              <SelectItem value="own">自己车</SelectItem>
-            </SelectContent>
-          </Select></div>
-          <div className="min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">接送</div><Select
-            value={needPickup ? "pickup" : "self"}
-            onValueChange={(v) => setNeedPickup(v === "pickup")}
-          >
-            <SelectTrigger className={FIELD}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-              <SelectItem value="pickup">上门接送</SelectItem>
-              <SelectItem value="self">自行前往</SelectItem>
-            </SelectContent>
-          </Select></div>
-          <div className="col-span-2 min-w-0"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">课费（NZD / h）</div><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">$</span><Input
-            type="number"
-            placeholder="课费 $/h"
-            value={actualRate}
-            onChange={(e) => setActualRate(e.target.value)}
-            className={`${FIELD} pl-7 font-bold text-emerald-600`}
-          /></div></div>
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">课费</Label>
+            <div className="relative min-w-0">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-slate-400">$</span>
+              <Input
+                type="number"
+                value={actualRate}
+                onChange={(e) => setActualRate(e.target.value)}
+                className={`${FIELD} pl-6 font-bold text-emerald-600`}
+              />
+            </div>
+          </div>
         </div>
 
         {!useInstructorCar && (
-          <div className="mt-2.5"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">学员车辆车牌</div><Input
-            placeholder="学员车辆车牌（选填）"
-            value={plateNumber}
-            onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+          <div className="min-w-0">
+            <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">学员车牌</Label>
+            <Input
+              placeholder="选填"
+              value={plateNumber}
+              onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+              className={FIELD}
+            />
+          </div>
+        )}
+
+        <div className="min-w-0">
+          <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">备注</Label>
+          <Input
+            placeholder="选填"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             className={FIELD}
-          /></div>
-        )}</section>
-        <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"><div className="mb-1.5 pl-1 text-[11px] font-semibold text-slate-500">备注（选填）</div><Input
-          placeholder="需要额外记住的事项"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className={FIELD}
-        /></section>
+          />
+        </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-200/70 bg-slate-50/95 pt-3"><Button
+      <Button
         type="submit"
         disabled={isLoading}
-        className="h-12 w-full min-w-0 shrink-0 rounded-2xl bg-slate-950 text-sm font-bold text-white shadow-[0_6px_20px_rgba(15,23,42,0.14)] hover:bg-slate-800 active:scale-[0.99]"
+        className="mt-2 h-10 w-full shrink-0 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm hover:bg-slate-800 active:scale-[0.99]"
       >
         {isLoading ? (
           <>
-            <Loader2 className="mr-2 animate-spin" />
-            提交中...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            保存中...
           </>
         ) : (
           "保存排课"
         )}
-      </Button></div>
+      </Button>
     </form>
   );
 }
