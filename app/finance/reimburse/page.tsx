@@ -54,6 +54,9 @@ type ReimburseRow = {
 export default function ReimbursePage() {
   const router = useRouter();
   const { currentBusinessId, currentLabel } = useBusiness();
+  const isTangent = currentBusinessId === "tangent";
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const supabase = createClient();
 
   const [tab, setTab] = useState<"pending" | "paid">("pending");
@@ -119,7 +122,7 @@ export default function ReimbursePage() {
     const file = e.target.files[0];
     const fileExt = file.name.split(".").pop();
     const fileName = `reimburse-${Date.now()}.${fileExt}`;
-    const filePath = `${currentBusinessId}/${fileName}`;
+    const filePath = `${effectiveBusinessId}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
     if (uploadError) {
@@ -137,10 +140,6 @@ export default function ReimbursePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentBusinessId === "tangent") {
-      toast.warning("请先切换到教培或驾校再提交报销");
-      return;
-    }
     if (!amount || !category || !claimant) {
       toast.warning("请填写垫付人、金额和分类");
       return;
@@ -152,7 +151,7 @@ export default function ReimbursePage() {
     formData.append("claimant", claimant);
     formData.append("date", date);
     formData.append("notes", notes);
-    formData.append("businessId", currentBusinessId);
+    formData.append("businessId", effectiveBusinessId);
     formData.append("currency", currency);
     if (proofUrl) formData.append("proofUrl", proofUrl);
 
@@ -219,7 +218,9 @@ export default function ReimbursePage() {
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg md:text-xl font-black text-slate-900">报销平账</h1>
-            <p className="text-xs font-medium text-slate-400">{currentLabel} · 待打款不计入净现金流</p>
+            <p className="text-xs font-medium text-slate-400">
+              {isTangent ? "Tangent · 同时管理 CuS / Sine" : currentLabel} · 待打款不计入净现金流
+            </p>
           </div>
           <Receipt className="h-5 w-5 text-indigo-500" />
         </div>
@@ -238,6 +239,28 @@ export default function ReimbursePage() {
 
         <div className="mb-3 md:mb-6 rounded-xl md:rounded-3xl border border-slate-200 bg-white p-3 md:p-5 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            {isTangent && (
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setTargetBusinessId("cus")}
+                  className={`h-9 rounded-lg text-xs font-bold ${
+                    targetBusinessId === "cus" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  CuS 教培
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetBusinessId("sine")}
+                  className={`h-9 rounded-lg text-xs font-bold ${
+                    targetBusinessId === "sine" ? "bg-slate-950 text-white shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  Sine 驾校
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">垫付人</Label>
