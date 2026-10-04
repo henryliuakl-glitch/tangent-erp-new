@@ -109,14 +109,14 @@ export default function NewBookingPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
       <div className="hidden md:block"><Navbar /></div>
-      <main className="mx-auto max-w-xl px-4 md:px-6 py-5 md:py-8">
+      <main className="mx-auto max-w-2xl px-3 py-3 md:px-6 md:py-8">
         
-        <div className="mb-5 flex items-start gap-3 sm:mb-6 sm:items-center">
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl border-slate-200 bg-white shadow-sm sm:h-10 sm:w-10" onClick={() => router.back()}>
+        <div className="mb-3 flex items-center gap-2 sm:mb-5">
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg sm:h-9 sm:w-9 sm:rounded-xl border-slate-200 bg-white shadow-sm sm:h-10 sm:w-10" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">新建课程预约</h1>
+            <h1 className="text-base font-black text-slate-900 sm:text-xl">新建课程预约</h1>
             <p className="text-[11px] font-medium text-slate-400 sm:text-xs">New Session Booking</p>
           </div>
         </div>
@@ -161,12 +161,12 @@ function RecurrenceSelector({
   const showWeeklyBuilder = usesWeeklyScheduleBuilder(repeatMode);
 
   return (
-    <div className="col-span-2 w-full min-w-0 space-y-3 rounded-2xl border border-indigo-100/50 bg-indigo-50/30 p-3 transition-all sm:p-5">
-      <div className="grid w-full min-w-0 grid-cols-2 gap-3">
+    <div className="col-span-2 w-full min-w-0 space-y-2 rounded-xl md:rounded-2xl border border-indigo-100/50 bg-indigo-50/30 p-2.5 transition-all sm:p-4">
+      <div className="grid w-full min-w-0 grid-cols-2 gap-2 md:gap-3">
         <div className={hideTime ? "col-span-2 min-w-0 space-y-2" : "min-w-0 space-y-2"}>
           <Label className="text-xs text-indigo-700 font-bold uppercase pl-1 flex items-center gap-1"><Repeat className="h-3 w-3"/> 排课模式</Label>
           <Select value={repeatMode} onValueChange={setRepeatMode}>
-            <SelectTrigger className={`h-12 w-full min-w-0 rounded-xl bg-white ${recurring ? 'border-indigo-400 font-bold text-indigo-700 shadow-sm' : 'border-slate-200'}`}>
+            <SelectTrigger className={`h-10 md:h-12 w-full min-w-0 rounded-xl bg-white ${recurring ? 'border-indigo-400 font-bold text-indigo-700 shadow-sm' : 'border-slate-200'}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -196,7 +196,7 @@ function RecurrenceSelector({
       )}
 
       {showWeeklyBuilder && (
-        <div className="space-y-4 pt-3 mt-2 border-t border-indigo-100 animate-in fade-in slide-in-from-top-2">
+        <div className="space-y-2 pt-2 mt-1 md:space-y-4 md:pt-3 md:mt-2 border-t border-indigo-100 animate-in fade-in slide-in-from-top-2">
            <div>
              <Label className="text-xs font-bold text-indigo-700 mb-2 block">每周上课时间 (Weekly Schedule)</Label>
              <div className="space-y-2">
@@ -793,7 +793,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       <Button
         type="submit"
         disabled={isLoading}
-        className="mt-3 h-12 w-full min-w-0 shrink-0 rounded-2xl bg-indigo-600 text-base font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98]"
+        className="mt-3 h-10 md:h-12 w-full min-w-0 shrink-0 rounded-2xl bg-indigo-600 text-base font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98]"
       >
         {isLoading ? (
           <>
