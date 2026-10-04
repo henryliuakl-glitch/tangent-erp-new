@@ -140,16 +140,16 @@ export function DashboardCalendar({
         : "CuS Academy 日历";
 
   return (
-    <section className="md:col-span-3 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+    <section className="md:col-span-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-3.5 py-2.5 sm:px-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-indigo-600" />
-            <h3 className="truncate text-base font-extrabold text-slate-900">
+            <CalendarDays className="h-4 w-4 text-indigo-600" />
+            <h3 className="truncate text-sm font-extrabold text-slate-900">
               {scopeLabel}
             </h3>
           </div>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+          <p className="mt-0.5 text-[10px] font-medium text-slate-400">
             {businessId === "tangent"
               ? "驾校 + 教培全部课程"
               : "仅显示当前业务实体课程"}
@@ -159,35 +159,35 @@ export function DashboardCalendar({
         <button
           type="button"
           onClick={goToday}
-          className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-indigo-600 shadow-sm active:scale-95"
+          className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-indigo-600 shadow-sm active:scale-95"
         >
           今天
         </button>
       </div>
 
       <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
-        <div className="border-b border-slate-100 p-3 sm:p-5 lg:border-b-0 lg:border-r">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="border-b border-slate-100 p-2.5 sm:p-3 lg:border-b-0 lg:border-r">
+          <div className="mb-1.5 flex items-center justify-between">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
               aria-label="上个月"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="text-base font-black text-slate-900">
+            <div className="text-xs font-black text-slate-900">
               {monthTitle(visibleMonth)}
             </div>
 
             <button
               type="button"
               onClick={() => moveMonth(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
               aria-label="下个月"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
@@ -195,7 +195,7 @@ export function DashboardCalendar({
             {["日", "一", "二", "三", "四", "五", "六"].map((d) => (
               <div
                 key={d}
-                className="py-1 text-center text-[10px] font-bold text-slate-400"
+                className="py-0.5 text-center text-[9px] font-bold text-slate-400"
               >
                 {d}
               </div>
@@ -218,7 +218,7 @@ export function DashboardCalendar({
                     setSelectedKey(dateKey);
                     if (!inMonth) setVisibleMonth(dateKey.slice(0, 7));
                   }}
-                  className={`relative mx-auto flex aspect-square w-full max-w-[54px] flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${
+                  className={`relative mx-auto flex h-9 w-full max-w-[46px] flex-col items-center justify-center rounded-lg transition-all active:scale-95 ${
                     isSelected
                       ? "bg-slate-900 text-white shadow-md"
                       : isToday
@@ -228,15 +228,15 @@ export function DashboardCalendar({
                           : "text-slate-300"
                   }`}
                 >
-                  <span className={`text-sm font-bold ${isToday && !isSelected ? "text-indigo-700" : ""}`}>
+                  <span className={`text-xs font-bold ${isToday && !isSelected ? "text-indigo-700" : ""}`}>
                     {dayNumber(dateKey)}
                   </span>
 
-                  <div className="mt-1 flex h-1.5 items-center justify-center gap-0.5">
+                  <div className="mt-0.5 flex h-1 items-center justify-center gap-0.5">
                     {dots.map((event) => (
                       <span
                         key={event.id}
-                        className={`h-1.5 w-1.5 rounded-full ${
+                        className={`h-1 w-1 rounded-full ${
                           isSelected ? "bg-white" : accentFor(event).dot
                         }`}
                       />
@@ -258,23 +258,23 @@ export function DashboardCalendar({
           </div>
         </div>
 
-        <div className="min-h-[280px] bg-slate-50/50 p-4 sm:p-5">
-          <div className="mb-3">
+        <div className="min-h-[230px] bg-slate-50/50 p-3 sm:p-3.5">
+          <div className="mb-2">
             <div className="text-xs font-bold text-slate-400">
               {selectedKey.slice(5, 7)}月{selectedKey.slice(8, 10)}日 · {weekdayLabel(selectedKey)}
             </div>
-            <div className="mt-0.5 text-lg font-black text-slate-900">
+            <div className="mt-0.5 text-base font-black text-slate-900">
               {selectedBookings.length} 节课程
             </div>
           </div>
 
           {selectedBookings.length === 0 ? (
-            <div className="flex min-h-[190px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 text-center">
-              <CalendarDays className="mb-2 h-7 w-7 text-slate-300" />
+            <div className="flex min-h-[150px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/60 text-center">
+              <CalendarDays className="mb-1.5 h-5 w-5 text-slate-300" />
               <p className="text-xs font-medium text-slate-400">当天暂无课程</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {selectedBookings.map((booking) => {
                 const student = booking.student || {};
                 const teacher = staffLabel(booking);
@@ -290,27 +290,27 @@ export function DashboardCalendar({
                   <Link
                     key={booking.id}
                     href="/bookings"
-                    className="block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-indigo-200 active:scale-[0.99]"
+                    className="block rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm transition-all hover:border-indigo-200 active:scale-[0.99]"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 shrink-0 pt-0.5 text-center">
+                    <div className="flex items-start gap-2">
+                      <div className="w-10 shrink-0 pt-0.5 text-center">
                         <div className="text-sm font-black text-slate-900">
                           {utcToNzTimeStr(booking.start_time)}
                         </div>
-                        <div className="mt-0.5 text-[9px] font-bold text-slate-400">
+                        <div className="mt-0.5 text-[8px] font-bold text-slate-400">
                           NZT
                         </div>
                       </div>
 
-                      <div className="min-w-0 flex-1 border-l border-slate-100 pl-3">
+                      <div className="min-w-0 flex-1 border-l border-slate-100 pl-2.5">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-bold text-slate-900">
+                            <div className="truncate text-xs font-bold text-slate-900">
                               {student.student_code
                                 ? `${student.student_code} · ${student.name || ""}`
                                 : student.name || "未知学员"}
                             </div>
-                            <div className="mt-0.5 truncate text-xs font-medium text-slate-500">
+                            <div className="mt-0.5 truncate text-[10px] font-medium text-slate-500">
                               {subject}
                             </div>
                           </div>
@@ -322,28 +322,28 @@ export function DashboardCalendar({
                           ) : null}
                         </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
                           {teacher ? (
                             <span
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${accent.chip}`}
+                              className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${accent.chip}`}
                             >
                               {teacher}
                             </span>
                           ) : null}
 
                           {booking.status === "completed" ? (
-                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                            <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600">
                               已完成
                             </span>
                           ) : (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
                               待办
                             </span>
                           )}
                         </div>
 
                         {booking.location ? (
-                          <div className="mt-2 flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                          <div className="mt-1.5 flex items-center gap-1 text-[9px] font-medium text-slate-400">
                             <MapPin className="h-3 w-3" />
                             <span className="truncate">{booking.location}</span>
                           </div>
