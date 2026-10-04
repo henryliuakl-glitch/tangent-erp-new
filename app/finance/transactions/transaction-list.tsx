@@ -53,11 +53,11 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5 md:space-y-3">
       {filteredTransactions.map((t) => (
-        <Card key={t.id} className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+        <Card key={t.id} className="group relative flex items-center justify-between overflow-hidden rounded-xl md:rounded-2xl border border-slate-200/70 bg-white p-2.5 md:p-4 shadow-sm transition-all hover:shadow-md">
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 md:p-4">
             {/* 图标：收入是绿箭头，支出是红箭头 */}
             <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
               t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
@@ -67,14 +67,14 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">{t.category}</h3>
+                <h3 className="text-xs md:text-sm font-bold text-slate-900">{t.category}</h3>
                 {t.proof_img_url && (
                   <Link href={t.proof_img_url} target="_blank" className="text-indigo-500 hover:text-indigo-700">
                     <FileText className="h-3.5 w-3.5" />
                   </Link>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-[10px] md:text-xs text-slate-500">
                 {new Date(t.transaction_date).toLocaleDateString()} 
                 {t.description && ` · ${t.description}`}
               </p>
@@ -86,8 +86,8 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className={`text-sm font-bold ${
+          <div className="flex items-center gap-2.5 md:p-4">
+            <span className={`text-xs md:text-sm font-bold ${
               t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'
             }`}>
               {t.type === 'income' ? '+' : '-'}{formatMoney(Number(t.amount), t.currency)}
@@ -100,7 +100,7 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
               size="icon"
               disabled={deletingId === t.id}
               onClick={() => handleDelete(t.id)}
-              className="h-8 w-8 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
+              className="h-7 w-7 md:h-8 md:w-8 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
             >
               {deletingId === t.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
