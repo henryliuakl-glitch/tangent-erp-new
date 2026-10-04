@@ -230,7 +230,7 @@ export async function getFinanceStats(
   // select *：避免因 currency 等列尚未迁移导致整查询失败 → 空数组 → 净现金流 $0
   let txQuery = supabase
     .from("transactions")
-    .select("*")
+    .select("id,type,amount,category,description,transaction_date,business_unit_id,student_id,quantity,currency,income_source")
     .order("transaction_date", { ascending: false });
 
   if (businessId !== "tangent") {
