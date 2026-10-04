@@ -147,16 +147,16 @@ export default function FinancePage() {
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-10 font-sans text-slate-900">
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+      <main className="max-w-7xl mx-auto px-3 py-3 md:px-6 md:py-8">
         
         {/* Header & Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 pt-4 md:pt-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 md:gap-4 md:mb-8 pt-1 md:pt-0">
           <div>
-             <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-               <Wallet className="h-6 w-6 text-indigo-600" />
+             <h1 className="text-lg md:text-2xl font-black text-slate-900 flex items-center gap-2">
+               <Wallet className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
                财务驾驶舱 (Finance)
              </h1>
-             <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider pl-8">
+             <p className="text-[9px] md:text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
                Revenue & Expense Overview
              </p>
           </div>
@@ -199,53 +199,53 @@ export default function FinancePage() {
         )}
 
         {/* Stats Cards — NZD / RMB 独立轨道 */}
-        <div className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-6 no-scrollbar snap-x snap-mandatory">
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-5 border-emerald-100 bg-emerald-50/50 shadow-sm flex flex-col justify-between h-auto">
+        <div className="flex overflow-x-auto gap-2 pb-2 -mx-3 px-3 md:gap-4 md:pb-4 md:-mx-0 md:px-0 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-6 no-scrollbar snap-x snap-mandatory">
+          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-emerald-100 bg-emerald-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
                  <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">现金收入 (In)</p>
-                 <h2 className="text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.income ?? data.income).toLocaleString()}</h2>
+                 <h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.income ?? data.income).toLocaleString()}</h2>
                  <p className="text-sm font-bold text-emerald-700/80 mt-1 tabular-nums">¥{(data.byCurrency?.RMB?.income ?? 0).toLocaleString()} <span className="text-[10px] font-medium text-emerald-600/70">RMB</span></p>
                </div>
-               <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><ArrowDownRight className="h-5 w-5" /></div>
+               <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><ArrowDownRight className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-5 border-rose-100 bg-rose-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-rose-100 bg-rose-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
                  <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">现金支出 (Out)</p>
-                 <h2 className="text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.expense ?? data.expense).toLocaleString()}</h2>
+                 <h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.expense ?? data.expense).toLocaleString()}</h2>
                  <p className="text-sm font-bold text-rose-700/80 mt-1 tabular-nums">¥{(data.byCurrency?.RMB?.expense ?? 0).toLocaleString()} <span className="text-[10px] font-medium text-rose-600/70">RMB</span></p>
                </div>
-               <div className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600"><ArrowUpRight className="h-5 w-5" /></div>
+               <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-rose-100 flex items-center justify-center text-rose-600"><ArrowUpRight className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-5 border-indigo-100 bg-indigo-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-indigo-100 bg-indigo-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
                  <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">净现金流 (Net)</p>
-                 <h2 className={`text-3xl font-black mt-2 ${(data.byCurrency?.NZD?.net ?? data.net) >= 0 ? 'text-indigo-700' : 'text-rose-600'}`}>
+                 <h2 className={`text-xl md:text-3xl font-black mt-2 ${(data.byCurrency?.NZD?.net ?? data.net) >= 0 ? 'text-indigo-700' : 'text-rose-600'}`}>
                    {(data.byCurrency?.NZD?.net ?? data.net) >= 0 ? '+' : ''}${(data.byCurrency?.NZD?.net ?? data.net).toLocaleString()}
                  </h2>
                  <p className={`text-sm font-bold mt-1 tabular-nums ${(data.byCurrency?.RMB?.net ?? 0) >= 0 ? 'text-indigo-700/80' : 'text-rose-600/80'}`}>
                    {(data.byCurrency?.RMB?.net ?? 0) >= 0 ? '+' : ''}¥{Math.abs(data.byCurrency?.RMB?.net ?? 0).toLocaleString()} <span className="text-[10px] font-medium opacity-70">RMB</span>
                  </p>
                </div>
-               <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Wallet className="h-5 w-5" /></div>
+               <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Wallet className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-5 border-amber-100 bg-amber-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-amber-100 bg-amber-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
-               <div><p className="text-xs font-bold text-amber-600 uppercase tracking-wider">消课产值 (Realized)</p><h2 className="text-3xl font-black text-slate-900 mt-2">${Number(data.realized).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
+               <div><p className="text-xs font-bold text-amber-600 uppercase tracking-wider">消课产值 (Realized)</p><h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${Number(data.realized).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
                <p className="text-sm font-bold text-amber-700/80 mt-1 tabular-nums">¥{Number(data.realizedRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] font-medium text-amber-600/70">RMB</span></p>
                </div>
-               <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600"><TrendingUp className="h-5 w-5" /></div>
+               <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-amber-100 flex items-center justify-center text-amber-600"><TrendingUp className="h-5 w-5" /></div>
              </div>
           </Card>
         </div>
 
         {data.incomeBySource?.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mt-3 md:mt-6 rounded-xl md:rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-5">
             <div className="mb-3">
               <h3 className="text-sm font-bold text-slate-900">收入来源</h3>
               <p className="mt-0.5 text-[11px] text-slate-400">当前筛选时段内，实际收到各账户/方式的收入</p>
@@ -269,13 +269,13 @@ export default function FinancePage() {
           </div>
         )}
         {/* Chart */}
-        <div className="mt-6 md:mt-8">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="mt-3 md:mt-4 md:mt-8">
+          <h3 className="text-sm font-bold text-slate-900 mb-2 md:mb-4 flex items-center gap-2">
             <FileBarChart className="h-4 w-4 text-slate-400" /> 趋势分析 (Trend)
           </h3>
-          <Card className="p-4 md:p-6 border-slate-200 shadow-sm overflow-hidden bg-white">
+          <Card className="p-3 md:p-6 border-slate-200 shadow-sm overflow-hidden bg-white">
             <div className="overflow-x-auto no-scrollbar w-full pb-2">
-               <div className="h-[250px] md:h-[300px] min-w-[600px] md:min-w-full">
+               <div className="h-[190px] md:h-[300px] min-w-[600px] md:min-w-full">
                  {loading ? (
                    <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-300"/></div>
                  ) : (
@@ -298,8 +298,8 @@ export default function FinancePage() {
         </div>
 
         {/* Transactions List */}
-        <div className="mt-8">
-           <div className="flex items-center justify-between mb-4">
+        <div className="mt-4 md:mt-8">
+           <div className="flex items-center justify-between mb-2 md:mb-4">
              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                <DollarSign className="h-4 w-4 text-slate-400" /> 近期流水 (Recent)
              </h3>
@@ -317,7 +317,7 @@ export default function FinancePage() {
              </div>
            </div>
 
-           <div className="mx-auto mb-4 grid w-full max-w-md grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+           <div className="mx-auto mb-2 md:mb-4 grid w-full max-w-md grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
              {([
                { id: "all" as const, label: "全部" },
                { id: "income" as const, label: "收入" },
@@ -337,7 +337,7 @@ export default function FinancePage() {
              ))}
            </div>
            
-           <div className="space-y-3">
+           <div className="space-y-2 md:space-y-3">
              {loading ? (
                <div className="text-center py-10"><Loader2 className="animate-spin text-slate-300 mx-auto"/></div>
              ) : data.transactions.filter((t: { type?: string }) => txFilter === "all" || t.type === txFilter).length === 0 ? (
@@ -348,9 +348,9 @@ export default function FinancePage() {
                data.transactions
                  .filter((t: { type?: string }) => txFilter === "all" || t.type === txFilter)
                  .map((t: any) => (
-                 <div key={t.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform">
+                 <div key={t.id} className="bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform">
                     <div className="flex items-center gap-4">
-                       <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                       <div className={`h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full flex items-center justify-center shrink-0 ${
                          t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
                        }`}>
                          {t.type === 'income' ? <ArrowDownRight className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
