@@ -30,6 +30,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import { completeBooking } from "@/app/bookings/actions";
 import { isBookingUnpaid } from "@/lib/student-payment";
