@@ -29,7 +29,9 @@ export default async function BookingsPage() {
       .order("start_time", { ascending: true })
       .range(from, from + BOOKINGS_PAGE_SIZE - 1);
 
-    if (businessId !== "tangent") {
+    if (businessId === "tangent") {
+      query = query.in("business_unit_id", ["cus", "sine"]);
+    } else {
       query = query.eq("business_unit_id", businessId);
     }
 
