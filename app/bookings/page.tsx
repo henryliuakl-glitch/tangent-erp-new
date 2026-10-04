@@ -3,11 +3,14 @@ import { Navbar } from "@/components/Navbar";
 import { BookingList, BookingsCta } from "./booking-list";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
+import { cookies } from "next/headers";
 
 const BOOKINGS_PAGE_SIZE = 1000;
 
 export default async function BookingsPage() {
   const supabase = await createClient();
+  const cookieStore = await cookies();
+  const businessId = cookieStore.get("businessId")?.value || "cus";
 
   // Supabase/PostgREST can cap a single select at 1000 rows.
   // Fetch all bookings in pages so future bookings are not silently truncated
@@ -16,14 +19,21 @@ export default async function BookingsPage() {
   let from = 0;
 
   while (true) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("bookings")
       .select(`
-        *,
+        id, student_id, start_time, end_time, duration, status, location,
+        notes, subject, teacher, actual_rate, metadata, business_unit_id,
         student:students ( id, name, teacher, subject, hourly_rate, student_code, currency )
       `)
       .order("start_time", { ascending: true })
       .range(from, from + BOOKINGS_PAGE_SIZE - 1);
+
+    if (businessId !== "tangent") {
+      query = query.eq("business_unit_id", businessId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Failed to load bookings:", error);
