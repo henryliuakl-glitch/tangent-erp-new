@@ -4,17 +4,26 @@ import { TransactionList } from "./transaction-list";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
+  const cookieStore = await cookies();
+  const businessId = cookieStore.get("businessId")?.value || "cus";
 
-  // 获取最近 50 条记录 (按日期倒序)
-  const { data: transactions } = await supabase
+  let query = supabase
     .from("transactions")
     .select("*")
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(50);
+
+  query =
+    businessId === "tangent"
+      ? query.in("business_unit_id", ["cus", "sine"])
+      : query.eq("business_unit_id", businessId);
+
+  const { data: transactions } = await query;
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-10">
