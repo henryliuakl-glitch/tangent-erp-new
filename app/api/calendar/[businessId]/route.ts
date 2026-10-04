@@ -214,14 +214,6 @@ export async function GET(
           description: `30 分钟后：${summaryText}`,
         },
       ],
-      x: calendarLocation
-        ? [
-            {
-              key: "X-APPLE-TRAVEL-ADVISORY-BEHAVIOR",
-              value: "AUTOMATIC",
-            },
-          ]
-        : [],
       lastModified: new Date(),
     });
   }
