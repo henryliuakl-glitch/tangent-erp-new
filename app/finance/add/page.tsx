@@ -217,16 +217,16 @@ export default function AddTransactionPage() {
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-xl px-4 md:px-6 py-6 md:py-8">
+      <main className="mx-auto max-w-xl px-3 py-3 md:px-6 md:py-8">
         
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-3 md:mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50 hover:-translate-y-px transition-all" onClick={() => router.back()}>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg md:h-10 md:w-10 md:rounded-xl bg-white border-slate-200 shadow-sm hover:bg-slate-50 hover:-translate-y-px transition-all" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
             <div>
-              <h1 className="text-xl font-black text-slate-900">{mode === "reimburse" ? "报销" : "记一笔"}</h1>
+              <h1 className="text-lg md:text-xl font-black text-slate-900">{mode === "reimburse" ? "报销" : "记一笔"}</h1>
               <p className="text-xs text-slate-400 font-medium">
                 {mode === "reimburse" ? "提交后待打款，不计入净现金流" : "New Transaction"}
               </p>
@@ -243,15 +243,15 @@ export default function AddTransactionPage() {
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-xl md:rounded-3xl border border-slate-200 bg-white p-3 md:p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-6">
             
             {/* Type Switcher */}
             <Tabs value={mode} onValueChange={handleTypeChange} className="w-full">
-              <TabsList className="mx-auto grid h-12 w-full max-w-md grid-cols-3 rounded-2xl bg-slate-100 p-1.5">
-                <TabsTrigger value="expense" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm">支出</TabsTrigger>
-                <TabsTrigger value="income" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm">收入</TabsTrigger>
-                <TabsTrigger value="reimburse" className="rounded-xl text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">报销</TabsTrigger>
+              <TabsList className="mx-auto grid h-10 md:h-12 w-full max-w-md grid-cols-3 rounded-xl md:rounded-2xl bg-slate-100 p-1">
+                <TabsTrigger value="expense" className="rounded-lg text-xs md:text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm">支出</TabsTrigger>
+                <TabsTrigger value="income" className="rounded-lg text-xs md:text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm">收入</TabsTrigger>
+                <TabsTrigger value="reimburse" className="rounded-lg text-xs md:text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">报销</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -280,7 +280,7 @@ export default function AddTransactionPage() {
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="h-20 rounded-2xl border-slate-200 bg-slate-50 pl-10 text-4xl font-black tracking-tight text-slate-900 focus-visible:ring-indigo-500 focus-visible:bg-white transition-all text-center"
+                  className="h-14 md:h-20 rounded-xl md:rounded-2xl border-slate-200 bg-slate-50 pl-10 text-3xl md:text-4xl font-black tracking-tight text-slate-900 focus-visible:ring-indigo-500 focus-visible:bg-white transition-all text-center"
                   autoFocus
                 />
               </div>
@@ -380,7 +380,7 @@ export default function AddTransactionPage() {
             )}
 
             {mode === "income" && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 md:p-4">
                 <IncomeSourceSelect
                   value={incomeSource}
                   onChange={setIncomeSource}
@@ -413,7 +413,7 @@ export default function AddTransactionPage() {
             <Button
               type="submit"
               disabled={isLoading || uploading}
-              className={`h-14 w-full rounded-2xl text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
+              className={`h-11 md:h-14 w-full rounded-xl md:rounded-2xl text-sm md:text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
                 mode === "income"
                   ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
                   : mode === "reimburse"
