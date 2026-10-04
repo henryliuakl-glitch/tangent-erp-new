@@ -166,8 +166,8 @@ export function StudentList({ students }: { students: any[] }) {
   };
 
   const renderStudentRows = (list: any[]) => {
-    const driving = drivingView;
     return list.map((student) => {
+      const driving = isDrivingSchoolBusiness(student.business_unit_id);
       const totalBalance = Number(student.balance);
       const bookings = student.bookings || [];
       const scheduledHours = bookings
@@ -197,6 +197,18 @@ export function StudentList({ students }: { students: any[] }) {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-0.5 md:mb-1">
                 <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm md:text-sm md:text-base truncate">{student.name}</h3>
+                {currentBusinessId === "tangent" && (
+                  <Badge
+                    variant="outline"
+                    className={`h-4 shrink-0 px-1.5 text-[9px] font-bold ${
+                      driving
+                        ? "border-slate-300 bg-slate-900 text-white"
+                        : "border-indigo-200 bg-indigo-50 text-indigo-600"
+                    }`}
+                  >
+                    {driving ? "Sine" : "CuS"}
+                  </Badge>
+                )}
                 {student.student_code && <Badge variant="outline" className="text-[10px] h-4 px-1.5 rounded-sm border-slate-200 text-slate-500 font-mono">{student.student_code}</Badge>}
                 {paymentAlert && (
                   <Badge variant="destructive" className="bg-rose-100 text-rose-600 border-none px-1.5 py-0 h-4 text-[10px] shadow-none">欠费</Badge>
