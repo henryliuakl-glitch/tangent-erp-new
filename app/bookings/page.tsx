@@ -42,14 +42,14 @@ export default async function BookingsPage() {
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-3xl px-4 md:px-6 py-5 md:py-8">
-        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <main className="mx-auto max-w-4xl px-3 py-3 md:px-6 md:py-8">
+        <div className="mb-3 flex flex-row items-center justify-between gap-2 sm:mb-5 sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-              <CalendarIcon className="h-6 w-6 text-indigo-600" />
+            <h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-slate-900 sm:text-2xl">
+              <CalendarIcon className="h-5 w-5 text-indigo-600" />
               课程管理 (Schedule)
             </h1>
-            <p className="mt-1 pl-8 text-[11px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+            <p className="mt-0.5 pl-7 text-[9px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
               Manage Bookings & Timesheets
             </p>
           </div>
