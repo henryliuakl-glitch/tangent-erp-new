@@ -5,23 +5,59 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
+import { cookies } from "next/headers";
 
 export default async function StudentsPage() {
   const supabase = await createClient();
+  const cookieStore = await cookies();
+  const businessId = cookieStore.get("businessId")?.value || "cus";
 
-  // ✅ 核心修改：联表查询 bookings 时，带上 start_time 字段
-  // 这样前端的 student-list 才能计算该学员在过去 30 天内是否排过课
-  const { data: students } = await supabase
+  let studentQuery = supabase
     .from("students")
-    .select(`
-      *,
-      bookings (
-        duration,
-        status,
-        start_time
-      )
-    `)
+    .select("*")
     .order("created_at", { ascending: false });
+
+  let confirmedQuery = supabase
+    .from("bookings")
+    .select("student_id, duration, status, start_time")
+    .eq("status", "confirmed");
+
+  const recentCutoff = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+  let recentQuery = supabase
+    .from("bookings")
+    .select("student_id, duration, status, start_time")
+    .gte("start_time", recentCutoff);
+
+  if (businessId !== "tangent") {
+    studentQuery = studentQuery.eq("business_unit_id", businessId);
+    confirmedQuery = confirmedQuery.eq("business_unit_id", businessId);
+    recentQuery = recentQuery.eq("business_unit_id", businessId);
+  }
+
+  const [
+    { data: studentRows, error: studentError },
+    { data: confirmedBookings, error: confirmedError },
+    { data: recentBookings, error: recentError },
+  ] = await Promise.all([studentQuery, confirmedQuery, recentQuery]);
+
+  if (studentError) console.error("Failed to load students:", studentError.message);
+  if (confirmedError) console.error("Failed to load confirmed bookings:", confirmedError.message);
+  if (recentError) console.error("Failed to load recent bookings:", recentError.message);
+
+  const bookingsByStudent = new Map<string, any[]>();
+  for (const booking of [...(confirmedBookings || []), ...(recentBookings || [])]) {
+    if (!booking.student_id) continue;
+    const list = bookingsByStudent.get(booking.student_id) || [];
+    if (!list.some((item) => item.start_time === booking.start_time && item.status === booking.status && item.duration === booking.duration)) {
+      list.push(booking);
+    }
+    bookingsByStudent.set(booking.student_id, list);
+  }
+
+  const students = (studentRows || []).map((student) => ({
+    ...student,
+    bookings: bookingsByStudent.get(student.id) || [],
+  }));
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
