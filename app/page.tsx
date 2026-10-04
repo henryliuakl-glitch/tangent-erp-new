@@ -175,25 +175,29 @@ export default function Home() {
     async function load() {
       const supabase = createClient();
 
-      const [{ data: auth }, { data: units }] = await Promise.all([
+      setLoading(true);
+      const statsPromise = getDashboardStats(currentBusinessId || "cus");
+      const [{ data: auth }, { data: units }, statsResult] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from("business_units").select("id, name").order("name"),
+        statsPromise,
       ]);
 
       const user = auth?.user;
       if (user) {
-        const { data: profile } = await supabase
+        void supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single();
-
-        setUserProfile(
-          profile || {
-            full_name: user.email?.split("@")[0],
-            avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
-          }
-        );
+          .single()
+          .then(({ data: profile }) => {
+            setUserProfile(
+              profile || {
+                full_name: user.email?.split("@")[0],
+                avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
+              }
+            );
+          });
       }
 
       setBusinessList(
@@ -206,9 +210,8 @@ export default function Home() {
             ]
       );
 
-      setLoading(true);
       try {
-        setStats(await getDashboardStats(currentBusinessId || "cus"));
+        setStats(statsResult);
       } catch (error) {
         console.error(error);
         toast.error("工作台数据加载失败");
