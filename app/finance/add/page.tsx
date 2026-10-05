@@ -56,13 +56,33 @@ export default function AddTransactionPage() {
   useEffect(() => {
     async function fetchStudents() {
       if (!effectiveBusinessId) return;
-      const { data } = await supabase
+      let { data, error } = await supabase
         .from("students")
         .select("id, name, student_code, income_source")
         .eq("business_unit_id", effectiveBusinessId)
         .order("name");
-      
-      if (data) setStudents(data);
+
+      if (error && /income_source|column|schema cache/i.test(error.message || "")) {
+        const fallback = await supabase
+          .from("students")
+          .select("id, name, student_code")
+          .eq("business_unit_id", effectiveBusinessId)
+          .order("name");
+
+        data = (fallback.data || []).map((student) => ({
+          ...student,
+          income_source: null,
+        }));
+        error = fallback.error;
+      }
+
+      if (error) {
+        console.error("Failed to load finance students:", error.message);
+        setStudents([]);
+        return;
+      }
+
+      setStudents(data || []);
     }
     fetchStudents();
   }, [effectiveBusinessId, supabase]);
