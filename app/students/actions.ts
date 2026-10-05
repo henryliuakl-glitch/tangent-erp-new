@@ -365,19 +365,28 @@ export async function topUpStudent(
 
 
 
-  const { data: student, error: fetchError } = await supabase
-
+  let { data: student, error: fetchError } = await supabase
     .from("students")
-
     .select("name, student_code, balance, hourly_rate, business_unit_id, currency, income_source")
-
     .eq("id", studentId)
+    .maybeSingle();
 
-    .single();
+  // 生产库若尚未执行 income_source migration，不应让充值整个失败。
+  if (fetchError && /income_source|column|schema cache/i.test(fetchError.message || "")) {
+    const fallback = await supabase
+      .from("students")
+      .select("name, student_code, balance, hourly_rate, business_unit_id, currency")
+      .eq("id", studentId)
+      .maybeSingle();
 
+    student = fallback.data
+      ? { ...fallback.data, income_source: null }
+      : null;
+    fetchError = fallback.error;
+  }
 
-
-  if (fetchError || !student) return { error: "找不到学员" };
+  if (fetchError) return { error: `读取学员失败：${fetchError.message}` };
+  if (!student) return { error: "找不到学员" };
 
   const txCurrency = normalizeCurrency(currency ?? student.currency ?? DEFAULT_CURRENCY);
 
