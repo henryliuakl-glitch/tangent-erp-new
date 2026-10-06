@@ -11,6 +11,10 @@ export const INCOME_SOURCE_OPTIONS = [
   "Joint · BNZ",
   "Joint · ANZ",
   "Joint · Kiwibank",
+  "公司 · ASB",
+  "公司 · BNZ",
+  "公司 · ANZ",
+  "公司 · Kiwibank",
   "现金",
   "人民币",
 ] as const;
