@@ -9,6 +9,7 @@ import {
   Menu,
   ReceiptText,
   Users,
+  CarFront,
 } from "lucide-react";
 
 import BusinessSwitcher from "@/components/BusinessSwitcher";
@@ -21,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { useBusiness } from "@/contexts/BusinessContext";
 
 const NAV_ITEMS = [
   { href: "/", label: "工作台", icon: LayoutDashboard },
@@ -32,6 +34,11 @@ const NAV_ITEMS = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { currentBusinessId } = useBusiness();
+  const navItems =
+    currentBusinessId === "sine" || currentBusinessId === "tangent"
+      ? [...NAV_ITEMS, { href: "/vehicles", label: "车辆", icon: CarFront }]
+      : NAV_ITEMS;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -57,7 +64,7 @@ export function Navbar() {
           </Link>
 
           <div className="hidden items-center gap-1 lg:flex">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+            {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -98,6 +105,13 @@ export function Navbar() {
                   记一笔
                 </Link>
               </DropdownMenuItem>
+              {(currentBusinessId === "sine" || currentBusinessId === "tangent") && (
+                <DropdownMenuItem asChild>
+                  <Link href="/vehicles" className="cursor-pointer rounded-lg">
+                    车辆管理
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/finance/transactions" className="cursor-pointer rounded-lg">
                   查看流水
