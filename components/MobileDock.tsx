@@ -9,6 +9,7 @@ import {
   Home,
   ReceiptText,
   Users,
+  CarFront,
 } from "lucide-react";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -59,6 +60,7 @@ export function MobileDock() {
   const pathname = usePathname();
   const { currentBusinessId } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
+  const showVehicles = driving || currentBusinessId === "tangent";
 
   const createHref = driving ? "/bookings/quick" : "/bookings/new";
   const createLabel = driving ? "排课" : "新建";
@@ -86,6 +88,14 @@ export function MobileDock() {
           label="日程"
           active={pathname === "/bookings"}
         />
+        {showVehicles ? (
+          <NavItem
+            href="/vehicles"
+            icon={CarFront}
+            label="车辆"
+            active={pathname.startsWith("/vehicles")}
+          />
+        ) : null}
         <NavItem
           href="/finance"
           icon={ReceiptText}
