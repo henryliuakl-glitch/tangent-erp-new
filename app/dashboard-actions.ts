@@ -62,6 +62,15 @@ export async function getDashboardStats(businessId: string) {
   let unearnedRevenueRmb = 0;
   const lowBalanceStudents: any[] = [];
 
+  const confirmedHoursByStudent = new Map<string, number>();
+  for (const booking of calendarBookings || []) {
+    if (booking.status !== "confirmed" || !booking.student_id) continue;
+    confirmedHoursByStudent.set(
+      booking.student_id,
+      (confirmedHoursByStudent.get(booking.student_id) || 0) + Number(booking.duration || 0)
+    );
+  }
+
   students?.forEach((s) => {
     const bal = Number(s.balance);
     const rate = Number(s.hourly_rate) || 0;
@@ -70,8 +79,17 @@ export async function getDashboardStats(businessId: string) {
       if (normalizeCurrency(s.currency) === "RMB") unearnedRevenueRmb += value;
       else unearnedRevenue += value;
     }
-    if (isPaymentAlert(bal, s.payment_type, { businessUnitId: s.business_unit_id })) {
-      lowBalanceStudents.push(s);
+
+    const scheduledHours = confirmedHoursByStudent.get(s.id) || 0;
+    if (
+      isPaymentAlert(
+        bal,
+        s.payment_type,
+        { businessUnitId: s.business_unit_id },
+        scheduledHours
+      )
+    ) {
+      lowBalanceStudents.push({ ...s, scheduledHours });
     }
   });
 
