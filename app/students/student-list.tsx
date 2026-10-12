@@ -178,10 +178,15 @@ export function StudentList({ students }: { students: any[] }) {
         businessUnitId: student.business_unit_id ?? currentBusinessId,
         level: student.level,
       });
-      const paymentAlert = isPaymentAlert(totalBalance, student.payment_type, {
-        businessUnitId: student.business_unit_id ?? currentBusinessId,
-        level: student.level,
-      });
+      const paymentAlert = isPaymentAlert(
+        totalBalance,
+        student.payment_type,
+        {
+          businessUnitId: student.business_unit_id ?? currentBusinessId,
+          level: student.level,
+        },
+        scheduledHours
+      );
       const isOverScheduled = !payAsYouGo && unscheduledHours < 0;
       const nextBooking = bookings
         .filter((b: any) => b.status === "confirmed" && b.start_time)
