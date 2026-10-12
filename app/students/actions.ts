@@ -66,34 +66,38 @@ export async function createStudent(prevState: any, formData: FormData) {
 
 
 
-  // 插入学员
-
-  const { data: newStudent, error: studentError } = await supabase.from("students").insert({
-
+  // 插入学员。生产库若尚未执行 income_source migration，则自动退回兼容写入。
+  const studentPayload = {
     name,
-
-    student_code: studentCode, 
-
+    student_code: studentCode,
     subject,
-
     teacher,
-
-    level, 
-
+    level,
     hourly_rate: hourlyRate,
-
     balance: 0,
-
     payment_type: paymentType,
-
     currency,
     income_source: incomeSource,
-
     business_unit_id: businessId,
+  };
 
-  }).select().single();
+  let { data: newStudent, error: studentError } = await supabase
+    .from("students")
+    .insert(studentPayload)
+    .select()
+    .single();
 
+  if (studentError && /income_source|schema cache|column/i.test(studentError.message || "")) {
+    const { income_source: _ignored, ...fallbackPayload } = studentPayload;
+    const fallback = await supabase
+      .from("students")
+      .insert(fallbackPayload)
+      .select()
+      .single();
 
+    newStudent = fallback.data;
+    studentError = fallback.error;
+  }
 
   if (studentError) return { error: studentError.message };
 
@@ -243,36 +247,35 @@ export async function updateStudent(id: string, data: {
 
 
 
-  const { error } = await supabase
+  const updatePayload = {
+    name: data.name,
+    student_code: data.studentCode,
+    subject: data.subject,
+    teacher: data.teacher,
+    level: data.level,
+    hourly_rate: data.hourlyRate,
+    ...(data.paymentType !== undefined ? { payment_type: data.paymentType } : {}),
+    ...(data.currency !== undefined ? { currency: normalizeCurrency(data.currency) } : {}),
+    ...(data.incomeSource !== undefined
+      ? { income_source: isIncomeSource(data.incomeSource) ? data.incomeSource : null }
+      : {}),
+  };
 
+  let { error } = await supabase
     .from("students")
-
-    .update({
-
-      name: data.name,
-
-      student_code: data.studentCode,
-
-      subject: data.subject,
-
-      teacher: data.teacher,
-
-      level: data.level,
-
-      hourly_rate: data.hourlyRate,
-
-      ...(data.paymentType !== undefined ? { payment_type: data.paymentType } : {}),
-
-      ...(data.currency !== undefined ? { currency: normalizeCurrency(data.currency) } : {}),
-      ...(data.incomeSource !== undefined
-        ? { income_source: isIncomeSource(data.incomeSource) ? data.incomeSource : null }
-        : {}),
-
-    })
-
+    .update(updatePayload)
     .eq("id", id);
 
-
+  if (error && /income_source|schema cache|column/i.test(error.message || "")) {
+    const { income_source: _ignored, ...fallbackPayload } = updatePayload as typeof updatePayload & {
+      income_source?: string | null;
+    };
+    const fallback = await supabase
+      .from("students")
+      .update(fallbackPayload)
+      .eq("id", id);
+    error = fallback.error;
+  }
 
   if (error) return { error: error.message };
 
