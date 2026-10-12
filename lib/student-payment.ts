@@ -30,17 +30,30 @@ export function isPayAsYouGoDriving(ctx?: PaymentContext): boolean {
 }
 
 /**
- * 学员列表「欠费」红标 / 待续费侧栏
- * 仅 balance < 0；balance === 0 视为正常
- * 驾校一单一结不显示负余额欠费报警
+ * 学员列表「欠费」红标 / 工作台课时提醒
+ * - 驾校一单一结不按余额报警
+ * - 教培预付：余额 <= 0 即需续费
+ * - 即使余额仍为正，只要已确认的待上课时超过余额，也视为欠费/课时不足
+ * - single 类型仅在余额 < 0 或已排课超过余额时报警
  */
 export function isPaymentAlert(
   balance: number,
-  _paymentType?: string | null,
-  ctx?: PaymentContext
+  paymentType?: string | null,
+  ctx?: PaymentContext,
+  scheduledHours = 0
 ): boolean {
   if (isPayAsYouGoDriving(ctx)) return false;
-  return Number(balance) < 0;
+
+  const bal = Number(balance);
+  const scheduled = Math.max(0, Number(scheduledHours) || 0);
+
+  if (scheduled > bal) return true;
+  if (bal < 0) return true;
+
+  const type = paymentType || DEFAULT_PAYMENT_TYPE;
+  if (type === "single") return false;
+
+  return bal <= 0;
 }
 
 /**
