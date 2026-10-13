@@ -18,6 +18,7 @@ import {
   LogOut,
   MapPin,
   Plus,
+  Pencil,
   UserRound,
   UsersRound,
   WalletCards,
@@ -31,15 +32,18 @@ import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
-import { completeBooking } from "@/app/bookings/actions";
+import { completeBooking, updateBooking } from "@/app/bookings/actions";
 import { isBookingUnpaid } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
   formatDateLabelInNZ,
   getTodayInNZ,
   isTodayInNZ,
+  utcToNzDateStr,
   utcToNzTimeStr,
 } from "@/lib/timezone";
 
@@ -158,6 +162,15 @@ export default function Home() {
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [completeIncomeSource, setCompleteIncomeSource] = useState("");
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editDuration, setEditDuration] = useState("1");
+  const [editLocation, setEditLocation] = useState("");
+  const [editStaff, setEditStaff] = useState("");
+  const [editRate, setEditRate] = useState("");
+  const [editSubject, setEditSubject] = useState("");
   const [stats, setStats] = useState<any>({
     cashIncome: 0,
     netCashFlow: 0,
@@ -284,6 +297,73 @@ export default function Home() {
     toast.success(`课程已完成 · ${completeIncomeSource}`);
     setCompleteTarget(null);
     setCompleteIncomeSource("");
+    await reloadStats();
+  };
+
+  const openBookingEdit = (booking: any) => {
+    setEditTarget(booking);
+    setEditDate(utcToNzDateStr(booking.start_time));
+    setEditTime(utcToNzTimeStr(booking.start_time));
+    setEditDuration(String(booking.duration || 1));
+    setEditLocation(booking.location || "");
+    setEditStaff(
+      booking.metadata?.coach ||
+      booking.teacher ||
+      booking.student?.teacher ||
+      ""
+    );
+    setEditRate(
+      booking.actual_rate != null
+        ? String(booking.actual_rate)
+        : booking.student?.hourly_rate != null
+          ? String(booking.student.hourly_rate)
+          : ""
+    );
+    setEditSubject(
+      booking.subject ||
+      booking.student?.subject ||
+      (isDrivingSchoolBusiness(booking.business_unit_id) ? "练车" : "")
+    );
+  };
+
+  const saveBookingEdit = async () => {
+    if (!editTarget) return;
+
+    const duration = Number(editDuration);
+    const actualRate = editRate.trim() === "" ? null : Number(editRate);
+
+    if (!editDate || !editTime || !Number.isFinite(duration) || duration <= 0) {
+      toast.error("请检查日期、时间和时长");
+      return;
+    }
+    if (actualRate != null && (!Number.isFinite(actualRate) || actualRate < 0)) {
+      toast.error("请检查课费");
+      return;
+    }
+
+    setEditSaving(true);
+    const result = await updateBooking(
+      editTarget.id,
+      {
+        date: editDate,
+        time: editTime,
+        duration,
+        location: editLocation,
+        teacher: editStaff,
+        actualRate,
+        subject: editSubject,
+      },
+      "single"
+    );
+    setEditSaving(false);
+
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("排课信息已更新");
+    setEditTarget(null);
     await reloadStats();
   };
 
@@ -494,19 +574,29 @@ export default function Home() {
                             </div>
                           </div>
 
-                          <button
-                            type="button"
-                            disabled={completingId === b.id}
-                            onClick={() => handleComplete(b)}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                            aria-label="完成课程"
-                          >
-                            {completingId === b.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                          </button>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openBookingEdit(b)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-indigo-600"
+                              aria-label="编辑排课"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={completingId === b.id}
+                              onClick={() => handleComplete(b)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                              aria-label="完成课程"
+                            >
+                              {completingId === b.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -568,6 +658,118 @@ export default function Home() {
             {today} · Tangent ERP
           </div>
         </div>
+
+        <Dialog
+          open={!!editTarget}
+          onOpenChange={(open) => {
+            if (!open && !editSaving) setEditTarget(null);
+          }}
+        >
+          <DialogContent className="rounded-2xl sm:max-w-[460px]">
+            <DialogHeader>
+              <DialogTitle>编辑排课</DialogTitle>
+              <DialogDescription>
+                {editTarget?.student?.name || "该学员"} · 直接修改本节课程
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-3 py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">日期</Label>
+                  <Input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">时间</Label>
+                  <Input
+                    type="time"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">时长（小时）</Label>
+                  <Input
+                    type="number"
+                    min="0.5"
+                    step="0.5"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(e.target.value)}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">课费 / h</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editRate}
+                    onChange={(e) => setEditRate(e.target.value)}
+                    className="h-10 rounded-xl"
+                    placeholder="可留空"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-500">课程 / 科目</Label>
+                <Input
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                  className="h-10 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-500">
+                  {isDrivingSchoolBusiness(editTarget?.business_unit_id) ? "教练" : "老师"}
+                </Label>
+                <Input
+                  value={editStaff}
+                  onChange={(e) => setEditStaff(e.target.value)}
+                  className="h-10 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-500">地点</Label>
+                <Input
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  className="h-10 rounded-xl"
+                  placeholder={isDrivingSchoolBusiness(editTarget?.business_unit_id) ? "见面地址" : "上课地点 / 线上"}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditTarget(null)}
+                disabled={editSaving}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={saveBookingEdit}
+                disabled={editSaving}
+                className="bg-slate-950 hover:bg-slate-800"
+              >
+                {editSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pencil className="mr-2 h-4 w-4" />}
+                保存修改
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog
           open={!!completeTarget}
