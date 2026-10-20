@@ -120,6 +120,14 @@ function MobileAccountMenu({
   );
 }
 
+function bookingEndLabel(booking: any) {
+  if (booking?.end_time) return utcToNzTimeStr(booking.end_time);
+  const duration = Number(booking?.duration || 1);
+  return utcToNzTimeStr(
+    new Date(new Date(booking.start_time).getTime() + duration * 3600000).toISOString()
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -548,8 +556,8 @@ export default function Home() {
                       return (
                         <div key={b.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
                           <div className="w-13 shrink-0">
-                            <div className="text-[13px] font-bold text-slate-950">
-                              {utcToNzTimeStr(b.start_time)}
+                            <div className="text-[12px] font-bold tabular-nums text-slate-950">
+                              {utcToNzTimeStr(b.start_time)}–{bookingEndLabel(b)}
                             </div>
                             <div className="text-[9px] font-medium text-slate-400">
                               {isToday ? "今天" : formatDateLabelInNZ(b.start_time, zhCN).split(" ")[0]}
