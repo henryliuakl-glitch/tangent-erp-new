@@ -29,10 +29,9 @@ type CalendarBooking = {
   } | null;
 };
 
-const GRID_START_HOUR = 6;
-const GRID_END_HOUR = 22;
-const HOUR_HEIGHT = 34;
-const GRID_MINUTES = (GRID_END_HOUR - GRID_START_HOUR) * 60;
+const DEFAULT_START_HOUR = 10;
+const DEFAULT_END_HOUR = 20;
+const HOUR_HEIGHT = 54;
 
 function monthTitle(monthKey: string) {
   const [y, m] = monthKey.split("-").map(Number);
@@ -122,13 +121,17 @@ type PositionedBooking = {
   columns: number;
 };
 
-function layoutBookings(bookings: CalendarBooking[]): PositionedBooking[] {
+function layoutBookings(
+  bookings: CalendarBooking[],
+  gridStartHour: number,
+  gridEndHour: number
+): PositionedBooking[] {
   const rows = bookings
     .map((booking) => {
       const { start, end } = bookingWindow(booking);
       return { booking, start, end };
     })
-    .filter(({ start, end }) => end > GRID_START_HOUR * 60 && start < GRID_END_HOUR * 60)
+    .filter(({ start, end }) => end > gridStartHour * 60 && start < gridEndHour * 60)
     .sort((a, b) => a.start - b.start || a.end - b.end);
 
   const result: PositionedBooking[] = [];
@@ -213,9 +216,27 @@ export function DashboardCalendar({
 
   const gridDays = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth]);
   const selectedBookings = byDate.get(selectedKey) || [];
+  const { gridStartHour, gridEndHour } = useMemo(() => {
+    if (selectedBookings.length === 0) {
+      return {
+        gridStartHour: DEFAULT_START_HOUR,
+        gridEndHour: DEFAULT_END_HOUR,
+      };
+    }
+
+    const windows = selectedBookings.map(bookingWindow);
+    const earliest = Math.min(...windows.map((w) => w.start));
+    const latest = Math.max(...windows.map((w) => w.end));
+
+    return {
+      gridStartHour: Math.max(0, Math.min(DEFAULT_START_HOUR, Math.floor(earliest / 60))),
+      gridEndHour: Math.min(24, Math.max(DEFAULT_END_HOUR, Math.ceil(latest / 60))),
+    };
+  }, [selectedBookings]);
+
   const positionedBookings = useMemo(
-    () => layoutBookings(selectedBookings),
-    [selectedBookings]
+    () => layoutBookings(selectedBookings, gridStartHour, gridEndHour),
+    [selectedBookings, gridStartHour, gridEndHour]
   );
 
   const moveMonth = (delta: number) => {
@@ -249,7 +270,7 @@ export function DashboardCalendar({
             </h3>
           </div>
           <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-            月历选日期 · 右侧查看 06:00–22:00 已占时段
+            月历选日期 · 默认显示 10:00–20:00，有早课或晚课时自动扩展
           </p>
         </div>
 
@@ -362,7 +383,7 @@ export function DashboardCalendar({
               {selectedBookings.length} 节课程
             </div>
             <div className="mt-1 text-[10px] text-slate-400">
-              网格按实际开始与结束时间占位，空白时段就是可排时间。
+              默认显示 10:00–20:00；当天有更早或更晚课程时自动延伸。
             </div>
           </div>
         </div>
@@ -371,7 +392,9 @@ export function DashboardCalendar({
           <div className="mb-2 flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-black text-slate-900">当天时段</div>
-              <div className="text-[9px] font-medium text-slate-400">06:00–22:00 · 每小时一格</div>
+              <div className="text-[9px] font-medium text-slate-400">
+                {String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00 · 每小时一格
+              </div>
             </div>
             <div className="text-[10px] font-bold text-slate-400">
               {selectedBookings.length ? `${selectedBookings.length} booked` : "全部空闲"}
@@ -381,10 +404,10 @@ export function DashboardCalendar({
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div
               className="relative ml-[48px]"
-              style={{ height: (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT }}
+              style={{ height: (gridEndHour - gridStartHour) * HOUR_HEIGHT }}
             >
-              {Array.from({ length: GRID_END_HOUR - GRID_START_HOUR + 1 }, (_, i) => {
-                const hour = GRID_START_HOUR + i;
+              {Array.from({ length: gridEndHour - gridStartHour + 1 }, (_, i) => {
+                const hour = gridStartHour + i;
                 const top = i * HOUR_HEIGHT;
                 return (
                   <div
@@ -402,22 +425,22 @@ export function DashboardCalendar({
               <div
                 className="pointer-events-none absolute inset-x-0 top-0 grid"
                 style={{
-                  height: (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT,
-                  gridTemplateRows: `repeat(${GRID_END_HOUR - GRID_START_HOUR}, ${HOUR_HEIGHT}px)`,
+                  height: (gridEndHour - gridStartHour) * HOUR_HEIGHT,
+                  gridTemplateRows: `repeat(${gridEndHour - gridStartHour}, ${HOUR_HEIGHT}px)`,
                 }}
               >
-                {Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => (
+                {Array.from({ length: gridEndHour - gridStartHour }, (_, i) => (
                   <div key={i} className={i % 2 ? "bg-slate-50/25" : ""} />
                 ))}
               </div>
 
               {positionedBookings.map(({ booking, start, end, column, columns }) => {
-                const clippedStart = Math.max(start, GRID_START_HOUR * 60);
-                const clippedEnd = Math.min(end, GRID_END_HOUR * 60);
-                const top = ((clippedStart - GRID_START_HOUR * 60) / 60) * HOUR_HEIGHT;
+                const clippedStart = Math.max(start, gridStartHour * 60);
+                const clippedEnd = Math.min(end, gridEndHour * 60);
+                const top = ((clippedStart - gridStartHour * 60) / 60) * HOUR_HEIGHT;
                 const height = Math.max(
-                  24,
-                  ((clippedEnd - clippedStart) / 60) * HOUR_HEIGHT - 2
+                  30,
+                  ((clippedEnd - clippedStart) / 60) * HOUR_HEIGHT - 3
                 );
                 const widthPct = 100 / columns;
                 const leftPct = column * widthPct;
@@ -433,7 +456,7 @@ export function DashboardCalendar({
                 return (
                   <div
                     key={booking.id}
-                    className={`absolute z-10 overflow-hidden rounded-lg border px-2 py-1 shadow-sm ${accent.block}`}
+                    className={`absolute z-10 overflow-hidden rounded-lg border px-2 py-1.5 shadow-sm ${accent.block}`}
                     style={{
                       top,
                       height,
@@ -452,17 +475,15 @@ export function DashboardCalendar({
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-0.5 truncate text-[10px] font-bold">
+                    <div className="mt-0.5 truncate text-[10px] font-bold leading-tight">
                       {student.student_code ? `${student.student_code} · ` : ""}
                       {student.name || "未知学员"}
                     </div>
-                    {height >= 42 ? (
-                      <div className="mt-0.5 truncate text-[9px] font-medium opacity-75">
-                        {subject}{teacher ? ` · ${teacher}` : ""}
-                      </div>
-                    ) : null}
-                    {height >= 62 && booking.location ? (
-                      <div className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[8px] opacity-60">
+                    <div className="mt-0.5 truncate text-[9px] font-semibold leading-tight opacity-75">
+                      {subject}{teacher ? ` · ${teacher}` : ""}
+                    </div>
+                    {height >= 84 && booking.location ? (
+                      <div className="mt-1 flex min-w-0 items-center gap-1 truncate text-[8px] leading-tight opacity-60">
                         <MapPin className="h-2.5 w-2.5 shrink-0" />
                         <span className="truncate">{booking.location}</span>
                       </div>
@@ -475,7 +496,7 @@ export function DashboardCalendar({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="rounded-xl border border-dashed border-slate-200 bg-white/90 px-4 py-3 text-center">
                     <CalendarDays className="mx-auto mb-1 h-4 w-4 text-slate-300" />
-                    <div className="text-[10px] font-semibold text-slate-400">06:00–22:00 全部空闲</div>
+                    <div className="text-[10px] font-semibold text-slate-400">{String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00 全部空闲</div>
                   </div>
                 </div>
               ) : null}
