@@ -32,7 +32,7 @@ export function IncomeSourceSelect({
     const supabase = createClient();
 
     async function load() {
-      let result = await supabase
+      let result: any = await supabase
         .from("family_accounts")
         .select("id,name,currency,is_business_account,active_for_payments")
         .eq("active_for_payments", true)
