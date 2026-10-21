@@ -15,7 +15,7 @@ import { CreatableCombobox } from "@/components/CreatableCombobox";
 import { fetchFormSuggestions } from "@/lib/form-suggestions";
 import { PAYMENT_TYPE_OPTIONS } from "@/lib/student-payment";
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency";
-import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import { 
   Loader2, ArrowLeft, Wallet, GraduationCap, User, BookOpen, Car
 } from "lucide-react";
@@ -254,19 +254,14 @@ export default function NewStudentPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label className="text-xs text-slate-500">默认收款来源</Label>
-                    <Select value={incomeSource} onValueChange={setIncomeSource}>
-                      <SelectTrigger className="h-10 md:h-11 rounded-xl border-slate-200 bg-white">
-                        <SelectValue placeholder="选择该学员通常付款到哪里" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        {INCOME_SOURCE_OPTIONS.map((source) => (
-                          <SelectItem key={source} value={source}>{source}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-slate-400">后续为该学员充值时，会自动把这项写入财务流水的“收入来源”。</p>
+                  <div className="col-span-2">
+                    <IncomeSourceSelect
+                      value={incomeSource}
+                      onChange={setIncomeSource}
+                      label="默认收款账户"
+                      placeholder="选择该学员通常付款到哪里"
+                    />
+                    <p className="mt-1 text-[10px] text-slate-400">账户列表直接来自 Family；实际充值时仍可按本次付款方式改选。</p>
                   </div>
                </div>
             </div>
