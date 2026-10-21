@@ -195,6 +195,49 @@ export default function FamilyPage() {
     };
   }, [recurring, fx.rate]);
 
+  const variableForecast = useMemo(() => {
+    const rate = Number(fx.rate || 0);
+    const nowMs = Date.now();
+    const cutoffMs = nowMs - 90 * 86400000;
+
+    let netNzd = 0;
+    let netRmb = 0;
+    let sampleCount = 0;
+    let earliestMs = Number.POSITIVE_INFINITY;
+    let latestMs = 0;
+
+    transactions.forEach((t) => {
+      if (t.type !== "income" && t.type !== "expense") return;
+      const dateMs = Date.parse(`${t.transaction_date}T12:00:00`);
+      if (!Number.isFinite(dateMs) || dateMs < cutoffMs) return;
+
+      const signed = Number(t.amount || 0) * (t.type === "income" ? 1 : -1);
+      if (t.currency === "RMB") netRmb += signed;
+      else netNzd += signed;
+
+      sampleCount += 1;
+      earliestMs = Math.min(earliestMs, dateMs);
+      latestMs = Math.max(latestMs, dateMs);
+    });
+
+    const observedDays =
+      sampleCount > 0 && Number.isFinite(earliestMs)
+        ? Math.max(1, Math.floor((latestMs - earliestMs) / 86400000) + 1)
+        : 0;
+
+    // 新系统刚开始记录时，至少按30天窗口归一化，避免几天的数据被夸大成年化趋势。
+    const normalizedDays = Math.max(30, observedDays);
+    const monthlyNzd = sampleCount > 0 ? (netNzd / normalizedDays) * 30.4375 : 0;
+    const monthlyRmb = sampleCount > 0 ? (netRmb / normalizedDays) * 30.4375 : 0;
+
+    return {
+      monthlyInNzd: rate > 0 ? monthlyNzd + monthlyRmb / rate : monthlyNzd,
+      monthlyInRmb: rate > 0 ? monthlyRmb + monthlyNzd * rate : monthlyRmb,
+      sampleCount,
+      observedDays,
+    };
+  }, [transactions, fx.rate]);
+
   const saveAccount = async () => {
     setSaving(true);
     const fd = new FormData();
@@ -289,6 +332,42 @@ export default function FamilyPage() {
 
   const displayTotal = displayCurrency === "NZD" ? totals.totalNzd : totals.totalRmb;
   const monthlyForecast = displayCurrency === "NZD" ? forecast.monthlyInNzd : forecast.monthlyInRmb;
+  const monthlyVariableForecast =
+    displayCurrency === "NZD"
+      ? variableForecast.monthlyInNzd
+      : variableForecast.monthlyInRmb;
+
+  const forecastChart = useMemo(() => {
+    const points = Array.from({ length: 13 }, (_, month) => ({
+      month,
+      fixed: displayTotal + monthlyForecast * month,
+      variable: displayTotal + monthlyVariableForecast * month,
+    }));
+
+    const values = points.flatMap((p) => [p.fixed, p.variable]);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const spread = Math.max(1, max - min);
+    const paddedMin = min - spread * 0.08;
+    const paddedMax = max + spread * 0.08;
+    const range = Math.max(1, paddedMax - paddedMin);
+    const width = 600;
+    const height = 180;
+    const x = (month: number) => (month / 12) * width;
+    const y = (value: number) => height - ((value - paddedMin) / range) * height;
+    const path = (key: "fixed" | "variable") =>
+      points
+        .map((p, index) => `${index === 0 ? "M" : "L"} ${x(p.month).toFixed(1)} ${y(p[key]).toFixed(1)}`)
+        .join(" ");
+
+    return {
+      points,
+      fixedPath: path("fixed"),
+      variablePath: path("variable"),
+      min: paddedMin,
+      max: paddedMax,
+    };
+  }, [displayTotal, monthlyForecast, monthlyVariableForecast]);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
@@ -482,17 +561,77 @@ export default function FamilyPage() {
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-black">Savings Forecast</h2>
-                  <p className="text-[10px] text-slate-400">按当前余额 + 固定月净流入</p>
+                  <p className="text-[10px] text-slate-400">Fixed = 手工预算；Variable = 最近实际流水趋势</p>
                 </div>
                 <Button onClick={() => setForecastOpen(true)} variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-bold">+ 预测项</Button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Fixed monthly</div>
+                  <div className={`mt-1 text-sm font-black ${monthlyForecast >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    {monthlyForecast >= 0 ? "+" : ""}{money(monthlyForecast, displayCurrency)}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Variable monthly</div>
+                  <div className={`mt-1 text-sm font-black ${monthlyVariableForecast >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    {monthlyVariableForecast >= 0 ? "+" : ""}{money(monthlyVariableForecast, displayCurrency)}
+                  </div>
+                  <div className="mt-0.5 text-[8px] text-slate-400">
+                    {variableForecast.sampleCount} 笔 · 最近90天实际流水
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-xl border border-slate-100 bg-white p-3">
+                <div className="mb-2 flex items-center justify-between text-[9px] font-bold text-slate-400">
+                  <span>未来 12 个月余额走势</span>
+                  <span className="flex items-center gap-3">
+                    <span className="flex items-center gap-1"><span className="h-0.5 w-4 bg-slate-900" /> Fixed</span>
+                    <span className="flex items-center gap-1"><span className="h-0.5 w-4 border-t border-dashed border-indigo-500" /> Variable</span>
+                  </span>
+                </div>
+                <svg viewBox="0 0 600 205" className="h-44 w-full overflow-visible" role="img" aria-label="Savings forecast chart">
+                  {[0, 3, 6, 9, 12].map((month) => {
+                    const x = (month / 12) * 600;
+                    return (
+                      <g key={month}>
+                        <line x1={x} y1="0" x2={x} y2="180" stroke="currentColor" className="text-slate-100" />
+                        <text x={x} y="200" textAnchor={month === 0 ? "start" : month === 12 ? "end" : "middle"} className="fill-slate-400 text-[18px]">
+                          {month === 0 ? "Now" : `${month}m`}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {[0, 0.5, 1].map((ratio) => {
+                    const y = 180 - ratio * 180;
+                    const value = forecastChart.min + (forecastChart.max - forecastChart.min) * ratio;
+                    return (
+                      <g key={ratio}>
+                        <line x1="0" y1={y} x2="600" y2={y} stroke="currentColor" className="text-slate-100" />
+                        <text x="6" y={Math.max(14, y - 5)} className="fill-slate-300 text-[16px]">
+                          {money(value, displayCurrency)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <path d={forecastChart.fixedPath} fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={forecastChart.variablePath} fill="none" stroke="#6366f1" strokeWidth="3" strokeDasharray="10 8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {[3, 6, 12].map((months) => (
-                  <div key={months} className="rounded-xl bg-slate-50 p-3">
+                  <div key={months} className="rounded-xl bg-slate-50 p-2.5">
                     <div className="text-[9px] font-bold text-slate-400">{months}个月</div>
-                    <div className="mt-1 text-sm font-black">
+                    <div className="mt-1 text-[9px] text-slate-400">Fixed</div>
+                    <div className="text-xs font-black">
                       {money(displayTotal + monthlyForecast * months, displayCurrency)}
+                    </div>
+                    <div className="mt-1 text-[9px] text-slate-400">Variable</div>
+                    <div className="text-xs font-black text-indigo-600">
+                      {money(displayTotal + monthlyVariableForecast * months, displayCurrency)}
                     </div>
                   </div>
                 ))}
