@@ -10,6 +10,7 @@ import {
   ReceiptText,
   Users,
   CarFront,
+  House,
 } from "lucide-react";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -60,10 +61,21 @@ export function MobileDock() {
   const pathname = usePathname();
   const { currentBusinessId } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
+  const family = currentBusinessId === "family";
   const showVehicles = driving || currentBusinessId === "tangent";
 
   const createHref = driving ? "/bookings/quick" : "/bookings/new";
   const createLabel = driving ? "排课" : "新建";
+
+  if (family) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+        <div className="mx-auto flex h-[58px] max-w-lg items-stretch px-2">
+          <NavItem href="/family" icon={House} label="Family" active={pathname.startsWith("/family")} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
