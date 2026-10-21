@@ -35,7 +35,7 @@ export async function insertTransaction(
   // Family Accounts 是全系统唯一收款账户主数据。
   // 旧调用仍可只传 income_source 文本，这里自动解析成 family_account_id。
   if (!familyAccountId && row.type === "income" && incomeSource) {
-    let accountQuery = await supabase
+    let accountQuery: any = await supabase
       .from("family_accounts")
       .select("id,name,currency,active_for_payments")
       .eq("name", incomeSource)
