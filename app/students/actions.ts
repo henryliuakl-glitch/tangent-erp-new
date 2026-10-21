@@ -353,7 +353,8 @@ export async function deleteStudent(studentId: string) {
 export async function topUpStudent(
   studentId: string,
   hoursToAdd: number,
-  currency?: Currency | string
+  currency?: Currency | string,
+  incomeSource?: string | null
 ) {
 
   const supabase = await createClient();
@@ -418,7 +419,11 @@ export async function topUpStudent(
       student_id: studentId,
       quantity: hoursToAdd,
       currency: txCurrency,
-      income_source: isIncomeSource(student.income_source) ? student.income_source : null,
+      income_source: isIncomeSource(incomeSource)
+        ? incomeSource
+        : isIncomeSource(student.income_source)
+          ? student.income_source
+          : null,
     });
 
     if (txRes.error) {
