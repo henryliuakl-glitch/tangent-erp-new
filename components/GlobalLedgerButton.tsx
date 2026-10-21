@@ -117,17 +117,17 @@ export function GlobalLedgerButton() {
       </button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl sm:max-w-md">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-[24px] p-5 sm:max-w-[460px] sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-[20px] font-black tracking-tight">
               <WalletCards className="h-5 w-5 text-indigo-600" />
               全局记账
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="mb-1 block text-xs font-bold text-slate-500">归属</Label>
+              <Label className="mb-1.5 block text-xs font-bold text-slate-500">归属</Label>
               <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
                 {[
                   ["family", "Family"],
@@ -138,7 +138,7 @@ export function GlobalLedgerButton() {
                     key={value}
                     type="button"
                     onClick={() => setScope(value as "family" | "cus" | "sine")}
-                    className={`h-9 rounded-lg text-xs font-bold transition-all ${
+                    className={`h-10 rounded-lg text-sm font-bold transition-all ${
                       scope === value ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"
                     }`}
                   >
@@ -146,22 +146,22 @@ export function GlobalLedgerButton() {
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-[10px] text-slate-400">
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
                 Family = 纯家庭流水；CuS/Sine = 同时保留业务归属并影响 Family 实际账户。
               </p>
             </div>
 
             <div>
-              <Label className="mb-1 block text-xs font-bold text-slate-500">类型</Label>
+              <Label className="mb-1.5 block text-xs font-bold text-slate-500">类型</Label>
               <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-                <button type="button" onClick={() => setType("expense")} className={`h-9 rounded-lg text-xs font-bold ${type === "expense" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"}`}>支出</button>
-                <button type="button" onClick={() => setType("income")} className={`h-9 rounded-lg text-xs font-bold ${type === "income" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>收入</button>
+                <button type="button" onClick={() => setType("expense")} className={`h-10 rounded-lg text-sm font-bold ${type === "expense" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"}`}>支出</button>
+                <button type="button" onClick={() => setType("income")} className={`h-10 rounded-lg text-sm font-bold ${type === "income" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>收入</button>
               </div>
             </div>
 
             <div>
-              <Label className="mb-1 block text-xs font-bold text-slate-500">金额</Label>
-              <div className="flex gap-2">
+              <Label className="mb-1.5 block text-xs font-bold text-slate-500">金额</Label>
+              <div className="grid grid-cols-[1fr_112px] gap-2">
                 <Input
                   type="number"
                   step="0.01"
@@ -169,18 +169,18 @@ export function GlobalLedgerButton() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="h-12 flex-1 rounded-xl text-xl font-black"
+                  className="h-11 rounded-xl border-slate-200 bg-white px-4 text-lg font-black shadow-none"
                 />
-                <div className="flex h-12 w-20 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-600">
+                <div className="flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-black text-slate-600">
                   {currency}
                 </div>
               </div>
             </div>
 
             <div>
-              <Label className="mb-1 block text-xs font-bold text-slate-500">实际账户</Label>
+              <Label className="mb-1.5 block text-xs font-bold text-slate-500">实际账户</Label>
               <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="h-11 rounded-xl">
+                <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white text-sm shadow-none">
                   <SelectValue placeholder={loadingAccounts ? "加载账户…" : "选择钱实际从哪里进/出"} />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -195,26 +195,26 @@ export function GlobalLedgerButton() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="mb-1 block text-xs font-bold text-slate-500">分类</Label>
+                <Label className="mb-1.5 block text-xs font-bold text-slate-500">分类</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="选择分类" /></SelectTrigger>
+                  <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white text-sm shadow-none"><SelectValue placeholder="选择分类" /></SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="mb-1 block text-xs font-bold text-slate-500">日期</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 rounded-xl" />
+                <Label className="mb-1.5 block text-xs font-bold text-slate-500">日期</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 rounded-xl border-slate-200 bg-white px-3 text-sm shadow-none" />
               </div>
             </div>
 
             <div>
-              <Label className="mb-1 block text-xs font-bold text-slate-500">备注</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="选填" rows={2} className="resize-none rounded-xl" />
+              <Label className="mb-1.5 block text-xs font-bold text-slate-500">备注</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="选填" rows={2} className="min-h-[76px] resize-none rounded-xl border-slate-200 bg-white px-3 py-2.5 text-sm shadow-none" />
             </div>
 
-            <Button onClick={save} disabled={saving} className="h-11 w-full rounded-xl bg-slate-950 font-bold">
+            <Button onClick={save} disabled={saving} className="mt-1 h-12 w-full rounded-xl bg-slate-950 text-sm font-bold shadow-none">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               保存
             </Button>
