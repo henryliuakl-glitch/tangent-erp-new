@@ -1,18 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, Building2, Car, LayoutGrid } from "lucide-react";
+import { Check, ChevronsUpDown, Building2, Car, LayoutGrid, House } from "lucide-react";
 import { useBusiness } from "@/contexts/BusinessContext";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button"; 
 // 如果 Button 也没装，可以把 Button 换成普通的 <button className="...">
 
 const BUSINESS_UNITS = [
+  { id: "family", name: "Family", icon: House },
+  { id: "tangent", name: "Tangent Group", icon: LayoutGrid },
   { id: "cus", name: "CuS Academy (教培)", icon: Building2 },
   { id: "sine", name: "Sine Driving (驾校)", icon: Car },
-  { id: "tangent", name: "Tangent Group", icon: LayoutGrid },
 ];
 
 export default function BusinessSwitcher() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   
@@ -67,6 +70,7 @@ export default function BusinessSwitcher() {
                 onClick={() => {
                   setBusinessId(unit.id);
                   setIsOpen(false);
+                  router.push(unit.id === "family" ? "/family" : "/");
                 }}
                 className={`
                   relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-2 pr-8 text-sm outline-none hover:bg-slate-100 transition-colors
