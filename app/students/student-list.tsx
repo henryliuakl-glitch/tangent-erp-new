@@ -23,6 +23,7 @@ import { isDrivingSchoolBusiness } from "@/lib/business";
 import { isTodayInNZ, utcToNzTimeStr } from "@/lib/timezone";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
 export function StudentList({ students }: { students: any[] }) {
   const { currentBusinessId } = useBusiness();
@@ -41,6 +42,7 @@ export function StudentList({ students }: { students: any[] }) {
   const [topUpTarget, setTopUpTarget] = useState<any>(null);
   const [topUpAmount, setTopUpAmount] = useState("10");
   const [topUpCurrency, setTopUpCurrency] = useState<"NZD" | "RMB">("NZD");
+  const [topUpIncomeSource, setTopUpIncomeSource] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
   // --- 动态提取筛选选项 ---
