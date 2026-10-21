@@ -38,22 +38,12 @@ export function isPayAsYouGoDriving(ctx?: PaymentContext): boolean {
  */
 export function isPaymentAlert(
   balance: number,
-  paymentType?: string | null,
+  _paymentType?: string | null,
   ctx?: PaymentContext,
-  scheduledHours = 0
+  _scheduledHours = 0
 ): boolean {
   if (isPayAsYouGoDriving(ctx)) return false;
-
-  const bal = Number(balance);
-  const scheduled = Math.max(0, Number(scheduledHours) || 0);
-
-  if (scheduled > bal) return true;
-  if (bal < 0) return true;
-
-  const type = paymentType || DEFAULT_PAYMENT_TYPE;
-  if (type === "single") return false;
-
-  return bal <= 0;
+  return Number(balance) < 0;
 }
 
 /**
@@ -65,14 +55,10 @@ export function isPaymentAlert(
  */
 export function isBookingUnpaid(
   balance: number,
-  paymentType: string | null | undefined,
+  _paymentType: string | null | undefined,
   _cumulativeUsage?: number,
   ctx?: PaymentContext
 ): boolean {
   if (isPayAsYouGoDriving(ctx)) return false;
-  const bal = Number(balance);
-  if (bal > 0) return false;
-  const type = paymentType || DEFAULT_PAYMENT_TYPE;
-  if (type === "single") return bal < 0;
-  return bal <= 0;
+  return Number(balance) < 0;
 }
