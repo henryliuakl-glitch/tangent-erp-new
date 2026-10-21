@@ -221,15 +221,19 @@ export default function Home() {
           });
       }
 
-      setBusinessList(
+      const baseUnits =
         units?.length
           ? units
           : [
               { id: "cus", name: "CuS Academy" },
               { id: "sine", name: "SINE Driving School" },
               { id: "tangent", name: "Tangent Group" },
-            ]
-      );
+            ];
+
+      setBusinessList([
+        { id: "family", name: "Family" },
+        ...baseUnits.filter((unit: any) => unit.id !== "family"),
+      ]);
 
       try {
         setStats(statsResult);
@@ -453,7 +457,10 @@ export default function Home() {
                   user={userProfile}
                   currentBusinessId={currentBusinessId}
                   businesses={businessList}
-                  onSwitch={setBusinessId}
+                  onSwitch={(id: string) => {
+                    setBusinessId(id);
+                    if (id === "family") router.push("/family");
+                  }}
                   onSignOut={handleSignOut}
                 />
               </div>
