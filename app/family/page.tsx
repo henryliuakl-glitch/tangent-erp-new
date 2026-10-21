@@ -16,6 +16,9 @@ import {
   CircleDollarSign,
   Landmark,
   Loader2,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
   Plus,
   RefreshCw,
   Trash2,
@@ -30,6 +33,7 @@ import {
   deleteFamilyAccount,
   deleteRecurringCashflow,
   getFamilyData,
+  reorderFamilyAccounts,
   updateFamilyAccountBalance,
 } from "./actions";
 
@@ -44,6 +48,7 @@ type Account = {
   is_business_account: boolean;
   institution?: string | null;
   notes?: string | null;
+  sort_order?: number | null;
 };
 
 type Recurring = {
@@ -96,6 +101,7 @@ export default function FamilyPage() {
   const [forecastOpen, setForecastOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingBalance, setEditingBalance] = useState<{ id: string; value: string } | null>(null);
+  const [draggingAccountId, setDraggingAccountId] = useState<string | null>(null);
 
   const [accountForm, setAccountForm] = useState({
     name: "",
@@ -246,6 +252,41 @@ export default function FamilyPage() {
     await load();
   };
 
+  const persistAccountOrder = async (next: Account[]) => {
+    setAccounts(next);
+    const res = await reorderFamilyAccounts(next.map((a) => a.id));
+    if (res.error) {
+      toast.error("账户排序保存失败: " + res.error);
+      await load();
+    }
+  };
+
+  const moveAccount = async (id: string, direction: -1 | 1) => {
+    const index = accounts.findIndex((a) => a.id === id);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= accounts.length) return;
+    const next = [...accounts];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    await persistAccountOrder(next);
+  };
+
+  const dropAccount = async (targetId: string) => {
+    if (!draggingAccountId || draggingAccountId === targetId) {
+      setDraggingAccountId(null);
+      return;
+    }
+
+    const from = accounts.findIndex((a) => a.id === draggingAccountId);
+    const to = accounts.findIndex((a) => a.id === targetId);
+    if (from < 0 || to < 0) return;
+
+    const next = [...accounts];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setDraggingAccountId(null);
+    await persistAccountOrder(next);
+  };
+
   const displayTotal = displayCurrency === "NZD" ? totals.totalNzd : totals.totalRmb;
   const monthlyForecast = displayCurrency === "NZD" ? forecast.monthlyInNzd : forecast.monthlyInRmb;
 
@@ -355,11 +396,30 @@ export default function FamilyPage() {
               </button>
             ) : (
               <div className="divide-y divide-slate-100">
-                {accounts.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                {accounts.map((a, index) => (
+                  <div
+                    key={a.id}
+                    draggable
+                    onDragStart={() => setDraggingAccountId(a.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => void dropAccount(a.id)}
+                    onDragEnd={() => setDraggingAccountId(null)}
+                    className={`flex items-center gap-2 px-3 py-3 transition-opacity ${
+                      draggingAccountId === a.id ? "opacity-50" : "opacity-100"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="hidden cursor-grab text-slate-300 hover:text-slate-500 sm:block"
+                      title="拖动排序"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                       {a.account_type === "cash" ? <Banknote className="h-4 w-4 text-slate-500" /> : <Landmark className="h-4 w-4 text-slate-500" />}
                     </div>
+
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-bold text-slate-900">{a.name}</span>
@@ -368,6 +428,7 @@ export default function FamilyPage() {
                       </div>
                       <div className="mt-0.5 text-[10px] text-slate-400">{a.owner}{a.institution ? ` · ${a.institution}` : ""}</div>
                     </div>
+
                     <button
                       type="button"
                       onClick={() => setEditingBalance({ id: a.id, value: String(a.balance || 0) })}
@@ -376,6 +437,28 @@ export default function FamilyPage() {
                       <div className="text-sm font-black tabular-nums">{money(Number(a.balance || 0), a.currency)}</div>
                       <div className="text-[9px] font-semibold text-indigo-500">更新余额</div>
                     </button>
+
+                    <div className="flex shrink-0 flex-col sm:hidden">
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => void moveAccount(a.id, -1)}
+                        className="p-0.5 text-slate-300 disabled:opacity-20"
+                        aria-label="上移账户"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === accounts.length - 1}
+                        onClick={() => void moveAccount(a.id, 1)}
+                        className="p-0.5 text-slate-300 disabled:opacity-20"
+                        aria-label="下移账户"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={async () => {
