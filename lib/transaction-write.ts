@@ -4,15 +4,16 @@ import { normalizeCurrency, type Currency } from "@/lib/currency";
 /** PostgREST / schema cache 报缺 currency 列 */
 export function isMissingOptionalColumnError(message: string | undefined | null): boolean {
   if (!message) return false;
-  return /(currency|income_source)/i.test(message) && /(schema cache|could not find|column)/i.test(message);
+  return /(currency|income_source|family_account_id)/i.test(message) && /(schema cache|could not find|column)/i.test(message);
 }
 
 export function isMissingCurrencyColumnError(message: string | undefined | null): boolean {
   return isMissingOptionalColumnError(message) && /currency/i.test(message || "");
 }
 
-function optionalColumnMissing(message: string | undefined | null): "currency" | "income_source" | null {
+function optionalColumnMissing(message: string | undefined | null): "currency" | "income_source" | "family_account_id" | null {
   if (!isMissingOptionalColumnError(message)) return null;
+  if (/family_account_id/i.test(message || "")) return "family_account_id";
   if (/income_source/i.test(message || "")) return "income_source";
   if (/currency/i.test(message || "")) return "currency";
   return null;
@@ -27,7 +28,38 @@ export async function insertTransaction(
   row: Record<string, unknown> & { currency?: Currency | string | null }
 ): Promise<{ error: string | null; id?: string }> {
   const currency = normalizeCurrency(row.currency as string | undefined);
-  const withCurrency = { ...row, currency };
+
+  let familyAccountId = row.family_account_id as string | null | undefined;
+  const incomeSource = typeof row.income_source === "string" ? row.income_source.trim() : "";
+
+  // Family Accounts 是全系统唯一收款账户主数据。
+  // 旧调用仍可只传 income_source 文本，这里自动解析成 family_account_id。
+  if (!familyAccountId && row.type === "income" && incomeSource) {
+    let accountQuery = await supabase
+      .from("family_accounts")
+      .select("id,name,currency,active_for_payments")
+      .eq("name", incomeSource)
+      .eq("active_for_payments", true)
+      .maybeSingle();
+
+    if (accountQuery.error && /active_for_payments|schema cache|column/i.test(accountQuery.error.message || "")) {
+      accountQuery = await supabase
+        .from("family_accounts")
+        .select("id,name,currency")
+        .eq("name", incomeSource)
+        .maybeSingle();
+    }
+
+    if (!accountQuery.error && accountQuery.data?.id) {
+      familyAccountId = accountQuery.data.id;
+    }
+  }
+
+  const withCurrency = {
+    ...row,
+    currency,
+    ...(familyAccountId ? { family_account_id: familyAccountId } : {}),
+  };
 
   const { data: firstData, error: firstError } = await supabase
     .from("transactions")
