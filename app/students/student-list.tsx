@@ -127,6 +127,17 @@ export function StudentList({ students }: { students: any[] }) {
 
   const handleSaveEdit = async () => {
     if (!editingStudent) return;
+
+    const originalBalance = Number(editingStudent.balance ?? 0);
+    const targetBalance = Number(editingStudent.targetBalance ?? originalBalance);
+
+    if (Number.isFinite(targetBalance) && targetBalance !== originalBalance) {
+      const confirmed = confirm(
+        `⚠️ 你正在手工修改课时余额\n\n当前：${originalBalance}h\n修改为：${targetBalance}h\n\n正常情况下课时应由“充值课时 − 实际消课”自动计算。手工调整通常只用于纠错、测试数据或系统异常。\n\n本次调整不会产生现金收入或支出。确定继续吗？`
+      );
+      if (!confirmed) return;
+    }
+
     setEditLoading(true);
     const res = await updateStudent(editingStudent.id, {
       name: editingStudent.name,
@@ -426,8 +437,8 @@ export function StudentList({ students }: { students: any[] }) {
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-snug">
-                    提示：手动修改总课时将由系统自动生成一笔无现金流的 [系统调账] 流水，以供财务审计。
+                  <p className="text-[11px] text-amber-600 leading-snug">
+                    ⚠️ 正常课时应由“充值 − 消课”自动形成。这里仅用于纠错、测试数据或系统异常；修改时会再次确认，且不会产生任何现金流水。
                   </p>
                 </div>
               </div>
