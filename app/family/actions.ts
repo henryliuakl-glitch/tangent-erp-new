@@ -226,3 +226,22 @@ export async function deleteRecurringCashflow(id: string) {
   revalidatePath("/family");
   return { success: true };
 }
+
+
+export async function reorderFamilyAccounts(ids: string[]) {
+  const supabase = await createClient();
+  const cleanIds = ids.filter(Boolean);
+  if (cleanIds.length === 0) return { success: true };
+
+  for (let index = 0; index < cleanIds.length; index++) {
+    const { error } = await supabase
+      .from("family_accounts")
+      .update({ sort_order: index, updated_at: new Date().toISOString() })
+      .eq("id", cleanIds[index]);
+
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/family");
+  return { success: true };
+}
