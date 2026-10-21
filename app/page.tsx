@@ -193,60 +193,87 @@ export default function Home() {
   });
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const supabase = createClient();
-
-      setLoading(true);
-      const statsPromise = getDashboardStats(currentBusinessId || "cus");
-      const [{ data: auth }, { data: units }, statsResult] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from("business_units").select("id, name").order("name"),
-        statsPromise,
-      ]);
-
-      const user = auth?.user;
-      if (user) {
-        void supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single()
-          .then(({ data: profile }) => {
-            setUserProfile(
-              profile || {
-                full_name: user.email?.split("@")[0],
-                avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
-              }
-            );
-          });
+      if (currentBusinessId === "family") {
+        router.replace("/family");
+        return;
       }
 
-      const baseUnits =
-        units?.length
-          ? units
-          : [
-              { id: "cus", name: "CuS Academy" },
-              { id: "sine", name: "SINE Driving School" },
-              { id: "tangent", name: "Tangent Group" },
-            ];
-
-      setBusinessList([
-        { id: "family", name: "Family" },
-        ...baseUnits.filter((unit: any) => unit.id !== "family"),
-      ]);
+      const supabase = createClient();
+      setLoading(true);
 
       try {
-        setStats(statsResult);
+        const [authResult, unitsResult, statsResult] = await Promise.allSettled([
+          supabase.auth.getUser(),
+          supabase.from("business_units").select("id, name").order("name"),
+          getDashboardStats(currentBusinessId || "cus"),
+        ]);
+
+        if (cancelled) return;
+
+        const auth =
+          authResult.status === "fulfilled"
+            ? authResult.value.data
+            : null;
+
+        const units =
+          unitsResult.status === "fulfilled"
+            ? unitsResult.value.data
+            : null;
+
+        const user = auth?.user;
+        if (user) {
+          void supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+            .then(({ data: profile }) => {
+              if (cancelled) return;
+              setUserProfile(
+                profile || {
+                  full_name: user.email?.split("@")[0],
+                  avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
+                }
+              );
+            });
+        }
+
+        const baseUnits =
+          units?.length
+            ? units
+            : [
+                { id: "cus", name: "CuS Academy" },
+                { id: "sine", name: "SINE Driving School" },
+                { id: "tangent", name: "Tangent Group" },
+              ];
+
+        setBusinessList([
+          { id: "family", name: "Family" },
+          ...baseUnits.filter((unit: any) => unit.id !== "family"),
+        ]);
+
+        if (statsResult.status === "fulfilled") {
+          setStats(statsResult.value);
+        } else {
+          console.error("[dashboard] stats load failed:", statsResult.reason);
+          toast.error("工作台数据加载失败，请刷新重试");
+        }
       } catch (error) {
-        console.error(error);
-        toast.error("工作台数据加载失败");
+        console.error("[dashboard] load failed:", error);
+        if (!cancelled) toast.error("工作台数据加载失败，请刷新重试");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    load();
-  }, [currentBusinessId]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentBusinessId, router]);
 
   const reloadStats = async () => {
     try {
