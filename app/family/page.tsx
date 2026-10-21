@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
@@ -17,9 +16,6 @@ import {
   CircleDollarSign,
   Landmark,
   Loader2,
-  GripVertical,
-  ArrowUp,
-  ArrowDown,
   Plus,
   RefreshCw,
   Trash2,
@@ -34,7 +30,6 @@ import {
   deleteFamilyAccount,
   deleteRecurringCashflow,
   getFamilyData,
-  reorderFamilyAccounts,
   updateFamilyAccountBalance,
 } from "./actions";
 
@@ -49,7 +44,6 @@ type Account = {
   is_business_account: boolean;
   institution?: string | null;
   notes?: string | null;
-  sort_order?: number | null;
 };
 
 type Recurring = {
@@ -102,7 +96,6 @@ export default function FamilyPage() {
   const [forecastOpen, setForecastOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingBalance, setEditingBalance] = useState<{ id: string; value: string } | null>(null);
-  const [draggingAccountId, setDraggingAccountId] = useState<string | null>(null);
 
   const [accountForm, setAccountForm] = useState({
     name: "",
@@ -196,50 +189,6 @@ export default function FamilyPage() {
     };
   }, [recurring, fx.rate]);
 
-  const variableForecast = useMemo(() => {
-    const rate = Number(fx.rate || 0);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 90);
-
-    let netNzd = 0;
-    let netRmb = 0;
-    let datedCount = 0;
-    let earliest: Date | null = null;
-    let latest: Date | null = null;
-
-    transactions.forEach((t) => {
-      if (!t.transaction_date || !["income", "expense"].includes(t.type)) return;
-      const date = new Date(`${t.transaction_date}T12:00:00`);
-      if (date < cutoff) return;
-
-      const signed = Number(t.amount || 0) * (t.type === "income" ? 1 : -1);
-      if (t.currency === "RMB") netRmb += signed;
-      else netNzd += signed;
-
-      datedCount += 1;
-      if (!earliest || date < earliest) earliest = date;
-      if (!latest || date > latest) latest = date;
-    });
-
-    const observedDays =
-      earliest && latest
-        ? Math.max(1, Math.round((latest.getTime() - earliest.getTime()) / 86400000) + 1)
-        : 0;
-
-    const normalizedDays = Math.max(30, observedDays);
-    const monthlyNzd = (netNzd / normalizedDays) * 30.4375;
-    const monthlyRmb = (netRmb / normalizedDays) * 30.4375;
-
-    return {
-      monthlyNzd,
-      monthlyRmb,
-      monthlyInNzd: rate > 0 ? monthlyNzd + monthlyRmb / rate : monthlyNzd,
-      monthlyInRmb: rate > 0 ? monthlyRmb + monthlyNzd * rate : monthlyRmb,
-      sampleCount: datedCount,
-      observedDays,
-    };
-  }, [transactions, fx.rate]);
-
   const saveAccount = async () => {
     setSaving(true);
     const fd = new FormData();
@@ -297,58 +246,8 @@ export default function FamilyPage() {
     await load();
   };
 
-  const persistAccountOrder = async (next: Account[]) => {
-    setAccounts(next);
-    const res = await reorderFamilyAccounts(next.map((a) => a.id));
-    if (res.error) {
-      toast.error("账户排序保存失败: " + res.error);
-      await load();
-    }
-  };
-
-  const moveAccount = async (id: string, direction: -1 | 1) => {
-    const index = accounts.findIndex((a) => a.id === id);
-    const nextIndex = index + direction;
-    if (index < 0 || nextIndex < 0 || nextIndex >= accounts.length) return;
-    const next = [...accounts];
-    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    await persistAccountOrder(next);
-  };
-
-  const dropAccount = async (targetId: string) => {
-    if (!draggingAccountId || draggingAccountId === targetId) {
-      setDraggingAccountId(null);
-      return;
-    }
-
-    const from = accounts.findIndex((a) => a.id === draggingAccountId);
-    const to = accounts.findIndex((a) => a.id === targetId);
-    if (from < 0 || to < 0) return;
-
-    const next = [...accounts];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    setDraggingAccountId(null);
-    await persistAccountOrder(next);
-  };
-
   const displayTotal = displayCurrency === "NZD" ? totals.totalNzd : totals.totalRmb;
   const monthlyForecast = displayCurrency === "NZD" ? forecast.monthlyInNzd : forecast.monthlyInRmb;
-  const monthlyVariableForecast =
-    displayCurrency === "NZD"
-      ? variableForecast.monthlyInNzd
-      : variableForecast.monthlyInRmb;
-
-  const forecastChartData = useMemo(
-    () =>
-      Array.from({ length: 13 }, (_, month) => ({
-        month,
-        label: month === 0 ? "Now" : `${month}m`,
-        fixed: displayTotal + monthlyForecast * month,
-        variable: displayTotal + monthlyVariableForecast * month,
-      })),
-    [displayTotal, monthlyForecast, monthlyVariableForecast]
-  );
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
@@ -456,30 +355,11 @@ export default function FamilyPage() {
               </button>
             ) : (
               <div className="divide-y divide-slate-100">
-                {accounts.map((a, index) => (
-                  <div
-                    key={a.id}
-                    draggable
-                    onDragStart={() => setDraggingAccountId(a.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => void dropAccount(a.id)}
-                    onDragEnd={() => setDraggingAccountId(null)}
-                    className={`flex items-center gap-2 px-3 py-3 transition-opacity ${
-                      draggingAccountId === a.id ? "opacity-50" : "opacity-100"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className="hidden cursor-grab text-slate-300 hover:text-slate-500 sm:block"
-                      title="拖动排序"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-
+                {accounts.map((a) => (
+                  <div key={a.id} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                       {a.account_type === "cash" ? <Banknote className="h-4 w-4 text-slate-500" /> : <Landmark className="h-4 w-4 text-slate-500" />}
                     </div>
-
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-bold text-slate-900">{a.name}</span>
@@ -488,7 +368,6 @@ export default function FamilyPage() {
                       </div>
                       <div className="mt-0.5 text-[10px] text-slate-400">{a.owner}{a.institution ? ` · ${a.institution}` : ""}</div>
                     </div>
-
                     <button
                       type="button"
                       onClick={() => setEditingBalance({ id: a.id, value: String(a.balance || 0) })}
@@ -497,26 +376,6 @@ export default function FamilyPage() {
                       <div className="text-sm font-black tabular-nums">{money(Number(a.balance || 0), a.currency)}</div>
                       <div className="text-[9px] font-semibold text-indigo-500">更新余额</div>
                     </button>
-
-                    <div className="flex shrink-0 flex-col sm:hidden">
-                      <button
-                        type="button"
-                        disabled={index === 0}
-                        onClick={() => void moveAccount(a.id, -1)}
-                        className="p-0.5 text-slate-300 disabled:opacity-20"
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={index === accounts.length - 1}
-                        onClick={() => void moveAccount(a.id, 1)}
-                        className="p-0.5 text-slate-300 disabled:opacity-20"
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
                     <button
                       type="button"
                       onClick={async () => {
@@ -540,52 +399,16 @@ export default function FamilyPage() {
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-black">Savings Forecast</h2>
-                  <p className="text-[10px] text-slate-400">Fixed = 手工预算；Variable = 最近实际流水趋势</p>
+                  <p className="text-[10px] text-slate-400">按当前余额 + 固定月净流入</p>
                 </div>
                 <Button onClick={() => setForecastOpen(true)} variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-bold">+ 预测项</Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Fixed monthly</div>
-                  <div className={`mt-1 text-sm font-black ${monthlyForecast >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                    {monthlyForecast >= 0 ? "+" : ""}{money(monthlyForecast, displayCurrency)}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Variable monthly</div>
-                  <div className={`mt-1 text-sm font-black ${monthlyVariableForecast >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                    {monthlyVariableForecast >= 0 ? "+" : ""}{money(monthlyVariableForecast, displayCurrency)}
-                  </div>
-                  <div className="mt-0.5 text-[8px] text-slate-400">
-                    {variableForecast.sampleCount} 笔实际流水 · 最近90天
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 h-48 w-full rounded-xl border border-slate-100 bg-white p-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={forecastChartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                    <XAxis dataKey="label" tick={{ fontSize: 9 }} interval={2} />
-                    <YAxis tick={{ fontSize: 9 }} tickFormatter={(value) => Number(value).toLocaleString(undefined, { notation: "compact" })} />
-                    <Tooltip
-                      formatter={(value: any, name: any) => [
-                        money(Number(value), displayCurrency),
-                        name === "fixed" ? "Fixed" : "Variable",
-                      ]}
-                      labelFormatter={(label) => `Forecast · ${label}`}
-                    />
-                    <Line type="monotone" dataKey="fixed" strokeWidth={2.5} dot={false} />
-                    <Line type="monotone" dataKey="variable" strokeWidth={2} strokeDasharray="5 4" dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[3, 6, 12].map((months) => (
-                  <div key={months} className="rounded-xl bg-slate-50 p-2.5">
-                    <div className="text-[9px] font-bold text-slate-400">{months}个月 · Fixed</div>
-                    <div className="mt-1 text-xs font-black">
+                  <div key={months} className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-[9px] font-bold text-slate-400">{months}个月</div>
+                    <div className="mt-1 text-sm font-black">
                       {money(displayTotal + monthlyForecast * months, displayCurrency)}
                     </div>
                   </div>
