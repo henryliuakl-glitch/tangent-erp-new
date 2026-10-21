@@ -273,7 +273,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [currentBusinessId, router]);
+  // router is intentionally excluded: some Next.js builds may return a new router
+  // reference and repeatedly cancel/restart this loader.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBusinessId]);
 
   const reloadStats = async () => {
     try {
