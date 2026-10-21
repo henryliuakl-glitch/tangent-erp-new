@@ -195,20 +195,51 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadStats() {
       if (currentBusinessId === "family") {
         router.replace("/family");
         return;
       }
 
-      const supabase = createClient();
       setLoading(true);
 
       try {
-        const [authResult, unitsResult, statsResult] = await Promise.allSettled([
+        const timeout = new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error("Dashboard stats timeout")), 15000);
+        });
+
+        const nextStats = await Promise.race([
+          getDashboardStats(currentBusinessId || "cus"),
+          timeout,
+        ]);
+
+        if (!cancelled) setStats(nextStats);
+      } catch (error) {
+        console.error("[dashboard] stats load failed:", error);
+        if (!cancelled) toast.error("工作台数据加载失败，请刷新重试");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+    // router intentionally excluded; currentBusinessId alone controls dashboard reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBusinessId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    async function loadShellData() {
+      try {
+        const [authResult, unitsResult] = await Promise.allSettled([
           supabase.auth.getUser(),
           supabase.from("business_units").select("id, name").order("name"),
-          getDashboardStats(currentBusinessId || "cus"),
         ]);
 
         if (cancelled) return;
@@ -222,24 +253,6 @@ export default function Home() {
           unitsResult.status === "fulfilled"
             ? unitsResult.value.data
             : null;
-
-        const user = auth?.user;
-        if (user) {
-          void supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single()
-            .then(({ data: profile }) => {
-              if (cancelled) return;
-              setUserProfile(
-                profile || {
-                  full_name: user.email?.split("@")[0],
-                  avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
-                }
-              );
-            });
-        }
 
         const baseUnits =
           units?.length
@@ -255,29 +268,34 @@ export default function Home() {
           ...baseUnits.filter((unit: any) => unit.id !== "family"),
         ]);
 
-        if (statsResult.status === "fulfilled") {
-          setStats(statsResult.value);
-        } else {
-          console.error("[dashboard] stats load failed:", statsResult.reason);
-          toast.error("工作台数据加载失败，请刷新重试");
-        }
+        const user = auth?.user;
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (cancelled) return;
+
+        setUserProfile(
+          profile || {
+            full_name: user.email?.split("@")[0],
+            avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
+          }
+        );
       } catch (error) {
-        console.error("[dashboard] load failed:", error);
-        if (!cancelled) toast.error("工作台数据加载失败，请刷新重试");
-      } finally {
-        if (!cancelled) setLoading(false);
+        console.error("[dashboard] shell data load failed:", error);
       }
     }
 
-    void load();
+    void loadShellData();
+
     return () => {
       cancelled = true;
     };
-  // router is intentionally excluded: some Next.js builds may return a new router
-  // reference and repeatedly cancel/restart this loader.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentBusinessId]);
-
+  }, []);
   const reloadStats = async () => {
     try {
       setStats(await getDashboardStats(currentBusinessId));
