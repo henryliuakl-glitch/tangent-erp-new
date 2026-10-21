@@ -10,6 +10,7 @@ import {
   ReceiptText,
   Users,
   CarFront,
+  House,
 } from "lucide-react";
 
 import BusinessSwitcher from "@/components/BusinessSwitcher";
@@ -36,9 +37,11 @@ export function Navbar() {
   const router = useRouter();
   const { currentBusinessId } = useBusiness();
   const navItems =
-    currentBusinessId === "sine" || currentBusinessId === "tangent"
-      ? [...NAV_ITEMS, { href: "/vehicles", label: "车辆", icon: CarFront }]
-      : NAV_ITEMS;
+    currentBusinessId === "family"
+      ? [{ href: "/family", label: "家庭总览", icon: House }]
+      : currentBusinessId === "sine" || currentBusinessId === "tangent"
+        ? [...NAV_ITEMS, { href: "/vehicles", label: "车辆", icon: CarFront }]
+        : NAV_ITEMS;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -95,16 +98,20 @@ export function Navbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 rounded-xl p-2">
-              <DropdownMenuItem asChild>
-                <Link href="/bookings/quick" className="cursor-pointer rounded-lg">
-                  快速排课
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/finance/add" className="cursor-pointer rounded-lg">
-                  记一笔
-                </Link>
-              </DropdownMenuItem>
+              {currentBusinessId !== "family" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/bookings/quick" className="cursor-pointer rounded-lg">
+                    快速排课
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {currentBusinessId !== "family" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/finance/add" className="cursor-pointer rounded-lg">
+                    记一笔
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {(currentBusinessId === "sine" || currentBusinessId === "tangent") && (
                 <DropdownMenuItem asChild>
                   <Link href="/vehicles" className="cursor-pointer rounded-lg">
@@ -112,11 +119,13 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem asChild>
-                <Link href="/finance/transactions" className="cursor-pointer rounded-lg">
-                  查看流水
-                </Link>
-              </DropdownMenuItem>
+              {currentBusinessId !== "family" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/finance/transactions" className="cursor-pointer rounded-lg">
+                    查看流水
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}
