@@ -515,7 +515,9 @@ export default function Home() {
             </div>
           </header>
 
-          <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <section className={`grid grid-cols-2 gap-2 ${
+            currentBusinessId === "tangent" ? "lg:grid-cols-4" : "lg:grid-cols-5"
+          }`}>
             <MetricCard
               label="今日课程"
               value={loading ? "—" : String(todayLessons.length)}
@@ -535,7 +537,7 @@ export default function Home() {
               value={
                 loading
                   ? "—"
-                  : `$${Number(stats.realizedRevenue || 0).toLocaleString(undefined, {
+                  : `${Number(stats.realizedRevenue || 0).toLocaleString(undefined, {
                       maximumFractionDigits: 0,
                     })}`
               }
@@ -545,6 +547,40 @@ export default function Home() {
               icon={DollarSign}
               href="/finance"
             />
+            {currentBusinessId === "cus" ? (
+              <MetricCard
+                label="预收课时负债"
+                value={
+                  loading
+                    ? "—"
+                    : `${Number(stats.unearnedRevenue || 0).toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}`
+                }
+                meta={`¥${Number(stats.unearnedRevenueRmb || 0).toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })} RMB · 尚未消课`}
+                icon={BookOpen}
+                href="/students"
+              />
+            ) : null}
+            {currentBusinessId === "sine" ? (
+              <MetricCard
+                label="本月现金收入"
+                value={
+                  loading
+                    ? "—"
+                    : `${Number(stats.cashIncome || 0).toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}`
+                }
+                meta={`¥${Number(stats.cashIncomeRmb || 0).toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })} RMB · 消课即实收`}
+                icon={WalletCards}
+                href="/finance"
+              />
+            ) : null}
             <MetricCard
               label="本月净现金流"
               value={
