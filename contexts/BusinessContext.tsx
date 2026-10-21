@@ -34,7 +34,8 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     const labels: Record<string, string> = {
       "cus": "CuS Academy (教培)",
       "sine": "SINE Driving School (驾校)",
-      "tangent": "Tangent Group"
+      "tangent": "Tangent Group",
+      "family": "Family"
     };
     setCurrentLabel(labels[id] || id);
   };
