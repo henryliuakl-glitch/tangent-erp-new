@@ -213,34 +213,10 @@ export async function updateStudent(id: string, data: {
 
 
     if (diff !== 0) {
-
+      // 手工课时校正只修正学生课时余额，不产生现金流/收入/支出。
+      // 正常课时应由「充值 - 消课」形成；这里仅用于纠错、测试数据或系统异常后的人工校正。
       const balanceRes = await incrementStudentBalance(supabase, id, diff);
-
       if (balanceRes.error) return { error: balanceRes.error };
-
-
-
-      const txRes = await insertTransaction(supabase, {
-        type: "adjustment",
-        amount: 0,
-        category: "Tuition",
-        description: `[系统调账] 管理员手动校正总课时：由 ${currentBalance} 修正为 ${targetBalance}，差额 ${diff} 课时`,
-        transaction_date: new Date().toISOString(),
-        business_unit_id: current.business_unit_id,
-        created_by: user.id,
-        student_id: id,
-        quantity: diff,
-        currency: DEFAULT_CURRENCY,
-      });
-
-      if (txRes.error) {
-        const compensate = await incrementStudentBalance(supabase, id, -diff);
-        if (compensate.error) {
-          return { error: `调账流水失败且课时补偿失败，请立即人工核对：${txRes.error}; ${compensate.error}` };
-        }
-        return { error: `调账流水写入失败，课时已回滚：${txRes.error}` };
-      }
-
     }
 
   }
