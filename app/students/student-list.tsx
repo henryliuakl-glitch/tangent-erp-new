@@ -146,13 +146,19 @@ export function StudentList({ students }: { students: any[] }) {
     if (!topUpTarget) return;
     setLoadingId(topUpTarget.id);
     const amount = Number(topUpAmount);
-    const res = await topUpStudent(topUpTarget.id, amount, topUpCurrency);
+    if (!topUpIncomeSource) {
+      toast.warning("请选择本次实际到账账户");
+      setLoadingId(null);
+      return;
+    }
+    const res = await topUpStudent(topUpTarget.id, amount, topUpCurrency, topUpIncomeSource);
     setLoadingId(null);
     if (res?.error) toast.error(res.error);
     else {
       toast.success(`充值成功！当前余额: ${Number(topUpTarget.balance) + amount}`);
       setTopUpTarget(null);
       setTopUpCurrency("NZD");
+      setTopUpIncomeSource("");
     }
   };
 
@@ -254,7 +260,11 @@ export function StudentList({ students }: { students: any[] }) {
              )}
              <div className="flex items-center gap-1">
                 {!driving && (
-                  <Button size="sm" variant="ghost" className="h-8 px-2 text-[10px] md:h-9 md:px-2.5 md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => { setTopUpTarget(student); setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency); }}><Coins className="h-4 w-4" /> 充值</Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2 text-[10px] md:h-9 md:px-2.5 md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => {
+                    setTopUpTarget(student);
+                    setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
+                    setTopUpIncomeSource(student.income_source || "");
+                  }}><Coins className="h-4 w-4" /> 充值</Button>
                 )}
                 <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-slate-400 hover:text-slate-700"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl">
@@ -425,7 +435,7 @@ export function StudentList({ students }: { students: any[] }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!topUpTarget} onOpenChange={(open) => { if (!open) { setTopUpTarget(null); setTopUpCurrency("NZD"); } }}>
+      <Dialog open={!!topUpTarget} onOpenChange={(open) => { if (!open) { setTopUpTarget(null); setTopUpCurrency("NZD"); setTopUpIncomeSource(""); } }}>
         <DialogContent className="sm:max-w-[325px] rounded-3xl">
           <DialogHeader className="text-center"><DialogTitle className="text-xl">课时充值</DialogTitle><p className="text-xs text-slate-500">为 {topUpTarget?.name} 增加课时</p></DialogHeader>
           <div className="py-6 flex flex-col items-center gap-2 md:gap-4">
@@ -445,6 +455,14 @@ export function StudentList({ students }: { students: any[] }) {
                    ))}
                  </SelectContent>
                </Select>
+             </div>
+             <div className="w-full">
+               <IncomeSourceSelect
+                 value={topUpIncomeSource}
+                 onChange={setTopUpIncomeSource}
+                 label="本次到账账户"
+                 placeholder="选择实际收到钱的账户"
+               />
              </div>
              <div className="grid grid-cols-3 gap-2 w-full mt-2">
                 {[5, 10, 20].map(amt => (<button key={amt} onClick={() => setTopUpAmount(String(amt))} className="bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 py-2 rounded-xl text-xs font-bold transition-colors">+{amt}</button>))}
