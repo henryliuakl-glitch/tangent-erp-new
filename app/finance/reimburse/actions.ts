@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
+import { deleteTransactionRow, insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { normalizeCurrency } from "@/lib/currency";
 import { isOperationalBusinessId } from "@/lib/business";
 import {
@@ -126,8 +126,8 @@ export async function deleteReimbursement(id: string) {
     return { error: "只能删除报销记录" };
   }
 
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
-  if (error) return { error: error.message };
+  const deleted = await deleteTransactionRow(supabase, id);
+  if (deleted.error) return { error: deleted.error };
 
   revalidateFinance();
   return { success: true };
