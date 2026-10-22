@@ -193,8 +193,8 @@ export default function AddTransactionPage() {
       toast.warning("请填写金额和分类");
       return;
     }
-    if (mode === "income" && !incomeSource) {
-      toast.warning("请选择收入来源");
+    if ((mode === "income" || mode === "expense") && !incomeSource) {
+      toast.warning(mode === "income" ? "请选择实际收款账户" : "请选择实际付款账户");
       return;
     }
 
@@ -208,7 +208,7 @@ export default function AddTransactionPage() {
     formData.append("date", date);
     formData.append("description", description);
     formData.append("businessId", effectiveBusinessId);
-    if (mode === "income" && incomeSource) formData.append("incomeSource", incomeSource);
+    if ((mode === "income" || mode === "expense") && incomeSource) formData.append("incomeSource", incomeSource);
     if (proofUrl) formData.append("proofUrl", proofUrl);
     
     // 提交关联数据
@@ -434,16 +434,18 @@ export default function AddTransactionPage() {
               </div>
             )}
 
-            {mode === "income" && (
+            {(mode === "income" || mode === "expense") && (
               <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 md:p-4">
                 <IncomeSourceSelect
                   value={incomeSource}
                   onChange={setIncomeSource}
-                  label="收入来源"
-                  placeholder="选择这笔钱实际收到了哪里"
+                  label={mode === "income" ? "实际收款账户" : "实际付款账户"}
+                  placeholder={mode === "income" ? "选择这笔钱实际收到了哪里" : "选择这笔钱实际从哪里付出"}
                 />
                 <p className="mt-2 text-[10px] text-slate-400">
-                  选择学员后，如果学员档案设置了默认收款来源，会自动带入；仍可在本次手动修改。
+                  {mode === "income"
+                    ? "业务收入与 Family 实际账户同步；选择学员后可自动带入默认收款账户。"
+                    : "业务支出会同步扣减所选 Family 实际账户，保持两套账一致。"}
                 </p>
               </div>
             )}
