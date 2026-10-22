@@ -100,33 +100,10 @@ export async function createGlobalTransaction(formData: FormData) {
     return { success: true };
   }
 
-  // CuS/Sine 业务收入：沿用 transactions -> Family trigger，避免重复记两次。
-  if (type === "income") {
-    const txResult = await insertTransaction(supabase, {
-      type: "income",
-      amount,
-      category: category || "Other",
-      description: description || null,
-      transaction_date: date || new Date().toISOString().slice(0, 10),
-      business_unit_id: scope,
-      created_by: user.id,
-      currency,
-      income_source: account.name,
-      family_account_id: accountId,
-    });
-
-    if (txResult.error) return { error: txResult.error };
-
-    revalidatePath("/");
-    revalidatePath("/finance");
-    revalidatePath("/family");
-    return { success: true };
-  }
-
-  // CuS/Sine 业务支出：业务账和 Family 账户同时记录。
-  // 现有数据库 trigger 只自动同步 income，因此这里显式写 Family expense。
+  // CuS/Sine 业务流水统一走 transaction-write：
+  // transactions 是业务事实，Family account/transaction 由同一接口成对同步。
   const txResult = await insertTransaction(supabase, {
-    type: "expense",
+    type,
     amount,
     category: category || "Other",
     description: description || null,
@@ -134,47 +111,15 @@ export async function createGlobalTransaction(formData: FormData) {
     business_unit_id: scope,
     created_by: user.id,
     currency,
+    income_source: account.name,
+    family_account_id: accountId,
   });
 
   if (txResult.error) return { error: txResult.error };
-
-  const { data: familyTx, error: familyTxError } = await supabase
-    .from("family_transactions")
-    .insert({
-      transaction_date: date || new Date().toISOString().slice(0, 10),
-      type: "expense",
-      amount,
-      currency,
-      category: category || null,
-      description: description || null,
-      account_id: accountId,
-      source_business_unit_id: scope,
-      source_transaction_id: txResult.id || null,
-    })
-    .select("id")
-    .single();
-
-  if (familyTxError) {
-    if (txResult.id) await supabase.from("transactions").delete().eq("id", txResult.id);
-    return { error: familyTxError.message };
-  }
-
-  const { error: balanceError } = await supabase
-    .from("family_accounts")
-    .update({
-      balance: Number(account.balance || 0) - amount,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", accountId);
-
-  if (balanceError) {
-    await supabase.from("family_transactions").delete().eq("id", familyTx.id);
-    if (txResult.id) await supabase.from("transactions").delete().eq("id", txResult.id);
-    return { error: balanceError.message };
-  }
 
   revalidatePath("/");
   revalidatePath("/finance");
   revalidatePath("/family");
   return { success: true };
+
 }
