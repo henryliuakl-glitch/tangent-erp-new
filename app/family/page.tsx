@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
+import { MobileAccountMenu } from "@/components/MobileAccountMenu";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,6 +92,8 @@ function money(amount: number, currency: "NZD" | "RMB") {
 
 export default function FamilyPage() {
   const { currentBusinessId, setBusinessId } = useBusiness();
+  const router = useRouter();
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [recurring, setRecurring] = useState<Recurring[]>([]);
@@ -153,8 +158,40 @@ export default function FamilyPage() {
   useEffect(() => {
     if (currentBusinessId !== "family") setBusinessId("family");
     void load();
+
+    const supabase = createClient();
+    void supabase.auth.getUser().then(async ({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setUserProfile(
+        profile || {
+          full_name: user.email?.split("@")[0],
+          avatar_url: `https://api.dicebear.com/9.x/notionists/svg?seed=${user.email}`,
+        }
+      );
+    });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const familyBusinesses = [
+    { id: "family", name: "Family" },
+    { id: "tangent", name: "Tangent Group" },
+    { id: "cus", name: "CuS Academy (教培)" },
+    { id: "sine", name: "Sine Driving (驾校)" },
+  ];
 
   const totals = useMemo(() => {
     let nzd = 0;
@@ -384,6 +421,18 @@ export default function FamilyPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="md:hidden">
+              <MobileAccountMenu
+                user={userProfile}
+                currentBusinessId={currentBusinessId}
+                businesses={familyBusinesses}
+                onSwitch={(id) => {
+                  setBusinessId(id);
+                  router.push(id === "family" ? "/family" : "/");
+                }}
+                onSignOut={handleSignOut}
+              />
+            </div>
             <div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
               {(["NZD", "RMB"] as const).map((cur) => (
                 <button
