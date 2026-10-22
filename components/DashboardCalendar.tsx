@@ -181,9 +181,13 @@ function layoutBookings(
 export function DashboardCalendar({
   bookings,
   businessId,
+  loading = false,
+  onMonthChange,
 }: {
   bookings: CalendarBooking[];
   businessId: string;
+  loading?: boolean;
+  onMonthChange?: (monthKey: string) => void;
 }) {
   const todayKey = getTodayInNZ();
   const [selectedKey, setSelectedKey] = useState(todayKey);
@@ -245,11 +249,14 @@ export function DashboardCalendar({
     if (selectedKey.slice(0, 7) !== next) {
       setSelectedKey(`${next}-01`);
     }
+    onMonthChange?.(next);
   };
 
   const goToday = () => {
+    const month = todayKey.slice(0, 7);
     setSelectedKey(todayKey);
-    setVisibleMonth(todayKey.slice(0, 7));
+    setVisibleMonth(month);
+    onMonthChange?.(month);
   };
 
   const scopeLabel =
@@ -397,7 +404,7 @@ export function DashboardCalendar({
               </div>
             </div>
             <div className="text-[10px] font-bold text-slate-400">
-              {selectedBookings.length ? `${selectedBookings.length} booked` : "全部空闲"}
+              {loading ? "加载中…" : selectedBookings.length ? `${selectedBookings.length} booked` : "全部空闲"}
             </div>
           </div>
 
