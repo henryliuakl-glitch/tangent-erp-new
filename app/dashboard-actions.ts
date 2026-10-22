@@ -149,24 +149,20 @@ export async function getDashboardStats(businessId: string) {
 }
 
 /**
- * 首页日历 / 接下来：独立加载。
- * booking 与 student 分开查询，避免 PostgREST 嵌套 join 和可选字段拖慢/拖垮整个工作台。
+ * 首页日历 / 接下来：复用 Schedule 已验证稳定的数据读取方式。
+ * 先取当前实体 bookings，再独立取 students，最后按 student_id 合并。
+ * 首页只在返回前裁剪到近期窗口，避免与 /bookings 维护两套不同的数据库过滤逻辑。
  */
 export async function getDashboardCalendar(businessId: string) {
   const resolvedBusinessId = businessId || "cus";
   const supabase = await createClient();
   const units = scopeFilter(resolvedBusinessId);
 
-  const calendarStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
-  const calendarEnd = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
-
   let bookingsQuery = supabase
     .from("bookings")
-    .select("id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,student_id,business_unit_id")
-    .neq("status", "cancelled")
-    .gte("start_time", calendarStart)
-    .lt("start_time", calendarEnd)
-    .order("start_time", { ascending: true });
+    .select("id,student_id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,business_unit_id")
+    .order("start_time", { ascending: true })
+    .limit(1000);
 
   if (resolvedBusinessId === "tangent") {
     bookingsQuery = bookingsQuery.in("business_unit_id", units);
@@ -174,37 +170,53 @@ export async function getDashboardCalendar(businessId: string) {
     bookingsQuery = bookingsQuery.eq("business_unit_id", resolvedBusinessId);
   }
 
-  const { data: rawBookings, error: bookingsError } = await bookingsQuery;
+  const { data: allBookings, error: bookingsError } = await bookingsQuery;
   if (bookingsError) {
     console.error("[getDashboardCalendar] bookings error:", bookingsError.message);
     return { bookings: [], error: bookingsError.message };
   }
 
+  const now = Date.now();
+  const windowStart = now - 45 * 24 * 60 * 60 * 1000;
+  const windowEnd = now + 120 * 24 * 60 * 60 * 1000;
+
+  const rawBookings = (allBookings || []).filter((booking: any) => {
+    if (booking.status === "cancelled") return false;
+    const ts = new Date(booking.start_time).getTime();
+    return Number.isFinite(ts) && ts >= windowStart && ts < windowEnd;
+  });
+
   const studentIds = Array.from(
     new Set((rawBookings || []).map((b: any) => b.student_id).filter(Boolean))
-  );
+  ) as string[];
 
-  if (!studentIds.length) return { bookings: [], error: null };
+  let students: any[] = [];
+  let studentsError: any = null;
 
-  let { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,income_source,business_unit_id")
-    .in("id", studentIds);
-
-  if (
-    studentsError &&
-    /income_source|schema cache|column/i.test(studentsError.message || "")
-  ) {
-    const fallback = await supabase
+  if (studentIds.length) {
+    const primary = await supabase
       .from("students")
-      .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id")
+      .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,income_source,business_unit_id")
       .in("id", studentIds);
 
-    students = (fallback.data || []).map((student: any) => ({
-      ...student,
-      income_source: null,
-    })) as any;
-    studentsError = fallback.error;
+    students = primary.data || [];
+    studentsError = primary.error;
+
+    if (
+      studentsError &&
+      /income_source|schema cache|column/i.test(studentsError.message || "")
+    ) {
+      const fallback = await supabase
+        .from("students")
+        .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id")
+        .in("id", studentIds);
+
+      students = (fallback.data || []).map((student: any) => ({
+        ...student,
+        income_source: null,
+      }));
+      studentsError = fallback.error;
+    }
   }
 
   if (studentsError) {
@@ -212,11 +224,11 @@ export async function getDashboardCalendar(businessId: string) {
   }
 
   const studentsById = new Map(
-    (students || []).map((student: any) => [student.id, student])
+    students.map((student: any) => [student.id, student])
   );
 
   return {
-    bookings: (rawBookings || []).map((booking: any) => ({
+    bookings: rawBookings.map((booking: any) => ({
       ...booking,
       student: booking.student_id ? studentsById.get(booking.student_id) || null : null,
     })),
