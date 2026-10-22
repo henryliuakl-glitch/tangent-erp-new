@@ -123,7 +123,7 @@ export async function createTransaction(prevState: any, formData: FormData) {
     const balanceRes = await incrementStudentBalance(supabase, studentId, hoursToAdd);
     if (balanceRes.error) {
       if (txResult.id) {
-        await supabase.from("transactions").delete().eq("id", txResult.id);
+        await deleteTransactionRow(supabase, txResult.id);
       }
       return { error: `课时更新失败，流水已回滚：${balanceRes.error}` };
     }
@@ -360,6 +360,7 @@ export async function getFinanceStats(
       let incomeRmb = 0;
       let expenseRmb = 0;
       let realizedMonth = 0;
+      let realizedMonthRmb = 0;
 
       transactions.forEach((t: any) => {
         if (!toNzCalendarDay(t.transaction_date).startsWith(monthKey)) return;
@@ -377,7 +378,9 @@ export async function getFinanceStats(
       bookings.forEach((b: any) => {
         if (!bookingDay(b.start_time).startsWith(monthKey)) return;
         const rate = Number(b.actual_rate ?? b.student?.hourly_rate ?? 70);
-        realizedMonth += Number(b.duration) * rate;
+        const value = Number(b.duration) * rate;
+        if (normalizeCurrency(b.student?.currency) === "RMB") realizedMonthRmb += value;
+        else realizedMonth += value;
       });
 
       return {
@@ -388,6 +391,7 @@ export async function getFinanceStats(
         incomeRmb,
         expenseRmb,
         realized: realizedMonth,
+        realizedRmb: realizedMonthRmb,
         net: income - expense,
         netRmb: incomeRmb - expenseRmb,
       };
@@ -399,6 +403,7 @@ export async function getFinanceStats(
       let dailyIncome = 0;
       let dailyExpense = 0;
       let dailyRealized = 0;
+      let dailyRealizedRmb = 0;
       let dailyIncomeRmb = 0;
       let dailyExpenseRmb = 0;
 
@@ -418,7 +423,9 @@ export async function getFinanceStats(
       bookings.forEach((b: any) => {
         if (bookingDay(b.start_time) !== dateStr) return;
         const rate = Number(b.actual_rate ?? b.student?.hourly_rate ?? 70);
-        dailyRealized += Number(b.duration) * rate;
+        const value = Number(b.duration) * rate;
+        if (normalizeCurrency(b.student?.currency) === "RMB") dailyRealizedRmb += value;
+        else dailyRealized += value;
       });
 
       return {
@@ -431,6 +438,7 @@ export async function getFinanceStats(
         incomeRmb: dailyIncomeRmb,
         expenseRmb: dailyExpenseRmb,
         realized: dailyRealized,
+        realizedRmb: dailyRealizedRmb,
         net: dailyIncome - dailyExpense,
         netRmb: dailyIncomeRmb - dailyExpenseRmb,
       };
