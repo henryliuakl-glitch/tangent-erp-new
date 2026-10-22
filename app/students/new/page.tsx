@@ -43,6 +43,17 @@ export default function NewStudentPage() {
   const [teacherOptions, setTeacherOptions] = useState<string[]>([]);
 
   useEffect(() => {
+    if (currentBusinessId === "sine") {
+      setHourlyRate("85");
+      setLevel("Driving");
+      setPaymentType("single");
+      setSubject("Driving");
+      setBalance("0");
+      setCurrency("NZD");
+    }
+  }, [currentBusinessId]);
+
+  useEffect(() => {
     async function loadSuggestions() {
       const { subjects, teachers } = await fetchFormSuggestions(supabase, effectiveBusinessId);
       setSubjectOptions(subjects);
@@ -55,31 +66,6 @@ export default function NewStudentPage() {
       setTeacherOptions([]);
     }
   }, [effectiveBusinessId, supabase]);
-
-  // ==========================================
-  // 🚗 拦截器：驾校模式下不需要此页面，直接引导去排课
-  // ==========================================
-  if (currentBusinessId === "sine") {
-    return (
-      <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-10">
-        <div className="hidden md:block"><Navbar /></div>
-        <main className="mx-auto max-w-xl px-4 py-20 text-center">
-           <div className="mx-auto h-20 w-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
-              <Car className="h-10 w-10" />
-           </div>
-           <h1 className="text-2xl font-black text-slate-900 mb-3">驾校模式专属流程</h1>
-           <p className="text-slate-500 mb-8 leading-relaxed">
-             为了提高效率，驾校业务采用了<strong className="text-indigo-600">“极速排课”</strong>模式。<br/>
-             您不需要在此单独录入学员档案，请直接去排课，<br/>系统会在排课时自动为新学员建档。
-           </p>
-           <Button onClick={() => router.push('/bookings/quick')} className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-base shadow-lg shadow-indigo-200 transition-all active:scale-95">
-             前往极速排课 &rarr;
-           </Button>
-        </main>
-        <MobileDock />
-      </div>
-    );
-  }
 
   // ==========================================
   // 📚 教培模式：标准的档案创建流程
@@ -233,23 +219,35 @@ export default function NewStudentPage() {
                       <Input 
                         name="balance" 
                         type="number" 
-                        value={balance}
+                        value={paymentType === "single" ? "0" : balance}
                         onChange={(e) => setBalance(e.target.value)}
-                        className="h-10 md:h-11 pr-10 rounded-xl border-slate-200 bg-white" 
+                        disabled={paymentType === "single"}
+                        className="h-10 md:h-11 pr-10 rounded-xl border-slate-200 bg-white disabled:bg-slate-100 disabled:text-slate-400" 
                         placeholder="0"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">Hrs</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">缴费类型</Label>
-                    <Select value={paymentType} onValueChange={setPaymentType}>
+                    <Label className="text-xs text-slate-500">结算方式</Label>
+                    <Select
+                      value={paymentType}
+                      onValueChange={(value) => {
+                        setPaymentType(value);
+                        if (value === "single") setBalance("0");
+                      }}
+                    >
                       <SelectTrigger className="h-10 md:h-11 rounded-xl border-slate-200 bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {PAYMENT_TYPE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <div>
+                              <div>{opt.label}</div>
+                              <div className="text-[10px] font-normal text-slate-400">{opt.description}</div>
+                            </div>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -261,7 +259,11 @@ export default function NewStudentPage() {
                       label="默认收款账户"
                       placeholder="选择该学员通常付款到哪里"
                     />
-                    <p className="mt-1 text-[10px] text-slate-400">账户列表直接来自 Family；实际充值时仍可按本次付款方式改选。</p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      {paymentType === "single"
+                        ? "一课一结完成课程时会默认带入该账户，并可按本次实际收款修改。"
+                        : "预充值时会默认带入该账户，并可按本次实际付款方式修改。"}
+                    </p>
                   </div>
                </div>
             </div>
