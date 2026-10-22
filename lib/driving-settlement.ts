@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { insertTransaction } from "@/lib/transaction-write";
+import { deleteTransactionRow, insertTransaction } from "@/lib/transaction-write";
 import { normalizeCurrency } from "@/lib/currency";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 
@@ -83,13 +83,10 @@ export async function reverseDrivingLessonTuition(
   if (error) return { error: error.message };
   if (!data?.length) return { error: null };
 
-  const { error: delError } = await supabase
-    .from("transactions")
-    .delete()
-    .in(
-      "id",
-      data.map((row) => row.id)
-    );
+  for (const row of data) {
+    const deleted = await deleteTransactionRow(supabase, row.id);
+    if (deleted.error) return { error: deleted.error };
+  }
 
-  return { error: delError?.message ?? null };
+  return { error: null };
 }
