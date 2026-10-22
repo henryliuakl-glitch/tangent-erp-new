@@ -26,7 +26,12 @@ import {
 import { toast } from "sonner";
 
 import { useBusiness } from "@/contexts/BusinessContext";
-import { getDashboardCalendar, getDashboardStats } from "./dashboard-actions";
+import {
+  getDashboardCalendarMonth,
+  getDashboardStats,
+  getDashboardToday,
+  getDashboardUpcoming,
+} from "./dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
@@ -95,6 +100,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [calendarBookings, setCalendarBookings] = useState<any[]>([]);
+  const [todayLoading, setTodayLoading] = useState(true);
+  const [todayBookings, setTodayBookings] = useState<any[]>([]);
+  const [upcomingLoading, setUpcomingLoading] = useState(true);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [businessList, setBusinessList] = useState<any[]>([]);
   const [completingId, setCompletingId] = useState<string | null>(null);
@@ -154,29 +164,54 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadCalendar() {
+    async function loadOperationalWidgets() {
       if (currentBusinessId === "family") return;
-      setCalendarLoading(true);
 
-      try {
-        const result = await getDashboardCalendar(currentBusinessId || "cus");
-        if (cancelled) return;
-        setCalendarBookings(result.bookings || []);
-        if (result.error) {
-          console.error("[dashboard] calendar partial error:", result.error);
+      setCalendarLoading(true);
+      setTodayLoading(true);
+      setUpcomingLoading(true);
+
+      const currentMonth = getTodayInNZ().slice(0, 7);
+
+      const [calendarResult, todayResult, upcomingResult] = await Promise.allSettled([
+        getDashboardCalendarMonth(currentBusinessId || "cus", currentMonth),
+        getDashboardToday(currentBusinessId || "cus"),
+        getDashboardUpcoming(currentBusinessId || "cus"),
+      ]);
+
+      if (cancelled) return;
+
+      if (calendarResult.status === "fulfilled") {
+        setCalendarBookings(calendarResult.value.bookings || []);
+        if (calendarResult.value.error) {
+          console.error("[dashboard] calendar partial error:", calendarResult.value.error);
         }
-      } catch (error) {
-        console.error("[dashboard] calendar load failed:", error);
-        if (!cancelled) {
-          setCalendarBookings([]);
-          toast.error("工作台日历加载失败");
-        }
-      } finally {
-        if (!cancelled) setCalendarLoading(false);
+      } else {
+        console.error("[dashboard] calendar load failed:", calendarResult.reason);
+        setCalendarBookings([]);
       }
+      setCalendarLoading(false);
+
+      if (todayResult.status === "fulfilled") {
+        setTodayBookings(todayResult.value.bookings || []);
+      } else {
+        console.error("[dashboard] today load failed:", todayResult.reason);
+        setTodayBookings([]);
+      }
+      setTodayLoading(false);
+
+      if (upcomingResult.status === "fulfilled") {
+        setUpcomingBookings(upcomingResult.value.bookings || []);
+        setPendingCount(Number(upcomingResult.value.count || 0));
+      } else {
+        console.error("[dashboard] upcoming load failed:", upcomingResult.reason);
+        setUpcomingBookings([]);
+        setPendingCount(0);
+      }
+      setUpcomingLoading(false);
     }
 
-    void loadCalendar();
+    void loadOperationalWidgets();
 
     return () => {
       cancelled = true;
@@ -250,14 +285,34 @@ export default function Home() {
   }, []);
   const reloadStats = async () => {
     try {
-      const [nextStats, nextCalendar] = await Promise.all([
+      const currentMonth = getTodayInNZ().slice(0, 7);
+      const [nextStats, nextCalendar, nextToday, nextUpcoming] = await Promise.all([
         getDashboardStats(currentBusinessId),
-        getDashboardCalendar(currentBusinessId),
+        getDashboardCalendarMonth(currentBusinessId, currentMonth),
+        getDashboardToday(currentBusinessId),
+        getDashboardUpcoming(currentBusinessId),
       ]);
       setStats(nextStats);
       setCalendarBookings(nextCalendar.bookings || []);
+      setTodayBookings(nextToday.bookings || []);
+      setUpcomingBookings(nextUpcoming.bookings || []);
+      setPendingCount(Number(nextUpcoming.count || 0));
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleCalendarMonthChange = async (monthKey: string) => {
+    setCalendarLoading(true);
+    try {
+      const result = await getDashboardCalendarMonth(currentBusinessId, monthKey);
+      setCalendarBookings(result.bookings || []);
+      if (result.error) console.error("[dashboard] calendar month partial error:", result.error);
+    } catch (error) {
+      console.error("[dashboard] calendar month load failed:", error);
+      toast.error("该月日历加载失败");
+    } finally {
+      setCalendarLoading(false);
     }
   };
 
@@ -390,27 +445,23 @@ export default function Home() {
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   const today = getTodayInNZ();
 
-  const todayLessons = bookings
-    .filter((b: any) => b.status !== "cancelled" && isTodayInNZ(b.start_time))
+  const todayLessons = todayBookings
+    .filter((b: any) => b.status !== "cancelled")
     .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-  const pendingBookings = bookings
-    .filter((b: any) => b.status === "confirmed")
-    .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .map((b: any) => ({
-      ...b,
-      isUnpaid: isBookingUnpaid(
-        Number(b.student?.balance || 0),
-        b.student?.payment_type,
-        undefined,
-        {
-          businessUnitId: b.business_unit_id,
-          level: b.student?.level,
-        }
-      ),
-    }));
+  const nextBookings = upcomingBookings.map((b: any) => ({
+    ...b,
+    isUnpaid: isBookingUnpaid(
+      Number(b.student?.balance || 0),
+      b.student?.payment_type,
+      undefined,
+      {
+        businessUnitId: b.business_unit_id,
+        level: b.student?.level,
+      }
+    ),
+  }));
 
-  const nextBookings = pendingBookings.slice(0, 8);
   const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
   const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
 
@@ -477,14 +528,14 @@ export default function Home() {
           <section className="grid grid-cols-2 gap-2 lg:grid-cols-6">
             <MetricCard
               label="今日课程"
-              value={calendarLoading ? "—" : String(todayLessons.length)}
+              value={todayLoading ? "—" : String(todayLessons.length)}
               meta={`${todayPending} 待办 · ${todayDone} 已完成`}
               icon={CalendarDays}
               href="/bookings"
             />
             <MetricCard
               label="待办课程"
-              value={calendarLoading ? "—" : String(pendingBookings.length)}
+              value={upcomingLoading ? "—" : String(pendingCount)}
               meta="当前仍未完成"
               icon={Clock3}
               href="/bookings"
@@ -558,7 +609,13 @@ export default function Home() {
                   <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
                 </div>
               ) : (
-                <DashboardCalendar bookings={bookings} businessId={currentBusinessId} />
+                <DashboardCalendar
+                  key={currentBusinessId}
+                  bookings={bookings}
+                  businessId={currentBusinessId}
+                  loading={calendarLoading}
+                  onMonthChange={handleCalendarMonthChange}
+                />
               )}
             </div>
 
@@ -578,7 +635,7 @@ export default function Home() {
                   </Link>
                 </div>
 
-                {calendarLoading ? (
+                {upcomingLoading ? (
                   <div className="flex h-32 items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
                   </div>
