@@ -90,6 +90,7 @@ export default function EditStudentButton({ student }: { student: any }) {
                       <SelectItem value="Year 12">Year 12</SelectItem>
                       <SelectItem value="Year 13">Year 13</SelectItem>
                       <SelectItem value="University">University</SelectItem>
+                        <SelectItem value="Driving">Driving</SelectItem>
                     </SelectContent>
                  </Select>
                </div>
