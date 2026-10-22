@@ -387,19 +387,19 @@ export async function updateTransactionRow(
   const nextCurrency = normalizeCurrency(nextTx.currency as string | undefined);
   let nextAccountId: string | null = null;
 
-  if (nextType === "income") {
+  if (nextType === "income" || nextType === "expense") {
     const source = typeof nextTx.income_source === "string" ? nextTx.income_source.trim() : "";
     if (source) {
       const resolved = await resolveFamilyAccount(supabase, null, source);
       if (resolved.error) return { error: resolved.error };
-      if (!resolved.account) return { error: "找不到新的 Family 收款账户" };
+      if (!resolved.account) return { error: "找不到新的 Family 实际账户" };
       if (normalizeCurrency(resolved.account.currency) !== nextCurrency) {
-        return { error: "新的收款账户币种与流水币种不一致" };
+        return { error: "新的实际账户币种与流水币种不一致" };
       }
       nextAccountId = resolved.account.id;
+    } else if (nextType === "expense" && reverse.mirror?.account_id) {
+      nextAccountId = reverse.mirror.account_id;
     }
-  } else if (nextType === "expense" && reverse.mirror?.account_id) {
-    nextAccountId = reverse.mirror.account_id;
   }
 
   if (nextAccountId) {
