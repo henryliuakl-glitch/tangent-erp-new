@@ -238,7 +238,7 @@ export async function insertTransaction(
   const explicitFamilyAccountId = typeof row.family_account_id === "string" ? row.family_account_id : null;
 
   let familyAccount: FamilyAccount | null = null;
-  if ((row.type === "income" && incomeSource) || explicitFamilyAccountId) {
+  if (((row.type === "income" || row.type === "expense") && incomeSource) || explicitFamilyAccountId) {
     const resolved = await resolveFamilyAccount(supabase, explicitFamilyAccountId, incomeSource);
     if (resolved.error) return { error: resolved.error };
     familyAccount = resolved.account;
