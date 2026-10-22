@@ -34,31 +34,21 @@ export async function getDashboardStats(businessId: string) {
 
   const completedBase = supabase
     .from("bookings")
-    .select(`
-      start_time, duration, actual_rate, business_unit_id,
-      student:students(hourly_rate, currency)
-    `)
+    .select("start_time,duration,actual_rate,business_unit_id,student_id")
     .eq("status", "completed")
     .gte("start_time", startIso)
     .lt("start_time", endIso);
 
   const calendarBase = supabase
     .from("bookings")
-    .select(`
-      id, start_time, end_time, duration, status, location, subject, teacher,
-      actual_rate, metadata, student_id, business_unit_id,
-      student:students (
-        id, name, student_code, teacher, subject, balance,
-        payment_type, currency, level, hourly_rate, income_source
-      )
-    `)
+    .select("id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,student_id,business_unit_id")
     .neq("status", "cancelled")
     .gte("start_time", calendarStart)
     .lt("start_time", calendarEnd);
 
   const studentsBase = supabase
     .from("students")
-    .select("balance,hourly_rate,name,id,payment_type,currency,business_unit_id");
+    .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,income_source,business_unit_id");
 
   const txQuery =
     resolvedBusinessId === "tangent"
@@ -129,21 +119,27 @@ export async function getDashboardStats(businessId: string) {
     }
   }
 
+  const students = studentsRes.data || [];
+  const studentsById = new Map(
+    students.map((student: any) => [student.id, student])
+  );
+
   let realizedRevenue = 0;
   let realizedRevenueRmb = 0;
   for (const booking of completedRes.data || []) {
-    const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+    const student = booking.student_id ? studentsById.get(booking.student_id) : null;
     const rate = Number(booking.actual_rate ?? student?.hourly_rate ?? 70);
     const value = Number(booking.duration || 0) * rate;
     const currency = normalizeCurrency(student?.currency);
 
     if (currency === "RMB") realizedRevenueRmb += value;
     else realizedRevenue += value;
-
   }
 
-  const calendarBookings = calendarRes.data || [];
-  const students = studentsRes.data || [];
+  const calendarBookings = (calendarRes.data || []).map((booking: any) => ({
+    ...booking,
+    student: booking.student_id ? studentsById.get(booking.student_id) || null : null,
+  }));
 
   let unearnedRevenue = 0;
   let unearnedRevenueRmb = 0;
