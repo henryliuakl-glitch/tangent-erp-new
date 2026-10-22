@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deleteTransactionRow, insertTransaction } from "@/lib/transaction-write";
 import { normalizeCurrency } from "@/lib/currency";
-import { isDrivingSchoolBusiness } from "@/lib/business";
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -29,13 +28,12 @@ type LessonBooking = {
   income_source?: string | null;
 };
 
-/** 驾校消课：按时长 × 单价记 Tuition 实收，不扣预付课时 */
-export async function recordDrivingLessonTuition(
+/** 一课一结学员消课：按时长 × 单价记 Tuition 实收，不扣预付课时 */
+export async function recordPayAsYouGoLessonTuition(
   supabase: SupabaseClient,
   booking: LessonBooking,
   createdBy: string
 ): Promise<{ error: string | null }> {
-  if (!isDrivingSchoolBusiness(booking.business_unit_id)) return { error: null };
   if (!booking.student_id) return { error: null };
 
   const duration = Number(booking.duration) || 0;
@@ -69,7 +67,7 @@ export async function recordDrivingLessonTuition(
   });
 }
 
-export async function reverseDrivingLessonTuition(
+export async function reversePayAsYouGoLessonTuition(
   supabase: SupabaseClient,
   bookingId: string
 ): Promise<{ error: string | null }> {
@@ -90,3 +88,8 @@ export async function reverseDrivingLessonTuition(
 
   return { error: null };
 }
+
+
+/** 兼容旧导入名 */
+export const recordDrivingLessonTuition = recordPayAsYouGoLessonTuition;
+export const reverseDrivingLessonTuition = reversePayAsYouGoLessonTuition;
