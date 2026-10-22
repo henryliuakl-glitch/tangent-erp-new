@@ -63,6 +63,10 @@ export async function createStudent(prevState: any, formData: FormData) {
   const rawIncomeSource = formData.get("incomeSource") as string;
   const incomeSource = isIncomeSource(rawIncomeSource) ? rawIncomeSource : null;
 
+  if (initialBalance > 0 && !incomeSource) {
+    return { error: "录入初始预付课时时必须选择实际到账 Family 账户" };
+  }
+
 
 
   if (!name || !businessId) return { error: "姓名必填" };
