@@ -39,6 +39,8 @@ import {
   parseReimburseNotes,
 } from "@/lib/reimbursement";
 import { defaultCoachForEmail } from "@/lib/driving-booking-text";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ReimburseRow = {
   id: string;
@@ -65,6 +67,8 @@ export default function ReimbursePage() {
   const [loadingList, setLoadingList] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [settleTarget, setSettleTarget] = useState<ReimburseRow | null>(null);
+  const [settleAccount, setSettleAccount] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const [claimant, setClaimant] = useState("");
@@ -169,16 +173,24 @@ export default function ReimbursePage() {
     await reload();
   };
 
-  const handleSettle = async (id: string) => {
-    if (!confirm("确认已打款给垫付人？打款后将计入本期支出。")) return;
-    setActingId(id);
-    const res = await settleReimbursement(id);
+  const handleSettle = (row: ReimburseRow) => {
+    setSettleTarget(row);
+    setSettleAccount("");
+  };
+
+  const confirmSettle = async () => {
+    if (!settleTarget || !settleAccount) return;
+    setActingId(settleTarget.id);
+    const res = await settleReimbursement(settleTarget.id, settleAccount);
     setActingId(null);
-    if (res.error) toast.error(res.error);
-    else {
-      toast.success("已平账，支出已入账");
-      await reload();
+    if (res.error) {
+      toast.error(res.error);
+      return;
     }
+    toast.success("已平账，Family 实际账户已同步扣款");
+    setSettleTarget(null);
+    setSettleAccount("");
+    await reload();
   };
 
   const handleDelete = async (id: string) => {
@@ -423,7 +435,7 @@ export default function ReimbursePage() {
                             size="sm"
                             className="h-8 rounded-lg bg-slate-900 px-3 text-xs font-bold hover:bg-slate-800"
                             disabled={actingId === row.id}
-                            onClick={() => handleSettle(row.id)}
+                            onClick={() => handleSettle(row)}
                           >
                             {actingId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                             已打款
@@ -447,6 +459,55 @@ export default function ReimbursePage() {
           </div>
         )}
       </main>
+
+      <Dialog
+        open={!!settleTarget}
+        onOpenChange={(open) => {
+          if (!open && !actingId) {
+            setSettleTarget(null);
+            setSettleAccount("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-2xl sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>确认报销打款</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              {settleTarget
+                ? `${formatMoney(Number(settleTarget.amount), settleTarget.currency)} · ${parseReimburseClaimant(settleTarget.description) || "报销"}`
+                : ""}
+            </div>
+            <IncomeSourceSelect
+              value={settleAccount}
+              onChange={setSettleAccount}
+              label="实际付款账户"
+              placeholder="选择实际从哪个 Family 账户打款"
+            />
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              确认后该笔报销才计入业务现金支出，并同步扣减所选 Family 账户。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSettleTarget(null)}
+              disabled={!!actingId}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={confirmSettle}
+              disabled={!settleAccount || !!actingId}
+              className="bg-slate-950 hover:bg-slate-800"
+            >
+              {actingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+              确认打款
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <MobileDock />
     </div>
