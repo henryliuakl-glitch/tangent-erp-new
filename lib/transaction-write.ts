@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeCurrency, type Currency } from "@/lib/currency";
 
-/** PostgREST / schema cache 报缺 currency 列 */
+/** PostgREST / schema cache 报缺可选列 */
 export function isMissingOptionalColumnError(message: string | undefined | null): boolean {
   if (!message) return false;
   return /(currency|income_source|family_account_id)/i.test(message) && /(schema cache|could not find|column)/i.test(message);
@@ -19,28 +19,56 @@ function optionalColumnMissing(message: string | undefined | null): "currency" |
   return null;
 }
 
-/**
- * 写入 transactions：优先带 currency；若生产库尚未加列 / schema cache 未刷新，自动降级去掉 currency 再试。
- * 记账不被「Could not find the 'currency' column」阻断。
- */
+type FamilyAccount = {
+  id: string;
+  name?: string | null;
+  currency?: string | null;
+  balance?: number | string | null;
+};
 
-function isConflictConstraintMismatch(message: string | undefined | null): boolean {
-  return /no unique or exclusion constraint matching the ON CONFLICT specification/i.test(message || "");
+type FamilyMirror = {
+  id: string;
+  type: string;
+  amount: number | string;
+  currency?: string | null;
+  account_id?: string | null;
+};
+
+async function resolveFamilyAccount(
+  supabase: SupabaseClient,
+  explicitId: string | null | undefined,
+  incomeSource: string
+): Promise<{ account: FamilyAccount | null; error: string | null }> {
+  if (explicitId) {
+    const { data, error } = await supabase
+      .from("family_accounts")
+      .select("id,name,currency,balance")
+      .eq("id", explicitId)
+      .maybeSingle();
+    return { account: (data as FamilyAccount | null) || null, error: error?.message || null };
+  }
+
+  if (!incomeSource) return { account: null, error: null };
+
+  const { data, error } = await supabase
+    .from("family_accounts")
+    .select("id,name,currency,balance")
+    .eq("name", incomeSource)
+    .limit(1);
+
+  return {
+    account: ((data || [])[0] as FamilyAccount | undefined) || null,
+    error: error?.message || null,
+  };
 }
 
-async function manuallySyncIncomeToFamily(
+async function applyFamilyMirror(
   supabase: SupabaseClient,
-  params: {
-    transactionId: string;
-    familyAccountId: string;
-    row: Record<string, unknown>;
-    currency: Currency;
-  }
+  transactionId: string,
+  accountId: string,
+  row: Record<string, unknown>,
+  currency: Currency
 ): Promise<{ error: string | null }> {
-  const { transactionId, familyAccountId, row, currency } = params;
-  const amount = Number(row.amount || 0);
-  if (!(amount > 0)) return { error: null };
-
   const { data: existing, error: existingError } = await supabase
     .from("family_transactions")
     .select("id")
@@ -50,204 +78,347 @@ async function manuallySyncIncomeToFamily(
   if (existingError) return { error: existingError.message };
   if (existing?.length) return { error: null };
 
-  const { error: familyTxError } = await supabase
+  const type = String(row.type || "");
+  if (type !== "income" && type !== "expense") return { error: null };
+
+  const amount = Number(row.amount || 0);
+  if (!(amount > 0)) return { error: null };
+
+  const { data: account, error: accountError } = await supabase
+    .from("family_accounts")
+    .select("id,balance,currency")
+    .eq("id", accountId)
+    .single();
+
+  if (accountError || !account) return { error: accountError?.message || "Family 账户不存在" };
+  if (normalizeCurrency(account.currency) !== currency) {
+    return { error: `实际账户币种为 ${normalizeCurrency(account.currency)}，但流水币种为 ${currency}` };
+  }
+
+  const { data: mirror, error: mirrorError } = await supabase
     .from("family_transactions")
     .insert({
       transaction_date: String(row.transaction_date || new Date().toISOString()).slice(0, 10),
-      type: "income",
+      type,
       amount,
       currency,
       category: row.category ?? null,
       description: row.description ?? null,
-      account_id: familyAccountId,
+      account_id: accountId,
       source_business_unit_id: row.business_unit_id ?? null,
       source_transaction_id: transactionId,
-    });
-
-  if (familyTxError) return { error: familyTxError.message };
-
-  const { data: account, error: accountError } = await supabase
-    .from("family_accounts")
-    .select("balance")
-    .eq("id", familyAccountId)
+    })
+    .select("id")
     .single();
 
-  if (accountError) {
-    await supabase.from("family_transactions").delete().eq("source_transaction_id", transactionId);
-    return { error: accountError.message };
+  // 并发重复同步时，已有镜像即视为成功，绝不重复改余额。
+  if (mirrorError) {
+    if ((mirrorError as any).code === "23505" || /duplicate key/i.test(mirrorError.message || "")) {
+      return { error: null };
+    }
+    return { error: mirrorError.message };
   }
 
-  const nextBalance = Number(account?.balance || 0) + amount;
+  const delta = type === "income" ? amount : -amount;
   const { error: balanceError } = await supabase
     .from("family_accounts")
-    .update({ balance: nextBalance, updated_at: new Date().toISOString() })
-    .eq("id", familyAccountId);
+    .update({
+      balance: Number(account.balance || 0) + delta,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", accountId);
 
   if (balanceError) {
-    await supabase.from("family_transactions").delete().eq("source_transaction_id", transactionId);
+    await supabase.from("family_transactions").delete().eq("id", mirror.id);
     return { error: balanceError.message };
   }
 
   return { error: null };
 }
 
+async function reverseFamilyMirror(
+  supabase: SupabaseClient,
+  transactionId: string
+): Promise<{ error: string | null; mirror?: FamilyMirror | null }> {
+  const { data: mirror, error: mirrorError } = await supabase
+    .from("family_transactions")
+    .select("id,type,amount,currency,account_id")
+    .eq("source_transaction_id", transactionId)
+    .maybeSingle();
+
+  if (mirrorError) return { error: mirrorError.message };
+  if (!mirror) return { error: null, mirror: null };
+
+  const typedMirror = mirror as FamilyMirror;
+  const accountId = typedMirror.account_id;
+  const amount = Number(typedMirror.amount || 0);
+
+  if (accountId && amount > 0) {
+    const { data: account, error: accountError } = await supabase
+      .from("family_accounts")
+      .select("balance")
+      .eq("id", accountId)
+      .single();
+
+    if (accountError || !account) return { error: accountError?.message || "Family 账户不存在" };
+
+    const originalDelta = typedMirror.type === "income" ? amount : typedMirror.type === "expense" ? -amount : 0;
+    const { error: balanceError } = await supabase
+      .from("family_accounts")
+      .update({
+        balance: Number(account.balance || 0) - originalDelta,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", accountId);
+
+    if (balanceError) return { error: balanceError.message };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("family_transactions")
+    .delete()
+    .eq("id", typedMirror.id);
+
+  if (deleteError) {
+    // 镜像删失败则尽力把余额恢复，避免账实分离。
+    if (accountId && amount > 0) {
+      const { data: account } = await supabase
+        .from("family_accounts")
+        .select("balance")
+        .eq("id", accountId)
+        .single();
+      if (account) {
+        const originalDelta = typedMirror.type === "income" ? amount : typedMirror.type === "expense" ? -amount : 0;
+        await supabase
+          .from("family_accounts")
+          .update({ balance: Number(account.balance || 0) + originalDelta, updated_at: new Date().toISOString() })
+          .eq("id", accountId);
+      }
+    }
+    return { error: deleteError.message };
+  }
+
+  return { error: null, mirror: typedMirror };
+}
+
+async function insertRawTransaction(
+  supabase: SupabaseClient,
+  payload: Record<string, unknown>
+): Promise<{ error: string | null; id?: string }> {
+  let attempt = { ...payload };
+
+  for (let i = 0; i < 3; i++) {
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert(attempt)
+      .select("id")
+      .single();
+
+    if (!error) return { error: null, id: data?.id };
+
+    const missing = optionalColumnMissing(error.message);
+    if (!missing || !(missing in attempt)) return { error: error.message };
+    delete attempt[missing];
+  }
+
+  return { error: "流水写入失败" };
+}
+
+/**
+ * 唯一业务流水写入口。
+ * 业务 transactions 保存业务事实；Family 账户/流水由应用层镜像同步。
+ * 新写入不再把 family_account_id 交给数据库 trigger，避免数据库 trigger / index 版本差异。
+ */
 export async function insertTransaction(
   supabase: SupabaseClient,
   row: Record<string, unknown> & { currency?: Currency | string | null }
 ): Promise<{ error: string | null; id?: string }> {
   const currency = normalizeCurrency(row.currency as string | undefined);
-
-  let familyAccountId = row.family_account_id as string | null | undefined;
   const incomeSource = typeof row.income_source === "string" ? row.income_source.trim() : "";
+  const explicitFamilyAccountId = typeof row.family_account_id === "string" ? row.family_account_id : null;
 
-  // Family Accounts 是全系统唯一收款账户主数据。
-  // 旧调用仍可只传 income_source 文本，这里自动解析成 family_account_id。
-  if (!familyAccountId && row.type === "income" && incomeSource) {
-    let accountQuery: any = await supabase
-      .from("family_accounts")
-      .select("id,name,currency,active_for_payments")
-      .eq("name", incomeSource)
-      .eq("active_for_payments", true)
-      .maybeSingle();
+  let familyAccount: FamilyAccount | null = null;
+  if ((row.type === "income" && incomeSource) || explicitFamilyAccountId) {
+    const resolved = await resolveFamilyAccount(supabase, explicitFamilyAccountId, incomeSource);
+    if (resolved.error) return { error: resolved.error };
+    familyAccount = resolved.account;
 
-    if (accountQuery.error && /active_for_payments|schema cache|column/i.test(accountQuery.error.message || "")) {
-      accountQuery = await supabase
-        .from("family_accounts")
-        .select("id,name,currency")
-        .eq("name", incomeSource)
-        .maybeSingle();
+    if ((incomeSource || explicitFamilyAccountId) && !familyAccount) {
+      return { error: "找不到对应的 Family 实际账户" };
     }
-
-    if (!accountQuery.error && accountQuery.data?.id) {
-      familyAccountId = accountQuery.data.id;
+    if (familyAccount && normalizeCurrency(familyAccount.currency) !== currency) {
+      return {
+        error: `实际账户 ${familyAccount.name || ""} 为 ${normalizeCurrency(familyAccount.currency)}，不能记录 ${currency} 流水`,
+      };
     }
   }
 
-  const withCurrency = {
-    ...row,
-    currency,
-    ...(familyAccountId ? { family_account_id: familyAccountId } : {}),
-  };
+  const payload = { ...row, currency } as Record<string, unknown>;
+  // 新流水一律由应用层同步 Family；数据库 trigger 保持 no-op。
+  delete payload.family_account_id;
 
-  const { data: firstData, error: firstError } = await supabase
-    .from("transactions")
-    .insert(withCurrency)
-    .select("id")
-    .single();
-  if (!firstError) return { error: null, id: firstData?.id };
+  const inserted = await insertRawTransaction(supabase, payload);
+  if (inserted.error || !inserted.id) return inserted;
 
-  // 兼容旧生产库：Family trigger 内的 ON CONFLICT 依赖 unique index，
-  // 若该 index 尚未实际生效，则不让业务记账失败，改为应用层手动同步 Family。
-  if (
-    familyAccountId &&
-    row.type === "income" &&
-    isConflictConstraintMismatch(firstError.message)
-  ) {
-    const fallbackPayload = { ...withCurrency } as Record<string, unknown>;
-    delete fallbackPayload.family_account_id;
-
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from("transactions")
-      .insert(fallbackPayload)
-      .select("id")
-      .single();
-
-    if (fallbackError) return { error: fallbackError.message };
-
-    const transactionId = fallbackData?.id;
-    if (!transactionId) return { error: "收入流水已写入，但缺少流水 ID，无法同步 Family" };
-
-    const syncRes = await manuallySyncIncomeToFamily(supabase, {
-      transactionId,
-      familyAccountId,
-      row: withCurrency,
-      currency,
-    });
-
-    if (syncRes.error) {
-      await supabase.from("transactions").delete().eq("id", transactionId);
-      return { error: `Family 同步失败：${syncRes.error}` };
+  if (familyAccount && (row.type === "income" || row.type === "expense")) {
+    const synced = await applyFamilyMirror(supabase, inserted.id, familyAccount.id, payload, currency);
+    if (synced.error) {
+      await supabase.from("transactions").delete().eq("id", inserted.id);
+      return { error: `Family 同步失败：${synced.error}` };
     }
-
-    return { error: null, id: transactionId };
   }
 
-  const missing = optionalColumnMissing(firstError.message);
-  if (missing) {
-    const retryPayload = { ...withCurrency } as Record<string, unknown>;
-    delete retryPayload[missing];
-
-    const { data: retryData, error: retryError } = await supabase
-      .from("transactions")
-      .insert(retryPayload)
-      .select("id")
-      .single();
-
-    if (!retryError) return { error: null, id: retryData?.id };
-
-    const secondMissing = optionalColumnMissing(retryError.message);
-    if (secondMissing && secondMissing !== missing) {
-      delete retryPayload[secondMissing];
-      const { data: finalData, error: finalError } = await supabase
-        .from("transactions")
-        .insert(retryPayload)
-        .select("id")
-        .single();
-      if (!finalError) return { error: null, id: finalData?.id };
-      return { error: finalError.message };
-    }
-
-    return { error: retryError.message };
-  }
-
-  return { error: firstError.message };
+  return inserted;
 }
 
-/** 更新流水：currency 列不存在时自动去掉该字段重试 */
+/**
+ * 删除业务流水，同时撤销 Family 镜像。
+ * 兼容旧记录：若 transactions.family_account_id 非空，先置空让旧 trigger 只执行“撤销旧镜像”分支，
+ * 再由应用层检查是否仍有镜像需要撤销。
+ */
+export async function deleteTransactionRow(
+  supabase: SupabaseClient,
+  id: string
+): Promise<{ error: string | null }> {
+  const { data: tx, error: fetchError } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !tx) return { error: fetchError?.message || "流水不存在" };
+
+  const oldFamilyAccountId = (tx as any).family_account_id as string | null | undefined;
+
+  if (oldFamilyAccountId) {
+    const { error: detachError } = await supabase
+      .from("transactions")
+      .update({ family_account_id: null })
+      .eq("id", id);
+    if (detachError) return { error: detachError.message };
+  }
+
+  const reverse = await reverseFamilyMirror(supabase, id);
+  if (reverse.error) return { error: reverse.error };
+
+  const { error: deleteError } = await supabase.from("transactions").delete().eq("id", id);
+  if (!deleteError) return { error: null };
+
+  // 删除失败：恢复刚才撤销的 Family 镜像。
+  const mirror = reverse.mirror;
+  if (mirror?.account_id) {
+    await applyFamilyMirror(
+      supabase,
+      id,
+      mirror.account_id,
+      tx as Record<string, unknown>,
+      normalizeCurrency((tx as any).currency)
+    );
+  }
+
+  return { error: deleteError.message };
+}
+
+/** 更新流水，同时重建对应 Family 镜像，避免金额/账户变化后 Family 残留旧值。 */
 export async function updateTransactionRow(
   supabase: SupabaseClient,
   id: string,
   data: Record<string, unknown> & { currency?: Currency | string | null }
 ): Promise<{ error: string | null }> {
-  const payload = {
-    ...data,
-    ...(data.currency !== undefined
-      ? { currency: normalizeCurrency(data.currency as string) }
-      : {}),
-  };
-
-  const { error: firstError } = await supabase
+  const { data: oldTx, error: fetchError } = await supabase
     .from("transactions")
-    .update(payload)
-    .eq("id", id);
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!firstError) return { error: null };
+  if (fetchError || !oldTx) return { error: fetchError?.message || "流水不存在" };
 
-  const missing = optionalColumnMissing(firstError.message);
-  if (missing) {
-    const retryPayload = { ...payload } as Record<string, unknown>;
-    delete retryPayload[missing];
+  const oldFamilyAccountId = (oldTx as any).family_account_id as string | null | undefined;
 
-    const { error: retryError } = await supabase
+  if (oldFamilyAccountId) {
+    const { error: detachError } = await supabase
       .from("transactions")
-      .update(retryPayload)
+      .update({ family_account_id: null })
       .eq("id", id);
-
-    if (!retryError) return { error: null };
-
-    const secondMissing = optionalColumnMissing(retryError.message);
-    if (secondMissing && secondMissing !== missing) {
-      delete retryPayload[secondMissing];
-      const { error: finalError } = await supabase
-        .from("transactions")
-        .update(retryPayload)
-        .eq("id", id);
-      if (!finalError) return { error: null };
-      return { error: finalError.message };
-    }
-
-    return { error: retryError.message };
+    if (detachError) return { error: detachError.message };
   }
 
-  return { error: firstError.message };
+  const reverse = await reverseFamilyMirror(supabase, id);
+  if (reverse.error) return { error: reverse.error };
+
+  const payload = {
+    ...data,
+    ...(data.currency !== undefined ? { currency: normalizeCurrency(data.currency as string) } : {}),
+    family_account_id: null,
+  } as Record<string, unknown>;
+
+  let attempt = { ...payload };
+  let updateError: string | null = null;
+  for (let i = 0; i < 3; i++) {
+    const { error } = await supabase.from("transactions").update(attempt).eq("id", id);
+    if (!error) {
+      updateError = null;
+      break;
+    }
+    const missing = optionalColumnMissing(error.message);
+    if (!missing || !(missing in attempt)) {
+      updateError = error.message;
+      break;
+    }
+    delete attempt[missing];
+    updateError = error.message;
+  }
+
+  if (updateError) {
+    if (reverse.mirror?.account_id) {
+      await applyFamilyMirror(
+        supabase,
+        id,
+        reverse.mirror.account_id,
+        oldTx as Record<string, unknown>,
+        normalizeCurrency((oldTx as any).currency)
+      );
+    }
+    return { error: updateError };
+  }
+
+  const nextTx = { ...oldTx, ...attempt, family_account_id: null } as Record<string, unknown>;
+  const nextType = String(nextTx.type || "");
+  const nextCurrency = normalizeCurrency(nextTx.currency as string | undefined);
+  let nextAccountId: string | null = null;
+
+  if (nextType === "income") {
+    const source = typeof nextTx.income_source === "string" ? nextTx.income_source.trim() : "";
+    if (source) {
+      const resolved = await resolveFamilyAccount(supabase, null, source);
+      if (resolved.error) return { error: resolved.error };
+      if (!resolved.account) return { error: "找不到新的 Family 收款账户" };
+      if (normalizeCurrency(resolved.account.currency) !== nextCurrency) {
+        return { error: "新的收款账户币种与流水币种不一致" };
+      }
+      nextAccountId = resolved.account.id;
+    }
+  } else if (nextType === "expense" && reverse.mirror?.account_id) {
+    nextAccountId = reverse.mirror.account_id;
+  }
+
+  if (nextAccountId) {
+    const sync = await applyFamilyMirror(supabase, id, nextAccountId, nextTx, nextCurrency);
+    if (sync.error) {
+      // 尽力恢复旧业务内容和旧 Family 镜像。
+      await supabase.from("transactions").update({ ...oldTx, family_account_id: null }).eq("id", id);
+      if (reverse.mirror?.account_id) {
+        await applyFamilyMirror(
+          supabase,
+          id,
+          reverse.mirror.account_id,
+          oldTx as Record<string, unknown>,
+          normalizeCurrency((oldTx as any).currency)
+        );
+      }
+      return { error: `Family 同步失败：${sync.error}` };
+    }
+  }
+
+  return { error: null };
 }
