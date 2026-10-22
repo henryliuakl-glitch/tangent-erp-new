@@ -91,7 +91,7 @@ export async function listReimbursements(businessId: string) {
   return { pending, paid, error: null };
 }
 
-export async function settleReimbursement(id: string) {
+export async function settleReimbursement(id: string, accountName: string) {
   const supabase = await createClient();
   const { data: tx, error: fetchError } = await supabase
     .from("transactions")
@@ -104,8 +104,12 @@ export async function settleReimbursement(id: string) {
     return { error: "该记录已打款或不属于待报销" };
   }
 
+  const cleanAccount = String(accountName || "").trim();
+  if (!cleanAccount) return { error: "请选择实际付款账户" };
+
   const { error } = await updateTransactionRow(supabase, id, {
     description: markReimbursePaid(tx.description),
+    income_source: cleanAccount,
   });
   if (error) return { error };
 
