@@ -15,9 +15,12 @@ alter table public.students
 alter table public.family_transactions
   add column if not exists source_transaction_id uuid;
 
-create unique index if not exists family_transactions_source_transaction_uidx
-  on public.family_transactions(source_transaction_id)
-  where source_transaction_id is not null;
+-- PostgreSQL UNIQUE indexes already allow multiple NULL values.
+-- Keep this index non-partial so ON CONFLICT (source_transaction_id)
+-- can infer it inside sync_business_income_to_family().
+drop index if exists public.family_transactions_source_transaction_uidx;
+create unique index family_transactions_source_transaction_uidx
+  on public.family_transactions(source_transaction_id);
 
 create index if not exists transactions_family_account_idx
   on public.transactions(family_account_id);
