@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import TopUpButton from "./top-up-button"; 
 import EditStudentButton from "./edit-button";
 import { getStudentHistory } from "../actions";
-import { isPaymentAlert, getPaymentTypeLabel } from "@/lib/student-payment";
+import { isPaymentAlert, getPaymentTypeLabel, isPayAsYouGo } from "@/lib/student-payment";
 import { currencySymbol, formatMoney } from "@/lib/currency";
 import { MobileDock } from "@/components/MobileDock";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -40,6 +40,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     level: student.level,
   });
   const driving = isDrivingSchoolBusiness(student.business_unit_id);
+  const payAsYouGo = isPayAsYouGo(student.payment_type);
   const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${student.name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
 
   return (
@@ -78,33 +79,33 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
                  <span className="inline-block h-2 w-2 rounded-full bg-slate-300"></span>{student.level || (driving ? "驾校学员" : "年级未知")}
                  <span className="text-slate-300">·</span>
-                 {driving ? "一课一缴" : getPaymentTypeLabel(student.payment_type)}
+                 {getPaymentTypeLabel(student.payment_type)}
                </p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-               {driving ? (
+               {payAsYouGo ? (
                  <div className="p-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-slate-400" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">缴费方式</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">结算方式</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-black text-slate-800">一课一缴</span>
+                      <span className="text-xl font-black text-slate-800">一课一结</span>
                     </div>
                  </div>
                ) : (
-               <div className={`p-4 rounded-xl md:rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Clock className={`h-4 w-4 ${paymentAlert ? 'text-rose-500' : 'text-emerald-500'}`} />
-                    <span className={`text-xs font-bold uppercase tracking-wider ${paymentAlert ? 'text-rose-400' : 'text-emerald-400'}`}>剩余课时</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-3xl font-black ${paymentAlert ? 'text-rose-600' : 'text-emerald-600'}`}>{Number(student.balance)}</span>
-                    <span className={`text-sm font-bold ${paymentAlert ? 'text-rose-400' : 'text-emerald-500'}`}>hrs</span>
-                  </div>
-               </div>
+                 <div className={`p-4 rounded-xl md:rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className={`h-4 w-4 ${paymentAlert ? 'text-rose-500' : 'text-emerald-500'}`} />
+                      <span className={`text-xs font-bold uppercase tracking-wider ${paymentAlert ? 'text-rose-400' : 'text-emerald-400'}`}>剩余预付课时</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-3xl font-black ${paymentAlert ? 'text-rose-600' : 'text-emerald-600'}`}>{Number(student.balance)}</span>
+                      <span className={`text-sm font-bold ${paymentAlert ? 'text-rose-400' : 'text-emerald-500'}`}>hrs</span>
+                    </div>
+                 </div>
                )}
                <div className="p-4 rounded-xl md:rounded-2xl border border-indigo-100 bg-indigo-50/50">
                   <div className="flex items-center gap-2 mb-1">
@@ -123,18 +124,26 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                </div>
             </div>
 
-            {!driving && (
-              <>
-                <div className="mt-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">默认收款来源</div>
-                  <div className="mt-1 text-sm font-bold text-slate-800">
-                    {student.income_source || "未设置"}
-                  </div>
-                  <p className="mt-1 text-[10px] text-slate-400">该学员后续充值会自动同步到财务流水。</p>
-                </div>
-                <div className="mt-4"><TopUpButton studentId={student.id} defaultCurrency={student.currency || "NZD"} /></div>
-              </>
-            )}
+            <div className="mt-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">默认实际收款账户</div>
+              <div className="mt-1 text-sm font-bold text-slate-800">
+                {student.income_source || "未设置"}
+              </div>
+              <p className="mt-1 text-[10px] text-slate-400">
+                {payAsYouGo
+                  ? "一课一结完成课程时默认带入；仍可按本次实际收款修改。"
+                  : "预充值时默认带入；仍可按本次实际收款修改。"}
+              </p>
+            </div>
+            {!payAsYouGo ? (
+              <div className="mt-4">
+                <TopUpButton
+                  studentId={student.id}
+                  defaultCurrency={student.currency || "NZD"}
+                  defaultIncomeSource={student.income_source || ""}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
