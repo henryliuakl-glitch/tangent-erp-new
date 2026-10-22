@@ -10,24 +10,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CURRENCY_OPTIONS, type Currency } from "@/lib/currency";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
-export default function TopUpButton({ studentId, defaultCurrency = "NZD" }: { studentId: string; defaultCurrency?: string }) {
+export default function TopUpButton({
+  studentId,
+  defaultCurrency = "NZD",
+  defaultIncomeSource = "",
+}: {
+  studentId: string;
+  defaultCurrency?: string;
+  defaultIncomeSource?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<Currency>(defaultCurrency === "RMB" ? "RMB" : "NZD");
   const [loading, setLoading] = useState(false);
+  const [incomeSource, setIncomeSource] = useState(defaultIncomeSource);
   const router = useRouter();
 
   const handleOpenChange = (next: boolean) => {
-    if (next) setCurrency(defaultCurrency === "RMB" ? "RMB" : "NZD");
+    if (next) {
+      setCurrency(defaultCurrency === "RMB" ? "RMB" : "NZD");
+      setIncomeSource(defaultIncomeSource);
+    }
     setOpen(next);
   };
 
   const handleTopUp = async () => {
     if (!amount) return;
+    if (!incomeSource) {
+      alert("请选择本次实际到账账户");
+      return;
+    }
     setLoading(true);
 
-    const res = await topUpStudent(studentId, Number(amount), currency);
+    const res = await topUpStudent(studentId, Number(amount), currency, incomeSource);
 
     setLoading(false);
 
@@ -86,10 +103,16 @@ export default function TopUpButton({ studentId, defaultCurrency = "NZD" }: { st
               课时余额与币种无关；币种仅决定对应财务流水进入 NZD 或 RMB 轨道。
             </p>
           </div>
+          <IncomeSourceSelect
+            value={incomeSource}
+            onChange={setIncomeSource}
+            label="本次实际到账账户"
+            placeholder="选择钱实际收到哪里"
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-          <Button onClick={handleTopUp} disabled={loading || !amount} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button onClick={handleTopUp} disabled={loading || !amount || !incomeSource} className="bg-indigo-600 hover:bg-indigo-700">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "确认充值"}
           </Button>
         </DialogFooter>
