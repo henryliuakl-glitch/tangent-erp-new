@@ -7,7 +7,7 @@ import { eachDayOfInterval } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { aggregateByCurrency, DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/currency";
 import { getTodayInNZ, nzStartOfDayUtc, TZ_NZ } from "@/lib/timezone";
-import { insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
+import { deleteTransactionRow, insertTransaction, updateTransactionRow } from "@/lib/transaction-write";
 import { isPendingReimbursementTx } from "@/lib/reimbursement";
 import { isDrivingSchoolBusiness, isOperationalBusinessId } from "@/lib/business";
 import { isIncomeSource } from "@/lib/income-source";
@@ -165,16 +165,16 @@ export async function deleteTransaction(id: string) {
     if (balanceRes.error) return { error: balanceRes.error };
   }
 
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const deleted = await deleteTransactionRow(supabase, id);
 
-  if (error) {
+  if (deleted.error) {
     if (balanceEffect !== 0 && tx.student_id) {
       const compensate = await incrementStudentBalance(supabase, tx.student_id, balanceEffect);
       if (compensate.error) {
-        return { error: `删除流水失败，且课时补偿失败，请立即人工核对：${error.message}; ${compensate.error}` };
+        return { error: `删除流水失败，且课时补偿失败，请立即人工核对：${deleted.error}; ${compensate.error}` };
       }
     }
-    return { error: error.message };
+    return { error: deleted.error };
   }
 
   revalidatePath("/finance");
