@@ -239,34 +239,35 @@ export function StudentList({ students }: { students: any[] }) {
                  {!driving && <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5 text-slate-400"/> {student.level || "-"}</span>}
                  <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5 text-slate-400"/> {student.subject || (driving ? "练车" : "-")}</span>
                  <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-slate-400"/> {student.teacher || "-"}</span>
-                 {!driving && (
-                   <span className="flex items-center gap-1 font-mono text-slate-400">
-                     {currencySymbol(student.currency)}{student.hourly_rate || 0}/h
-                   </span>
-                 )}
+                 <span className="flex items-center gap-1 font-mono text-slate-400">
+                   {currencySymbol(student.currency)}{student.hourly_rate || 0}/h
+                 </span>
+                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+                   {payAsYouGo ? "一课一结" : "预充值"}
+                 </span>
               </div>
             </div>
           </Link>
           <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 border-t border-slate-100 md:border-t-0 pt-2 md:pt-0">
-             {driving ? (
+             {payAsYouGo ? (
                <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[4.5rem]">
                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">下次课</span>
                  <span className={`text-sm font-black tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>{nextLabel}</span>
                </Link>
              ) : (
-             <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-4">
-                <div className="flex flex-col items-end"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">总课时</span><span className={`text-sm md:text-base font-black ${paymentAlert ? 'text-rose-600' : 'text-slate-700'}`}>{totalBalance}<span className="text-[10px] font-bold ml-0.5">h</span></span></div>
-                <div className="h-8 w-px bg-slate-200"></div>
-                <div className="flex flex-col items-end min-w-[3.5rem]">
-                   <span className="text-[10px] font-medium tracking-wider text-slate-400">已预排</span>
-                   <div className="text-xs font-medium text-slate-400 flex items-center gap-0.5 tabular-nums">
-                     {scheduledHours}<span className="text-[10px]">h</span>
-                     {isOverScheduled ? (
-                       <span title="已预排超过剩余总课时" className="inline-flex"><Info className="h-3 w-3 ml-0.5 text-slate-300" /></span>
-                     ) : null}
-                   </div>
-                </div>
-             </Link>
+               <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-4">
+                  <div className="flex flex-col items-end"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span><span className={`text-sm md:text-base font-black ${paymentAlert ? 'text-rose-600' : 'text-slate-700'}`}>{totalBalance}<span className="text-[10px] font-bold ml-0.5">h</span></span></div>
+                  <div className="h-8 w-px bg-slate-200"></div>
+                  <div className="flex flex-col items-end min-w-[3.5rem]">
+                     <span className="text-[10px] font-medium tracking-wider text-slate-400">已预排</span>
+                     <div className="text-xs font-medium text-slate-400 flex items-center gap-0.5 tabular-nums">
+                       {scheduledHours}<span className="text-[10px]">h</span>
+                       {isOverScheduled ? (
+                         <span title="已预排超过剩余课时" className="inline-flex"><Info className="h-3 w-3 ml-0.5 text-slate-300" /></span>
+                       ) : null}
+                     </div>
+                  </div>
+               </Link>
              )}
              <div className="flex items-center gap-1">
                 {!payAsYouGo && (
