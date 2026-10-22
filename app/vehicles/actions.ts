@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { insertTransaction } from "@/lib/transaction-write";
+import { deleteTransactionRow, insertTransaction } from "@/lib/transaction-write";
 
 const VEHICLE_SELECT = `
   id, business_unit_id, nickname, make, model, year, color, plate_number,
@@ -223,7 +223,7 @@ export async function addMaintenance(formData: FormData) {
   });
 
   if (error) {
-    if (transactionId) await supabase.from("transactions").delete().eq("id", transactionId);
+    if (transactionId) await deleteTransactionRow(supabase, transactionId);
     return { error: error.message };
   }
 
@@ -254,7 +254,8 @@ export async function deleteMaintenance(id: string) {
   if (error) return { error: error.message };
 
   if (row.transaction_id) {
-    await supabase.from("transactions").delete().eq("id", row.transaction_id);
+    const deleted = await deleteTransactionRow(supabase, row.transaction_id);
+    if (deleted.error) return { error: `维修记录已删除，但财务回滚失败：${deleted.error}` };
   }
 
   revalidatePath("/vehicles");
