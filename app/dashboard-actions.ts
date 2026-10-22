@@ -46,7 +46,7 @@ export async function getDashboardStats(businessId: string) {
       actual_rate, metadata, student_id, business_unit_id,
       student:students (
         id, name, student_code, teacher, subject, balance,
-        payment_type, currency, level, hourly_rate
+        payment_type, currency, level, hourly_rate, income_source
       )
     `)
     .neq("status", "cancelled")
