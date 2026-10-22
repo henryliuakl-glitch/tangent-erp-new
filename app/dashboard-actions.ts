@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isPaymentAlert } from "@/lib/student-payment";
+import { isPaymentAlert, isPrepaid } from "@/lib/student-payment";
 import { emptyDualTotals, normalizeCurrency } from "@/lib/currency";
 import { getNzMonthBounds } from "@/lib/timezone";
 
@@ -160,7 +160,7 @@ export async function getDashboardStats(businessId: string) {
     const balance = Number(student.balance || 0);
     const rate = Number(student.hourly_rate || 0);
 
-    if (balance > 0) {
+    if (isPrepaid(student.payment_type) && balance > 0) {
       const value = balance * rate;
       if (normalizeCurrency(student.currency) === "RMB") unearnedRevenueRmb += value;
       else unearnedRevenue += value;
