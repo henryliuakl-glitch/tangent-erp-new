@@ -27,7 +27,6 @@ import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
 export function StudentList({ students }: { students: any[] }) {
   const { currentBusinessId } = useBusiness();
-  const drivingView = isDrivingSchoolBusiness(currentBusinessId);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -149,6 +148,7 @@ export function StudentList({ students }: { students: any[] }) {
       targetBalance: Number(editingStudent.targetBalance),
       paymentType: editingStudent.payment_type,
       currency: editingStudent.currency || "NZD",
+      incomeSource: editingStudent.income_source || null,
     });
     setEditLoading(false);
     if (res?.error) toast.error("更新失败: " + res.error);
@@ -330,7 +330,7 @@ export function StudentList({ students }: { students: any[] }) {
             <SelectContent>
               <SelectItem value="student_code">按学员编号</SelectItem>
               <SelectItem value="name">按姓名 A-Z</SelectItem>
-              {!drivingView && <SelectItem value="balance">按剩余课时</SelectItem>}
+              <SelectItem value="balance">按剩余课时</SelectItem>
             </SelectContent>
           </Select>
 
