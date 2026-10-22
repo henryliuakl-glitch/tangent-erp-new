@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { useBusiness } from "@/contexts/BusinessContext";
@@ -29,6 +29,24 @@ import { currencySymbol, formatMoney, normalizeCurrency, type Currency, CURRENCY
 import { MobileDock } from "@/components/MobileDock";
 import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
+const EMPTY_FINANCE_DATA = {
+  income: 0,
+  expense: 0,
+  net: 0,
+  realized: 0,
+  realizedRmb: 0,
+  byCurrency: {
+    NZD: { income: 0, expense: 0, net: 0 },
+    RMB: { income: 0, expense: 0, net: 0 },
+  },
+  transactions: [],
+  chartData: [],
+  incomeBySource: [],
+  pendingReimburseCount: 0,
+  pendingReimburseNzd: 0,
+  pendingReimburseRmb: 0,
+};
+
 const financeCache = new Map<string, any>();
 
 function shiftFinanceAnchor(
@@ -56,15 +74,8 @@ export default function FinancePage() {
   const [periodMode, setPeriodMode] = useState<"week" | "month" | "year">("month");
   const [anchorDate, setAnchorDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [txFilter, setTxFilter] = useState<"all" | "income" | "expense">("all");
-  const [data, setData] = useState<any>({
-    income: 0, expense: 0, net: 0, realized: 0, realizedRmb: 0,
-    byCurrency: {
-      NZD: { income: 0, expense: 0, net: 0 },
-      RMB: { income: 0, expense: 0, net: 0 },
-    },
-    transactions: [], chartData: [],
-    pendingReimburseCount: 0, pendingReimburseNzd: 0, pendingReimburseRmb: 0,
-  });
+  const [data, setData] = useState<any>(EMPTY_FINANCE_DATA);
+  const requestSeq = useRef(0);
 
   // --- 编辑状态管理 ---
   const [editingTx, setEditingTx] = useState<any>(null); // 当前正在编辑的流水
@@ -97,10 +108,12 @@ export default function FinancePage() {
     ]
   };
 
-  // 加载数据
+  // 加载数据：实体切换时绝不显示上一个实体的旧账；去掉相邻期间后台预取，
+  // 避免一次切换同时堆积 3 个重型 Server Action 导致 CuS/Sine 长时间转圈。
   async function loadData() {
     if (!currentBusinessId) return;
 
+    const seq = ++requestSeq.current;
     const key = `${currentBusinessId}:${periodMode}:${anchorDate}`;
     const cached = financeCache.get(key);
 
@@ -108,33 +121,35 @@ export default function FinancePage() {
       setData(cached);
       setLoading(false);
     } else {
+      setData(EMPTY_FINANCE_DATA);
       setLoading(true);
     }
 
     try {
-      const res = await getFinanceStats(currentBusinessId, periodMode, anchorDate);
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("Finance stats timeout")), 15000);
+      });
+      const res = await Promise.race([
+        getFinanceStats(currentBusinessId, periodMode, anchorDate),
+        timeout,
+      ]);
+
+      if (seq !== requestSeq.current) return;
       financeCache.set(key, res);
       setData(res);
-
-      // 背景预取相邻期间；用户点左右箭头时多数情况下可瞬时显示。
-      for (const direction of [-1, 1] as const) {
-        const neighborAnchor = shiftFinanceAnchor(anchorDate, periodMode, direction);
-        const neighborKey = `${currentBusinessId}:${periodMode}:${neighborAnchor}`;
-        if (!financeCache.has(neighborKey)) {
-          void getFinanceStats(currentBusinessId, periodMode, neighborAnchor)
-            .then((neighbor) => financeCache.set(neighborKey, neighbor))
-            .catch(() => undefined);
-        }
-      }
     } catch (e) {
-      console.error(e);
+      if (seq !== requestSeq.current) return;
+      console.error("[finance] load failed:", e);
+      toast.error("财务数据加载失败，请重试");
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    // requestSeq prevents stale entity/period responses from overwriting the current view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodMode, anchorDate, currentBusinessId]);
 
   // 删除流水
