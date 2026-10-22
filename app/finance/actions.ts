@@ -239,13 +239,8 @@ export async function getFinanceStats(
     .select("id,type,amount,category,description,transaction_date,business_unit_id,student_id,quantity,currency,income_source")
     .order("transaction_date", { ascending: false });
 
-  if (businessId === "tangent") {
-    txQuery = txQuery.in("business_unit_id", ["cus", "sine"]);
-  } else {
-    txQuery = txQuery.eq("business_unit_id", businessId);
-  }
-
   txQuery = txQuery
+    .in("business_unit_id", ["cus", "sine"])
     .gte("transaction_date", startStr)
     .lt("transaction_date", endStr);
 
@@ -254,23 +249,20 @@ export async function getFinanceStats(
 
   let bookingQuery = supabase
     .from("bookings")
-    .select(`start_time, duration, actual_rate, student:students(hourly_rate, currency)`)
+    .select(`start_time, duration, actual_rate, business_unit_id, student:students(hourly_rate, currency)`)
     .eq("status", "completed")
     .gte("start_time", bookingStartIso)
     .lt("start_time", bookingEndIso);
 
   let pendingQuery = supabase
     .from("transactions")
-    .select("amount, currency, description")
+    .select("amount, currency, description, business_unit_id")
     .ilike("description", "%[报销待打款]%");
 
-  if (businessId === "tangent") {
-    bookingQuery = bookingQuery.in("business_unit_id", ["cus", "sine"]);
-    pendingQuery = pendingQuery.in("business_unit_id", ["cus", "sine"]);
-  } else {
-    bookingQuery = bookingQuery.eq("business_unit_id", businessId);
-    pendingQuery = pendingQuery.eq("business_unit_id", businessId);
-  }
+  // Finance 永远走同一条数据库查询路径：一次取 CuS + Sine，
+  // 再在服务端按实体切分。避免 Tangent 与子实体出现不同查询性能/行为。
+  bookingQuery = bookingQuery.in("business_unit_id", ["cus", "sine"]);
+  pendingQuery = pendingQuery.in("business_unit_id", ["cus", "sine"]);
 
   const [transactionsRes, bookingsPrimary, pendingRes] = await Promise.all([
     txQuery,
@@ -285,16 +277,12 @@ export async function getFinanceStats(
     console.error("[getFinanceStats] bookings error, retry without currency:", bookingsPrimary.error.message);
     let fallbackQuery = supabase
       .from("bookings")
-      .select(`start_time, duration, actual_rate, student:students(hourly_rate)`)
+      .select(`start_time, duration, actual_rate, business_unit_id, student:students(hourly_rate)`)
       .eq("status", "completed")
       .gte("start_time", bookingStartIso)
       .lt("start_time", bookingEndIso);
 
-    if (businessId === "tangent") {
-      fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
-    } else {
-      fallbackQuery = fallbackQuery.eq("business_unit_id", businessId);
-    }
+    fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
 
     const bookingsFallback = await fallbackQuery;
     bookings = bookingsFallback.data || [];
@@ -312,11 +300,17 @@ export async function getFinanceStats(
 
   // 再按 NZ 日历日收紧，统一使用半开区间 [start, end)
   let transactions = (transactionsRes.data || []).filter((t) => {
+    if (businessId !== "tangent" && t.business_unit_id !== businessId) return false;
     const day = toNzCalendarDay(t.transaction_date);
     return day >= startDay && day < endExclusiveDay;
   });
 
-  const pendingReimburse = (pendingRes.data || []).filter((t) =>
+  bookings = bookings.filter((b: any) =>
+    businessId === "tangent" || b.business_unit_id === businessId
+  );
+
+  const pendingReimburse = (pendingRes.data || []).filter((t: any) =>
+    (businessId === "tangent" || t.business_unit_id === businessId) &&
     isPendingReimbursementTx(t.description)
   );
   transactions = transactions.filter((t) => !isPendingReimbursementTx(t.description));
