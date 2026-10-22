@@ -48,6 +48,7 @@ export async function createStudent(prevState: any, formData: FormData) {
 
   const hourlyRate = Number(formData.get("hourlyRate")) || 70;
 
+  const paymentType = normalizePaymentType((formData.get("paymentType") as string) || "monthly");
   const initialBalance = Number(formData.get("balance")) || 0;
 
   if (!Number.isFinite(initialBalance) || initialBalance < 0) {
@@ -56,8 +57,6 @@ export async function createStudent(prevState: any, formData: FormData) {
   if (isPayAsYouGo(paymentType) && initialBalance > 0) {
     return { error: "一课一结学员不使用预付课时余额；请将初始课时设为 0，或改为预充值" };
   }
-
-  const paymentType = normalizePaymentType((formData.get("paymentType") as string) || "monthly");
 
   const currency = normalizeCurrency(formData.get("currency") as string);
   const rawIncomeSource = formData.get("incomeSource") as string;
@@ -391,6 +390,15 @@ export async function topUpStudent(
     return { error: "该学员当前是一课一结；如需购买课时包，请先把结算方式改为预充值" };
   }
 
+  const resolvedIncomeSource = isIncomeSource(incomeSource)
+    ? incomeSource
+    : isIncomeSource(student.income_source)
+      ? student.income_source
+      : null;
+  if (!resolvedIncomeSource) {
+    return { error: "预充值必须选择实际到账 Family 账户" };
+  }
+
   const txCurrency = normalizeCurrency(currency ?? student.currency ?? DEFAULT_CURRENCY);
 
 
@@ -418,11 +426,7 @@ export async function topUpStudent(
       student_id: studentId,
       quantity: hoursToAdd,
       currency: txCurrency,
-      income_source: isIncomeSource(incomeSource)
-        ? incomeSource
-        : isIncomeSource(student.income_source)
-          ? student.income_source
-          : null,
+      income_source: resolvedIncomeSource,
     });
 
     if (txRes.error) {
