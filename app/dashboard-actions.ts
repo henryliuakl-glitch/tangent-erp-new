@@ -158,29 +158,43 @@ export async function getDashboardCalendar(businessId: string) {
   const supabase = await createClient();
   const units = scopeFilter(resolvedBusinessId);
 
-  let bookingsQuery = supabase
-    .from("bookings")
-    .select("id,student_id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,business_unit_id")
-    .order("start_time", { ascending: true })
-    .limit(1000);
+  // Tangent 聚合后 bookings 已超过 PostgREST 单次常见 1000 行上限。
+  // 必须分页读取，否则按 start_time 升序时会只拿到较早历史，导致当前/未来课程在 Tangent 日历中消失。
+  const allBookings: any[] = [];
+  const pageSize = 1000;
+  let from = 0;
 
-  if (resolvedBusinessId === "tangent") {
-    bookingsQuery = bookingsQuery.in("business_unit_id", units);
-  } else {
-    bookingsQuery = bookingsQuery.eq("business_unit_id", resolvedBusinessId);
-  }
+  while (true) {
+    let bookingsQuery = supabase
+      .from("bookings")
+      .select("id,student_id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,business_unit_id")
+      .order("start_time", { ascending: true })
+      .range(from, from + pageSize - 1);
 
-  const { data: allBookings, error: bookingsError } = await bookingsQuery;
-  if (bookingsError) {
-    console.error("[getDashboardCalendar] bookings error:", bookingsError.message);
-    return { bookings: [], error: bookingsError.message };
+    if (resolvedBusinessId === "tangent") {
+      bookingsQuery = bookingsQuery.in("business_unit_id", units);
+    } else {
+      bookingsQuery = bookingsQuery.eq("business_unit_id", resolvedBusinessId);
+    }
+
+    const { data: page, error: bookingsError } = await bookingsQuery;
+    if (bookingsError) {
+      console.error("[getDashboardCalendar] bookings error:", bookingsError.message);
+      return { bookings: [], error: bookingsError.message };
+    }
+
+    const rows = page || [];
+    allBookings.push(...rows);
+
+    if (rows.length < pageSize) break;
+    from += pageSize;
   }
 
   const now = Date.now();
   const windowStart = now - 45 * 24 * 60 * 60 * 1000;
   const windowEnd = now + 120 * 24 * 60 * 60 * 1000;
 
-  const rawBookings = (allBookings || []).filter((booking: any) => {
+  const rawBookings = allBookings.filter((booking: any) => {
     if (booking.status === "cancelled") return false;
     const ts = new Date(booking.start_time).getTime();
     return Number.isFinite(ts) && ts >= windowStart && ts < windowEnd;
