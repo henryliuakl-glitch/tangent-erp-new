@@ -112,7 +112,9 @@ export async function createTransaction(prevState: any, formData: FormData) {
     student_id: studentId || null,
     quantity: hoursToAdd > 0 ? hoursToAdd : null,
     currency,
-    income_source: type === "income" ? incomeSource : null,
+    // income_source is retained as the physical Family account name for both
+    // incoming and outgoing cash; reporting only groups it for income rows.
+    income_source: incomeSource,
   });
 
   if (txResult.error) return { error: txResult.error };
