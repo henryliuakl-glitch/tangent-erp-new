@@ -188,7 +188,7 @@ export async function updateStudent(id: string, data: {
 
     .from("students")
 
-    .select("balance, name, student_code, business_unit_id")
+    .select("balance, name, student_code, business_unit_id, payment_type")
 
     .eq("id", id)
 
@@ -201,6 +201,18 @@ export async function updateStudent(id: string, data: {
 
 
   const currentBalance = Number(current.balance);
+  const nextPaymentType =
+    data.paymentType !== undefined
+      ? normalizePaymentType(data.paymentType)
+      : normalizePaymentType(current.payment_type);
+  const requestedBalance =
+    data.targetBalance !== undefined && data.targetBalance !== null
+      ? roundHours(Number(data.targetBalance))
+      : roundHours(currentBalance);
+
+  if (isPayAsYouGo(nextPaymentType) && requestedBalance !== 0) {
+    return { error: "切换为一课一结前，请先将剩余预付课时处理到 0；系统不会自动抹掉预收课时" };
+  }
 
 
 
