@@ -411,17 +411,17 @@ export default function FamilyPage() {
       <div className="hidden md:block"><Navbar /></div>
 
       <main className="mx-auto max-w-[1440px] px-3 py-4 sm:px-6 lg:px-8">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <WalletCards className="h-5 w-5 text-indigo-600" />
-              <h1 className="text-xl font-black tracking-tight md:text-2xl">Family Treasury</h1>
+        <div className="mb-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <WalletCards className="h-5 w-5 shrink-0 text-indigo-600" />
+                <h1 className="truncate text-xl font-black tracking-tight md:text-2xl">Family Treasury</h1>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">家庭资产、账户余额、内部现金流与未来存款预测</p>
             </div>
-            <p className="mt-1 text-xs text-slate-500">家庭资产、账户余额、内部现金流与未来存款预测</p>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <div className="md:hidden">
+            <div className="shrink-0 md:hidden">
               <MobileAccountMenu
                 user={userProfile}
                 currentBusinessId={currentBusinessId}
@@ -433,6 +433,9 @@ export default function FamilyPage() {
                 onSignOut={handleSignOut}
               />
             </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
             <div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
               {(["NZD", "RMB"] as const).map((cur) => (
                 <button
