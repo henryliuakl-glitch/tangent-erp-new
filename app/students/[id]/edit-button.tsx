@@ -12,7 +12,7 @@ import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PAYMENT_TYPE_OPTIONS, normalizePaymentType } from "@/lib/student-payment";
-import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
+import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
 export default function EditStudentButton({ student }: { student: any }) {
   const [open, setOpen] = useState(false);
@@ -142,18 +142,12 @@ export default function EditStudentButton({ student }: { student: any }) {
                </Select>
              </div>
              <div className="space-y-2">
-               <Label>默认收款来源</Label>
-               <Select
+               <IncomeSourceSelect
                  value={data.income_source || ""}
-                 onValueChange={(val) => setData({ ...data, income_source: val })}
-               >
-                 <SelectTrigger><SelectValue placeholder="选择默认收款来源" /></SelectTrigger>
-                 <SelectContent className="max-h-72">
-                   {INCOME_SOURCE_OPTIONS.map((source) => (
-                     <SelectItem key={source} value={source}>{source}</SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
+                 onChange={(val) => setData({ ...data, income_source: val })}
+                 label="默认实际收款账户"
+                 placeholder="选择该学员通常付款到哪里"
+               />
                <p className="text-[11px] text-slate-400">预充值和一课一结都会使用该账户作为默认实际收款账户。</p>
              </div>
              <div className="space-y-2">
@@ -162,7 +156,7 @@ export default function EditStudentButton({ student }: { student: any }) {
                  <Input
                    type="number"
                    step="0.5"
-                   value={normalizePaymentType(data.payment_type) === "single" ? 0 : data.targetBalance}
+                   value={data.targetBalance}
                    onChange={(e) => setData({ ...data, targetBalance: e.target.value })}
                    disabled={normalizePaymentType(data.payment_type) === "single"}
                    className="pr-8 disabled:bg-slate-100 disabled:text-slate-400"
