@@ -73,7 +73,7 @@ export async function getDashboardStats(businessId: string) {
   // Dashboard only needs compact current-month totals + calendar/student data.
   // Run every independent query in parallel so switching entities does not wait
   // for Finance's full chart/source/reimbursement pipeline.
-  const [
+  let [
     transactionsRes,
     completedRes,
     calendarRes,
@@ -84,6 +84,22 @@ export async function getDashboardStats(businessId: string) {
     calendarQuery,
     studentsQuery,
   ]);
+
+  // 兼容生产库可选字段版本差异：若 income_source 尚未在当前 schema cache 中可用，
+  // 不让整个学生查询失败，否则首页所有课程都会显示“未知学员”。
+  if (
+    studentsRes.error &&
+    /income_source|schema cache|column/i.test(studentsRes.error.message || "")
+  ) {
+    const fallbackBase = supabase
+      .from("students")
+      .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id");
+
+    studentsRes =
+      resolvedBusinessId === "tangent"
+        ? await fallbackBase.in("business_unit_id", unitFilter)
+        : await fallbackBase.eq("business_unit_id", resolvedBusinessId);
+  }
 
   if (transactionsRes.error) {
     console.error("[getDashboardStats] transactions error:", transactionsRes.error.message);
