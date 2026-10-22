@@ -6,9 +6,10 @@ import { durationToMs } from "@/lib/utils";
 import { incrementStudentBalance } from "@/lib/student-balance";
 import { isDrivingSchoolBusiness, isOperationalBusinessId } from "@/lib/business";
 import {
-  recordDrivingLessonTuition,
-  reverseDrivingLessonTuition,
+  recordPayAsYouGoLessonTuition,
+  reversePayAsYouGoLessonTuition,
 } from "@/lib/driving-settlement";
+import { isPayAsYouGo } from "@/lib/student-payment";
 import {
   addCalendarDaysInNZ,
   addCalendarMonthsInNZ,
@@ -323,8 +324,9 @@ export async function updateBooking(
 }
 
 // 3. 完成预约
-// 驾校一单一结：消课即 Tuition 实收，不扣预付课时（避免负余额欠费）
-// 教培预付：仅扣课时，现金已在充值时入账
+// 结算方式属于学员，不属于业务实体：
+// 一课一结：完成时记 Tuition 现金收入，不扣预付课时。
+// 预充值：完成时只扣课时；现金已在充值时入账。
 export async function completeBooking(
   id: string,
   studentId: string,
@@ -338,7 +340,7 @@ export async function completeBooking(
     .from("bookings")
     .select(`
       id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata,
-      student:students ( id, name, student_code, hourly_rate, currency, level )
+      student:students ( id, name, student_code, hourly_rate, currency, level, payment_type, income_source )
     `)
     .eq("id", id)
     .single();
@@ -347,9 +349,16 @@ export async function completeBooking(
   if (booking.status === "completed") return { success: true };
   if (booking.status !== "confirmed") return { error: "只有待办课程可以完成" };
 
-  const driving = isDrivingSchoolBusiness(booking.business_unit_id);
-  if (driving && !isIncomeSource(incomeSource)) {
-    return { error: "请选择实际收入来源后再完成课程" };
+  const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+  const payAsYouGo = isPayAsYouGo(student?.payment_type);
+  const resolvedIncomeSource = isIncomeSource(incomeSource)
+    ? incomeSource
+    : isIncomeSource(student?.income_source)
+      ? student?.income_source
+      : null;
+
+  if (payAsYouGo && !resolvedIncomeSource) {
+    return { error: "该学员为一课一结，请选择本次实际收款账户后再完成课程" };
   }
 
   // 幂等抢占：只有第一个把 confirmed 改成 completed 的请求才能继续扣课时/记收入。
@@ -364,30 +373,43 @@ export async function completeBooking(
   if (claimError) return { error: claimError.message };
   if (!claimed) return { success: true };
 
-  if (driving) {
+  const targetStudentId = booking.student_id || studentId;
+  const hours = Number(booking.duration) || duration;
+
+  if (!targetStudentId || !Number.isFinite(hours) || hours <= 0) {
+    await supabase
+      .from("bookings")
+      .update({ status: "confirmed" })
+      .eq("id", id)
+      .eq("status", "completed");
+    return { error: "课程缺少有效学员或课时，未执行消课" };
+  }
+
+  if (payAsYouGo) {
     const baseMetadata = (booking.metadata as Record<string, unknown> | null) ?? {};
     await supabase
       .from("bookings")
       .update({
         metadata: {
           ...baseMetadata,
-          incomeSource,
+          incomeSource: resolvedIncomeSource,
+          settlementMode: "single",
         },
       })
       .eq("id", id)
       .eq("status", "completed");
-    const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
-    const tuitionRes = await recordDrivingLessonTuition(
+
+    const tuitionRes = await recordPayAsYouGoLessonTuition(
       supabase,
       {
         id: booking.id,
         student_id: booking.student_id,
-        duration: Number(booking.duration) || duration,
+        duration: hours,
         actual_rate: booking.actual_rate,
         business_unit_id: booking.business_unit_id,
         start_time: booking.start_time,
         student,
-        income_source: incomeSource,
+        income_source: resolvedIncomeSource,
       },
       user?.id || ""
     );
@@ -401,18 +423,6 @@ export async function completeBooking(
       return { error: `消课收入写入失败，课程状态已回滚：${tuitionRes.error}` };
     }
   } else {
-    const targetStudentId = booking.student_id || studentId;
-    const hours = Number(booking.duration) || duration;
-
-    if (!targetStudentId || !Number.isFinite(hours) || hours <= 0) {
-      await supabase
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", id)
-        .eq("status", "completed");
-      return { error: "课程缺少有效学员或课时，未执行消课" };
-    }
-
     const balanceRes = await incrementStudentBalance(supabase, targetStudentId, -hours);
     if (balanceRes.error) {
       await supabase
@@ -422,6 +432,18 @@ export async function completeBooking(
         .eq("status", "completed");
       return { error: `扣课时失败，课程状态已回滚：${balanceRes.error}` };
     }
+
+    const baseMetadata = (booking.metadata as Record<string, unknown> | null) ?? {};
+    await supabase
+      .from("bookings")
+      .update({
+        metadata: {
+          ...baseMetadata,
+          settlementMode: "prepaid",
+        },
+      })
+      .eq("id", id)
+      .eq("status", "completed");
   }
 
   revalidatePath("/bookings");
@@ -483,7 +505,7 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
 
     const { data: full } = await supabase
       .from("bookings")
-      .select("id, business_unit_id, student_id, duration")
+      .select("id, business_unit_id, student_id, duration, metadata, student:students(payment_type)")
       .eq("id", b.id)
       .single();
 
@@ -492,8 +514,13 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
       return { error: "取消失败：课程详情读取失败" };
     }
 
-    if (isDrivingSchoolBusiness(full.business_unit_id)) {
-      const reverseRes = await reverseDrivingLessonTuition(supabase, b.id);
+    const fullStudent = Array.isArray((full as any).student) ? (full as any).student[0] : (full as any).student;
+    const completedAsPayg =
+      (full.metadata as Record<string, unknown> | null)?.settlementMode === "single" ||
+      (!(full.metadata as Record<string, unknown> | null)?.settlementMode && isPayAsYouGo(fullStudent?.payment_type));
+
+    if (completedAsPayg) {
+      const reverseRes = await reversePayAsYouGoLessonTuition(supabase, b.id);
       if (reverseRes.error) {
         await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
         return { error: `取消失败，课程状态已回滚：${reverseRes.error}` };
@@ -527,7 +554,7 @@ export async function deleteBooking(id: string) {
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata, student:students(name, student_code, hourly_rate, currency)")
+    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata, student:students(name, student_code, hourly_rate, currency, payment_type, income_source)")
     .eq("id", id)
     .single();
 
@@ -546,8 +573,13 @@ export async function deleteBooking(id: string) {
     if (claimError) return { error: claimError.message };
     if (!claimed) return { error: "课程状态已被其他操作修改，请刷新后重试" };
 
-    if (isDrivingSchoolBusiness(booking.business_unit_id)) {
-      const reverseRes = await reverseDrivingLessonTuition(supabase, id);
+    const bookingStudent = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+    const completedAsPayg =
+      (booking.metadata as Record<string, unknown> | null)?.settlementMode === "single" ||
+      (!(booking.metadata as Record<string, unknown> | null)?.settlementMode && isPayAsYouGo(bookingStudent?.payment_type));
+
+    if (completedAsPayg) {
+      const reverseRes = await reversePayAsYouGoLessonTuition(supabase, id);
       if (reverseRes.error) {
         await supabase.from("bookings").update({ status: "completed" }).eq("id", id).eq("status", "cancelled");
         return { error: reverseRes.error };
@@ -572,9 +604,9 @@ export async function deleteBooking(id: string) {
 
     if (deleteError) {
       // 删除失败：尽力恢复到“已完成 + 已扣课时/已记收入”的原状态。
-      if (isDrivingSchoolBusiness(booking.business_unit_id)) {
+      if (completedAsPayg) {
         const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
-        await recordDrivingLessonTuition(
+        await recordPayAsYouGoLessonTuition(
           supabase,
           {
             id: booking.id,
@@ -586,7 +618,7 @@ export async function deleteBooking(id: string) {
             student,
             income_source: (booking.metadata as Record<string, unknown> | null)?.incomeSource
               ? String((booking.metadata as Record<string, unknown>).incomeSource)
-              : null,
+              : student?.income_source || null,
           },
           user?.id || ""
         );
@@ -647,7 +679,7 @@ export async function quickCreateDrivingBooking(formData: FormData) {
   if (!identifier || !dateStr) return { error: "信息不完整" };
   if (!Number.isFinite(duration) || duration <= 0) return { error: "课时必须大于 0" };
   if (!Number.isFinite(actualRate) || actualRate < 0) return { error: "价格必须是有效的非负数" };
-  // 一单一结：不校验课时/余额，直接排课
+  // 极速排课默认新学员为一课一结；已有学员沿用其个人结算方式。
 
   let studentId = "";
   const { data: existingStudent } = await supabase
