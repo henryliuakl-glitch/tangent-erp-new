@@ -5,111 +5,58 @@ import { isPaymentAlert, isPrepaid } from "@/lib/student-payment";
 import { emptyDualTotals, normalizeCurrency } from "@/lib/currency";
 import { getNzMonthBounds } from "@/lib/timezone";
 
+function scopeFilter(businessId: string) {
+  return businessId === "tangent" ? ["cus", "sine"] : [businessId || "cus"];
+}
+
 /**
- * Dashboard 本月统计
- * 净现金流 / 消课产值：直接复用 getFinanceStats("month")，与财务驾驶舱 1:1 对齐
- * 资金池：学员 balance > 0 × hourly_rate（按 currency 分轨）
+ * 首页 KPI：只做本月现金 / Realized / 预收负债 / 课时提醒。
+ * 不再夹带日历大查询，确保工作台核心指标先快速返回。
  */
 export async function getDashboardStats(businessId: string) {
   const resolvedBusinessId = businessId || "cus";
   const supabase = await createClient();
   const { startIso, endIso, startDate, nextMonthStart } = getNzMonthBounds(0);
+  const units = scopeFilter(resolvedBusinessId);
 
-  const unitFilter =
-    resolvedBusinessId === "tangent"
-      ? ["cus", "sine"]
-      : [resolvedBusinessId];
-
-  // 首页只是工作台，不是完整排课档案。
-  // 之前一次拉取约 14 个月 booking + student join，Tangent 聚合时容易超过客户端 15s timeout。
-  // 保留最近 45 天 + 未来 120 天，足够首页月历/近期排课使用；完整历史仍由 /bookings 查询。
-  const calendarStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
-  const calendarEnd = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
-
-  const txBase = supabase
+  let txQuery = supabase
     .from("transactions")
-    .select("type,amount,currency,transaction_date,business_unit_id,category")
+    .select("type,amount,currency,transaction_date,business_unit_id")
     .gte("transaction_date", startDate)
     .lt("transaction_date", nextMonthStart);
 
-  const completedBase = supabase
+  let completedQuery = supabase
     .from("bookings")
     .select("start_time,duration,actual_rate,business_unit_id,student_id")
     .eq("status", "completed")
     .gte("start_time", startIso)
     .lt("start_time", endIso);
 
-  const calendarBase = supabase
-    .from("bookings")
-    .select("id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,student_id,business_unit_id")
-    .neq("status", "cancelled")
-    .gte("start_time", calendarStart)
-    .lt("start_time", calendarEnd);
-
-  const studentsBase = supabase
+  let studentsQuery = supabase
     .from("students")
-    .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,income_source,business_unit_id");
+    .select("id,name,balance,hourly_rate,payment_type,currency,business_unit_id");
 
-  const txQuery =
-    resolvedBusinessId === "tangent"
-      ? txBase.in("business_unit_id", unitFilter)
-      : txBase.eq("business_unit_id", resolvedBusinessId);
+  if (resolvedBusinessId === "tangent") {
+    txQuery = txQuery.in("business_unit_id", units);
+    completedQuery = completedQuery.in("business_unit_id", units);
+    studentsQuery = studentsQuery.in("business_unit_id", units);
+  } else {
+    txQuery = txQuery.eq("business_unit_id", resolvedBusinessId);
+    completedQuery = completedQuery.eq("business_unit_id", resolvedBusinessId);
+    studentsQuery = studentsQuery.eq("business_unit_id", resolvedBusinessId);
+  }
 
-  const completedQuery =
-    resolvedBusinessId === "tangent"
-      ? completedBase.in("business_unit_id", unitFilter)
-      : completedBase.eq("business_unit_id", resolvedBusinessId);
-
-  const calendarQuery =
-    resolvedBusinessId === "tangent"
-      ? calendarBase.in("business_unit_id", unitFilter)
-      : calendarBase.eq("business_unit_id", resolvedBusinessId);
-
-  const studentsQuery =
-    resolvedBusinessId === "tangent"
-      ? studentsBase.in("business_unit_id", unitFilter)
-      : studentsBase.eq("business_unit_id", resolvedBusinessId);
-
-  // Dashboard only needs compact current-month totals + calendar/student data.
-  // Run every independent query in parallel so switching entities does not wait
-  // for Finance's full chart/source/reimbursement pipeline.
-  let [
-    transactionsRes,
-    completedRes,
-    calendarRes,
-    studentsRes,
-  ] = await Promise.all([
+  const [transactionsRes, completedRes, studentsRes] = await Promise.all([
     txQuery,
     completedQuery,
-    calendarQuery,
     studentsQuery,
   ]);
-
-  // 兼容生产库可选字段版本差异：若 income_source 尚未在当前 schema cache 中可用，
-  // 不让整个学生查询失败，否则首页所有课程都会显示“未知学员”。
-  if (
-    studentsRes.error &&
-    /income_source|schema cache|column/i.test(studentsRes.error.message || "")
-  ) {
-    const fallbackBase = supabase
-      .from("students")
-      .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id");
-
-    studentsRes = (
-      resolvedBusinessId === "tangent"
-        ? await fallbackBase.in("business_unit_id", unitFilter)
-        : await fallbackBase.eq("business_unit_id", resolvedBusinessId)
-    ) as any;
-  }
 
   if (transactionsRes.error) {
     console.error("[getDashboardStats] transactions error:", transactionsRes.error.message);
   }
   if (completedRes.error) {
     console.error("[getDashboardStats] completed bookings error:", completedRes.error.message);
-  }
-  if (calendarRes.error) {
-    console.error("[getDashboardStats] calendar error:", calendarRes.error.message);
   }
   if (studentsRes.error) {
     console.error("[getDashboardStats] students error:", studentsRes.error.message);
@@ -120,9 +67,6 @@ export async function getDashboardStats(businessId: string) {
   let cashIncomeRmb = 0;
   let cashExpenseRmb = 0;
 
-  // 现金口径统一：只认 transactions。
-  // Sine 完成课程时会生成 Tuition income transaction；
-  // CuS 充值时生成 income transaction。bookings 只用于 Realized，不再额外叠加现金收入。
   for (const tx of transactionsRes.data || []) {
     const amount = Number(tx.amount || 0);
     const currency = normalizeCurrency(tx.currency);
@@ -137,14 +81,13 @@ export async function getDashboardStats(businessId: string) {
   }
 
   const students = studentsRes.data || [];
-  const studentsById = new Map(
-    students.map((student: any) => [student.id, student])
-  );
+  const studentsById = new Map(students.map((student: any) => [student.id, student]));
 
   let realizedRevenue = 0;
   let realizedRevenueRmb = 0;
+
   for (const booking of completedRes.data || []) {
-    const student = booking.student_id ? studentsById.get(booking.student_id) : null;
+    const student: any = booking.student_id ? studentsById.get(booking.student_id) : null;
     const rate = Number(booking.actual_rate ?? student?.hourly_rate ?? 70);
     const value = Number(booking.duration || 0) * rate;
     const currency = normalizeCurrency(student?.currency);
@@ -153,23 +96,9 @@ export async function getDashboardStats(businessId: string) {
     else realizedRevenue += value;
   }
 
-  const calendarBookings = (calendarRes.data || []).map((booking: any) => ({
-    ...booking,
-    student: booking.student_id ? studentsById.get(booking.student_id) || null : null,
-  }));
-
   let unearnedRevenue = 0;
   let unearnedRevenueRmb = 0;
   const lowBalanceStudents: any[] = [];
-
-  const confirmedHoursByStudent = new Map<string, number>();
-  for (const booking of calendarBookings) {
-    if (booking.status !== "confirmed" || !booking.student_id) continue;
-    confirmedHoursByStudent.set(
-      booking.student_id,
-      (confirmedHoursByStudent.get(booking.student_id) || 0) + Number(booking.duration || 0)
-    );
-  }
 
   for (const student of students) {
     const balance = Number(student.balance || 0);
@@ -181,16 +110,15 @@ export async function getDashboardStats(businessId: string) {
       else unearnedRevenue += value;
     }
 
-    const scheduledHours = confirmedHoursByStudent.get(student.id) || 0;
     if (
       isPaymentAlert(
         balance,
         student.payment_type,
         { businessUnitId: student.business_unit_id },
-        scheduledHours
+        0
       )
     ) {
-      lowBalanceStudents.push({ ...student, scheduledHours });
+      lowBalanceStudents.push({ ...student, scheduledHours: 0 });
     }
   }
 
@@ -214,10 +142,84 @@ export async function getDashboardStats(businessId: string) {
     realizedRevenueRmb,
     unearnedRevenue,
     unearnedRevenueRmb,
-    chartData: [],
-    calendarBookings,
     lowBalanceStudents,
     monthRange: { startIso, endIso, startDate, nextMonthStart },
     businessUnitId: resolvedBusinessId,
+  };
+}
+
+/**
+ * 首页日历 / 接下来：独立加载。
+ * booking 与 student 分开查询，避免 PostgREST 嵌套 join 和可选字段拖慢/拖垮整个工作台。
+ */
+export async function getDashboardCalendar(businessId: string) {
+  const resolvedBusinessId = businessId || "cus";
+  const supabase = await createClient();
+  const units = scopeFilter(resolvedBusinessId);
+
+  const calendarStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const calendarEnd = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
+
+  let bookingsQuery = supabase
+    .from("bookings")
+    .select("id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,student_id,business_unit_id")
+    .neq("status", "cancelled")
+    .gte("start_time", calendarStart)
+    .lt("start_time", calendarEnd)
+    .order("start_time", { ascending: true });
+
+  if (resolvedBusinessId === "tangent") {
+    bookingsQuery = bookingsQuery.in("business_unit_id", units);
+  } else {
+    bookingsQuery = bookingsQuery.eq("business_unit_id", resolvedBusinessId);
+  }
+
+  const { data: rawBookings, error: bookingsError } = await bookingsQuery;
+  if (bookingsError) {
+    console.error("[getDashboardCalendar] bookings error:", bookingsError.message);
+    return { bookings: [], error: bookingsError.message };
+  }
+
+  const studentIds = Array.from(
+    new Set((rawBookings || []).map((b: any) => b.student_id).filter(Boolean))
+  );
+
+  if (!studentIds.length) return { bookings: [], error: null };
+
+  let { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,income_source,business_unit_id")
+    .in("id", studentIds);
+
+  if (
+    studentsError &&
+    /income_source|schema cache|column/i.test(studentsError.message || "")
+  ) {
+    const fallback = await supabase
+      .from("students")
+      .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id")
+      .in("id", studentIds);
+
+    students = (fallback.data || []).map((student: any) => ({
+      ...student,
+      income_source: null,
+    })) as any;
+    studentsError = fallback.error;
+  }
+
+  if (studentsError) {
+    console.error("[getDashboardCalendar] students error:", studentsError.message);
+  }
+
+  const studentsById = new Map(
+    (students || []).map((student: any) => [student.id, student])
+  );
+
+  return {
+    bookings: (rawBookings || []).map((booking: any) => ({
+      ...booking,
+      student: booking.student_id ? studentsById.get(booking.student_id) || null : null,
+    })),
+    error: studentsError?.message || null,
   };
 }
