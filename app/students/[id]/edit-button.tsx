@@ -132,7 +132,7 @@ export default function EditStudentButton({ student }: { student: any }) {
              </div>
              <div className="space-y-2">
                <Label>结算方式</Label>
-               <Select value={normalizePaymentType(data.payment_type)} onValueChange={(val) => setData({ ...data, payment_type: val, ...(val === "single" ? { targetBalance: 0 } : {}) })}>
+               <Select value={normalizePaymentType(data.payment_type)} onValueChange={(val) => setData({ ...data, payment_type: val })}>
                  <SelectTrigger><SelectValue /></SelectTrigger>
                  <SelectContent>
                    {PAYMENT_TYPE_OPTIONS.map((opt) => (
