@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import Link from "next/link";
 import { isDrivingSchoolBusiness } from "@/lib/business";
+import { isPayAsYouGo } from "@/lib/student-payment";
 import {
   isTodayInNZ,
   isTomorrowInNZ,
@@ -40,7 +41,7 @@ type Booking = {
   location: string | null;
   subject?: string | null;
   teacher?: string | null;
-  student: { id: string; name: string; teacher: string | null; subject: string | null; hourly_rate?: number; student_code?: string; } | null;
+  student: { id: string; name: string; teacher: string | null; subject: string | null; hourly_rate?: number; student_code?: string; payment_type?: string | null; income_source?: string | null; } | null;
   business_unit_id: string;
   actual_rate?: number | null;
   metadata?: {
@@ -162,23 +163,25 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   });
 
   const handleComplete = async (b: Booking) => {
-    if (isDrivingSchoolBusiness(b.business_unit_id)) {
+    if (isPayAsYouGo(b.student?.payment_type)) {
       setCompleteBookingTarget(b);
-      setCompleteIncomeSource(b.metadata?.incomeSource || "");
+      setCompleteIncomeSource(
+        b.metadata?.incomeSource || b.student?.income_source || ""
+      );
       return;
     }
 
-    if (!confirm(`确认完成 ${b.student?.name} 的课程？`)) return;
+    if (!confirm(`确认完成 ${b.student?.name} 的课程？将扣除 ${b.duration}h 预付课时。`)) return;
     setLoadingId(b.id);
     if (b.student?.id) {
       const res = await completeBooking(b.id, b.student.id, b.duration);
       if (res?.error) toast.error(res.error);
-      else toast.success("课程已完成");
+      else toast.success("课程已完成 · 已扣预付课时");
     }
     setLoadingId(null);
   };
 
-  const confirmDrivingComplete = async () => {
+  const confirmPayAsYouGoComplete = async () => {
     const b = completeBookingTarget;
     if (!b?.student?.id || !completeIncomeSource) return;
 
@@ -614,7 +617,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
               label="本次实际收入来源"
             />
             <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-              驾校每次完成课程时记录实际收款去向，并同步写入财务流水。
+              一课一结：完成课程时同时确认现金收入与消课产值，并同步更新 Family 实际账户。
             </p>
           </div>
           <DialogFooter>
@@ -626,7 +629,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
               取消
             </Button>
             <Button
-              onClick={confirmDrivingComplete}
+              onClick={confirmPayAsYouGoComplete}
               disabled={!completeIncomeSource || !!loadingId}
               className="bg-slate-900 hover:bg-slate-800"
             >
