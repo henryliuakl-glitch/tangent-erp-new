@@ -38,7 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 import { MobileAccountMenu } from "@/components/MobileAccountMenu";
 import { completeBooking, updateBooking } from "@/app/bookings/actions";
-import { isBookingUnpaid } from "@/lib/student-payment";
+import { isBookingUnpaid, isPayAsYouGo } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
   formatDateLabelInNZ,
@@ -244,13 +244,15 @@ export default function Home() {
       return;
     }
 
-    if (isDrivingSchoolBusiness(booking.business_unit_id)) {
+    if (isPayAsYouGo(booking.student?.payment_type)) {
       setCompleteTarget(booking);
-      setCompleteIncomeSource(booking.metadata?.incomeSource || "");
+      setCompleteIncomeSource(
+        booking.metadata?.incomeSource || booking.student?.income_source || ""
+      );
       return;
     }
 
-    if (!confirm(`确认完成 ${booking.student?.name || "该学员"} 的课程？`)) return;
+    if (!confirm(`确认完成 ${booking.student?.name || "该学员"} 的课程？将扣除 ${booking.duration}h 预付课时。`)) return;
 
     setCompletingId(booking.id);
     const result = await completeBooking(booking.id, booking.student.id, booking.duration);
@@ -261,11 +263,11 @@ export default function Home() {
       return;
     }
 
-    toast.success("课程已完成");
+    toast.success("课程已完成 · 已扣预付课时");
     await reloadStats();
   };
 
-  const confirmDrivingComplete = async () => {
+  const confirmPayAsYouGoComplete = async () => {
     if (!completeTarget?.student?.id || !completeIncomeSource) return;
 
     setCompletingId(completeTarget.id);
@@ -443,9 +445,7 @@ export default function Home() {
             </div>
           </header>
 
-          <section className={`grid grid-cols-2 gap-2 ${
-            currentBusinessId === "tangent" ? "lg:grid-cols-4" : "lg:grid-cols-5"
-          }`}>
+          <section className="grid grid-cols-2 gap-2 lg:grid-cols-6">
             <MetricCard
               label="今日课程"
               value={loading ? "—" : String(todayLessons.length)}
@@ -475,40 +475,36 @@ export default function Home() {
               icon={DollarSign}
               href="/finance"
             />
-            {currentBusinessId === "cus" ? (
-              <MetricCard
-                label="预收课时负债"
-                value={
-                  loading
-                    ? "—"
-                    : `${Number(stats.unearnedRevenue || 0).toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}`
-                }
-                meta={`¥${Number(stats.unearnedRevenueRmb || 0).toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })} RMB · 尚未消课`}
-                icon={BookOpen}
-                href="/students"
-              />
-            ) : null}
-            {currentBusinessId === "sine" ? (
-              <MetricCard
-                label="本月现金收入"
-                value={
-                  loading
-                    ? "—"
-                    : `${Number(stats.cashIncome || 0).toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}`
-                }
-                meta={`¥${Number(stats.cashIncomeRmb || 0).toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })} RMB · 消课即实收`}
-                icon={WalletCards}
-                href="/finance"
-              />
-            ) : null}
+            <MetricCard
+              label="预收课时负债"
+              value={
+                loading
+                  ? "—"
+                  : `${Number(stats.unearnedRevenue || 0).toLocaleString(undefined, {
+                      maximumFractionDigits: 0,
+                    })}`
+              }
+              meta={`¥${Number(stats.unearnedRevenueRmb || 0).toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })} RMB · 仅预充值学员`}
+              icon={BookOpen}
+              href="/students"
+            />
+            <MetricCard
+              label="本月现金收入"
+              value={
+                loading
+                  ? "—"
+                  : `${Number(stats.cashIncome || 0).toLocaleString(undefined, {
+                      maximumFractionDigits: 0,
+                    })}`
+              }
+              meta={`¥${Number(stats.cashIncomeRmb || 0).toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })} RMB · 充值/一课一结`}
+              icon={WalletCards}
+              href="/finance"
+            />
             <MetricCard
               label="本月净现金流"
               value={
@@ -821,7 +817,7 @@ export default function Home() {
                 label="本次实际收入来源"
               />
               <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-                驾校课程完成后会按该来源写入实际收入流水。
+                一课一结：完成课程时同时记现金收入与消课产值，并同步更新 Family 实际账户。
               </p>
             </div>
             <DialogFooter>
@@ -833,7 +829,7 @@ export default function Home() {
                 取消
               </Button>
               <Button
-                onClick={confirmDrivingComplete}
+                onClick={confirmPayAsYouGoComplete}
                 disabled={!completeIncomeSource || !!completingId}
                 className="bg-slate-900 hover:bg-slate-800"
               >
