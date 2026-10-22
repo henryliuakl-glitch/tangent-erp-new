@@ -14,6 +14,7 @@ import { DEFAULT_CURRENCY, normalizeCurrency, type Currency } from "@/lib/curren
 import { insertTransaction } from "@/lib/transaction-write";
 import { isIncomeSource } from "@/lib/income-source";
 import { isOperationalBusinessId } from "@/lib/business";
+import { isPayAsYouGo, normalizePaymentType } from "@/lib/student-payment";
 
 
 
@@ -52,8 +53,11 @@ export async function createStudent(prevState: any, formData: FormData) {
   if (!Number.isFinite(initialBalance) || initialBalance < 0) {
     return { error: "初始课时必须是有效的非负数" };
   }
+  if (isPayAsYouGo(paymentType) && initialBalance > 0) {
+    return { error: "一课一结学员不使用预付课时余额；请将初始课时设为 0，或改为预充值" };
+  }
 
-  const paymentType = (formData.get("paymentType") as string) || "monthly";
+  const paymentType = normalizePaymentType((formData.get("paymentType") as string) || "monthly");
 
   const currency = normalizeCurrency(formData.get("currency") as string);
   const rawIncomeSource = formData.get("incomeSource") as string;
@@ -230,7 +234,7 @@ export async function updateStudent(id: string, data: {
     teacher: data.teacher,
     level: data.level,
     hourly_rate: data.hourlyRate,
-    ...(data.paymentType !== undefined ? { payment_type: data.paymentType } : {}),
+    ...(data.paymentType !== undefined ? { payment_type: normalizePaymentType(data.paymentType) } : {}),
     ...(data.currency !== undefined ? { currency: normalizeCurrency(data.currency) } : {}),
     ...(data.incomeSource !== undefined
       ? { income_source: isIncomeSource(data.incomeSource) ? data.incomeSource : null }
@@ -347,7 +351,7 @@ export async function topUpStudent(
 
   let { data: student, error: fetchError } = await supabase
     .from("students")
-    .select("name, student_code, balance, hourly_rate, business_unit_id, currency, income_source")
+    .select("name, student_code, balance, hourly_rate, business_unit_id, currency, income_source, payment_type")
     .eq("id", studentId)
     .maybeSingle();
 
@@ -355,7 +359,7 @@ export async function topUpStudent(
   if (fetchError && /income_source|column|schema cache/i.test(fetchError.message || "")) {
     const fallback = await supabase
       .from("students")
-      .select("name, student_code, balance, hourly_rate, business_unit_id, currency")
+      .select("name, student_code, balance, hourly_rate, business_unit_id, currency, payment_type")
       .eq("id", studentId)
       .maybeSingle();
 
@@ -367,6 +371,9 @@ export async function topUpStudent(
 
   if (fetchError) return { error: `读取学员失败：${fetchError.message}` };
   if (!student) return { error: "找不到学员" };
+  if (isPayAsYouGo(student.payment_type)) {
+    return { error: "该学员当前是一课一结；如需购买课时包，请先把结算方式改为预充值" };
+  }
 
   const txCurrency = normalizeCurrency(currency ?? student.currency ?? DEFAULT_CURRENCY);
 
