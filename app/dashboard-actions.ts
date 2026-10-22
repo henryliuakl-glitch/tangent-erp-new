@@ -20,8 +20,11 @@ export async function getDashboardStats(businessId: string) {
       ? ["cus", "sine"]
       : [resolvedBusinessId];
 
-  const calendarStart = new Date(Date.now() - 62 * 24 * 60 * 60 * 1000).toISOString();
-  const calendarEnd = new Date(Date.now() + 370 * 24 * 60 * 60 * 1000).toISOString();
+  // 首页只是工作台，不是完整排课档案。
+  // 之前一次拉取约 14 个月 booking + student join，Tangent 聚合时容易超过客户端 15s timeout。
+  // 保留最近 45 天 + 未来 120 天，足够首页月历/近期排课使用；完整历史仍由 /bookings 查询。
+  const calendarStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const calendarEnd = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
 
   const txBase = supabase
     .from("transactions")
@@ -55,8 +58,7 @@ export async function getDashboardStats(businessId: string) {
 
   const studentsBase = supabase
     .from("students")
-    .select("balance,hourly_rate,name,id,payment_type,currency,business_unit_id")
-    .order("name");
+    .select("balance,hourly_rate,name,id,payment_type,currency,business_unit_id");
 
   const txQuery =
     resolvedBusinessId === "tangent"
