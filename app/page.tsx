@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 
 import { useBusiness } from "@/contexts/BusinessContext";
-import { getDashboardStats } from "./dashboard-actions";
+import { getDashboardCalendar, getDashboardStats } from "./dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
@@ -93,6 +93,8 @@ export default function Home() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [calendarLoading, setCalendarLoading] = useState(true);
+  const [calendarBookings, setCalendarBookings] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [businessList, setBusinessList] = useState<any[]>([]);
   const [completingId, setCompletingId] = useState<string | null>(null);
@@ -116,7 +118,6 @@ export default function Home() {
     realizedRevenueRmb: 0,
     unearnedRevenue: 0,
     unearnedRevenueRmb: 0,
-    calendarBookings: [],
     lowBalanceStudents: [],
   });
 
@@ -132,19 +133,11 @@ export default function Home() {
       setLoading(true);
 
       try {
-        const timeout = new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error("Dashboard stats timeout")), 15000);
-        });
-
-        const nextStats = await Promise.race([
-          getDashboardStats(currentBusinessId || "cus"),
-          timeout,
-        ]);
-
+        const nextStats = await getDashboardStats(currentBusinessId || "cus");
         if (!cancelled) setStats(nextStats);
       } catch (error) {
         console.error("[dashboard] stats load failed:", error);
-        if (!cancelled) toast.error("工作台数据加载失败，请刷新重试");
+        if (!cancelled) toast.error("工作台核心数据加载失败");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -155,8 +148,39 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-    // router intentionally excluded; currentBusinessId alone controls dashboard reload.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBusinessId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCalendar() {
+      if (currentBusinessId === "family") return;
+      setCalendarLoading(true);
+
+      try {
+        const result = await getDashboardCalendar(currentBusinessId || "cus");
+        if (cancelled) return;
+        setCalendarBookings(result.bookings || []);
+        if (result.error) {
+          console.error("[dashboard] calendar partial error:", result.error);
+        }
+      } catch (error) {
+        console.error("[dashboard] calendar load failed:", error);
+        if (!cancelled) {
+          setCalendarBookings([]);
+          toast.error("工作台日历加载失败");
+        }
+      } finally {
+        if (!cancelled) setCalendarLoading(false);
+      }
+    }
+
+    void loadCalendar();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentBusinessId]);
 
   useEffect(() => {
@@ -226,7 +250,12 @@ export default function Home() {
   }, []);
   const reloadStats = async () => {
     try {
-      setStats(await getDashboardStats(currentBusinessId));
+      const [nextStats, nextCalendar] = await Promise.all([
+        getDashboardStats(currentBusinessId),
+        getDashboardCalendar(currentBusinessId),
+      ]);
+      setStats(nextStats);
+      setCalendarBookings(nextCalendar.bookings || []);
     } catch (error) {
       console.error(error);
     }
@@ -357,7 +386,7 @@ export default function Home() {
     await reloadStats();
   };
 
-  const bookings = stats.calendarBookings || [];
+  const bookings = calendarBookings;
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   const today = getTodayInNZ();
 
@@ -448,14 +477,14 @@ export default function Home() {
           <section className="grid grid-cols-2 gap-2 lg:grid-cols-6">
             <MetricCard
               label="今日课程"
-              value={loading ? "—" : String(todayLessons.length)}
+              value={calendarLoading ? "—" : String(todayLessons.length)}
               meta={`${todayPending} 待办 · ${todayDone} 已完成`}
               icon={CalendarDays}
               href="/bookings"
             />
             <MetricCard
               label="待办课程"
-              value={loading ? "—" : String(pendingBookings.length)}
+              value={calendarLoading ? "—" : String(pendingBookings.length)}
               meta="当前仍未完成"
               icon={Clock3}
               href="/bookings"
@@ -524,7 +553,7 @@ export default function Home() {
 
           <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
             <div className="min-w-0">
-              {loading ? (
+              {calendarLoading ? (
                 <div className="flex h-[410px] items-center justify-center rounded-xl border border-slate-200 bg-white">
                   <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
                 </div>
@@ -549,7 +578,7 @@ export default function Home() {
                   </Link>
                 </div>
 
-                {loading ? (
+                {calendarLoading ? (
                   <div className="flex h-32 items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
                   </div>
@@ -650,7 +679,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              {!driving && !loading && stats.lowBalanceStudents?.length > 0 ? (
+              {!loading && stats.lowBalanceStudents?.length > 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-white p-3.5">
                   <div className="mb-2 flex items-center justify-between">
                     <h2 className="text-xs font-bold text-slate-950">课时提醒</h2>
