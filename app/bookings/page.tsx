@@ -24,7 +24,7 @@ export default async function BookingsPage() {
       .select(`
         id, student_id, start_time, end_time, duration, status, location,
         notes, subject, teacher, actual_rate, metadata, business_unit_id,
-        student:students ( id, name, teacher, subject, hourly_rate, student_code, currency )
+        student:students ( id, name, teacher, subject, hourly_rate, student_code, currency, payment_type, income_source )
       `)
       .order("start_time", { ascending: true })
       .range(from, from + BOOKINGS_PAGE_SIZE - 1);
