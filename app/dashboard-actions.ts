@@ -111,22 +111,18 @@ export async function getDashboardStats(businessId: string) {
   let cashIncomeRmb = 0;
   let cashExpenseRmb = 0;
 
-  // CuS: 现金收入来自充值/实际收款流水。
-  // Sine: 一单一结，完成课程本身就是现金收入；自动生成的 Tuition 流水不再重复累计。
-  // 其他手工录入的 Sine 收入仍计入现金收入。
+  // 现金口径统一：只认 transactions。
+  // Sine 完成课程时会生成 Tuition income transaction；
+  // CuS 充值时生成 income transaction。bookings 只用于 Realized，不再额外叠加现金收入。
   for (const tx of transactionsRes.data || []) {
     const amount = Number(tx.amount || 0);
     const currency = normalizeCurrency(tx.currency);
-    const isDrivingTuition =
-      tx.business_unit_id === "sine" &&
-      tx.type === "income" &&
-      String(tx.category || "").toLowerCase() === "tuition";
 
     if (currency === "RMB") {
-      if (tx.type === "income" && !isDrivingTuition) cashIncomeRmb += amount;
+      if (tx.type === "income") cashIncomeRmb += amount;
       else if (tx.type === "expense") cashExpenseRmb += Math.abs(amount);
     } else {
-      if (tx.type === "income" && !isDrivingTuition) cashIncome += amount;
+      if (tx.type === "income") cashIncome += amount;
       else if (tx.type === "expense") cashExpense += Math.abs(amount);
     }
   }
@@ -142,10 +138,6 @@ export async function getDashboardStats(businessId: string) {
     if (currency === "RMB") realizedRevenueRmb += value;
     else realizedRevenue += value;
 
-    if (booking.business_unit_id === "sine") {
-      if (currency === "RMB") cashIncomeRmb += value;
-      else cashIncome += value;
-    }
   }
 
   const calendarBookings = calendarRes.data || [];
