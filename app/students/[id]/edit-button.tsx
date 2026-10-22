@@ -11,7 +11,7 @@ import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency"
 import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { PAYMENT_TYPE_OPTIONS } from "@/lib/student-payment";
+import { PAYMENT_TYPE_OPTIONS, normalizePaymentType } from "@/lib/student-payment";
 import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
 export default function EditStudentButton({ student }: { student: any }) {
@@ -130,8 +130,8 @@ export default function EditStudentButton({ student }: { student: any }) {
                </div>
              </div>
              <div className="space-y-2">
-               <Label>缴费类型</Label>
-               <Select value={data.payment_type || "monthly"} onValueChange={(val) => setData({ ...data, payment_type: val })}>
+               <Label>结算方式</Label>
+               <Select value={normalizePaymentType(data.payment_type)} onValueChange={(val) => setData({ ...data, payment_type: val, ...(val === "single" ? { targetBalance: 0 } : {}) })}>
                  <SelectTrigger><SelectValue /></SelectTrigger>
                  <SelectContent>
                    {PAYMENT_TYPE_OPTIONS.map((opt) => (
@@ -153,7 +153,7 @@ export default function EditStudentButton({ student }: { student: any }) {
                    ))}
                  </SelectContent>
                </Select>
-               <p className="text-[11px] text-slate-400">教培充值流水会自动继承该来源。</p>
+               <p className="text-[11px] text-slate-400">预充值和一课一结都会使用该账户作为默认实际收款账户。</p>
              </div>
              <div className="space-y-2">
                <Label>当前总课时</Label>
@@ -161,9 +161,10 @@ export default function EditStudentButton({ student }: { student: any }) {
                  <Input
                    type="number"
                    step="0.5"
-                   value={data.targetBalance}
+                   value={normalizePaymentType(data.payment_type) === "single" ? 0 : data.targetBalance}
                    onChange={(e) => setData({ ...data, targetBalance: e.target.value })}
-                   className="pr-8"
+                   disabled={normalizePaymentType(data.payment_type) === "single"}
+                   className="pr-8 disabled:bg-slate-100 disabled:text-slate-400"
                  />
                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
                </div>
