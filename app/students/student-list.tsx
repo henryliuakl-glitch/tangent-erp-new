@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PAYMENT_TYPE_OPTIONS, isPayAsYouGoDriving, isPaymentAlert } from "@/lib/student-payment";
+import { PAYMENT_TYPE_OPTIONS, isPayAsYouGo, isPaymentAlert, normalizePaymentType } from "@/lib/student-payment";
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import { isTodayInNZ, utcToNzTimeStr } from "@/lib/timezone";
@@ -193,10 +193,7 @@ export function StudentList({ students }: { students: any[] }) {
         .filter((b: any) => b.status === 'confirmed')
         .reduce((sum: number, b: any) => sum + Number(b.duration), 0);
       const unscheduledHours = Number((totalBalance - scheduledHours).toFixed(1));
-      const payAsYouGo = isPayAsYouGoDriving({
-        businessUnitId: student.business_unit_id ?? currentBusinessId,
-        level: student.level,
-      });
+      const payAsYouGo = isPayAsYouGo(student.payment_type);
       const paymentAlert = isPaymentAlert(
         totalBalance,
         student.payment_type,
@@ -272,7 +269,7 @@ export function StudentList({ students }: { students: any[] }) {
              </Link>
              )}
              <div className="flex items-center gap-1">
-                {!driving && (
+                {!payAsYouGo && (
                   <Button size="sm" variant="ghost" className="h-8 px-2 text-[10px] md:h-9 md:px-2.5 md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => {
                     setTopUpTarget(student);
                     setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
@@ -414,7 +411,7 @@ export function StudentList({ students }: { students: any[] }) {
               <div className="grid grid-cols-4 items-center gap-2 md:gap-4">
                 <Label className="text-right text-xs text-slate-500">缴费类型</Label>
                 <div className="col-span-3">
-                  <Select value={editingStudent.payment_type || "monthly"} onValueChange={(val) => setEditingStudent({ ...editingStudent, payment_type: val })}>
+                  <Select value={normalizePaymentType(editingStudent.payment_type)} onValueChange={(val) => setEditingStudent({ ...editingStudent, payment_type: val })}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {PAYMENT_TYPE_OPTIONS.map((opt) => (
