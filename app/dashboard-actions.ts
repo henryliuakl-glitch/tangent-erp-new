@@ -207,6 +207,42 @@ export async function getDashboardStats(businessId: string) {
 }
 
 /**
+ * 今日课程：只查新西兰今天这个自然日。
+ */
+export async function getDashboardToday(businessId: string) {
+  const resolvedBusinessId = businessId || "cus";
+  const supabase = await createClient();
+  const today = getTodayInNZ();
+  const tomorrow = addCalendarDaysInNZ(today, 1);
+
+  let query = supabase
+    .from("bookings")
+    .select("id,student_id,start_time,end_time,duration,status,location,subject,teacher,actual_rate,metadata,business_unit_id")
+    .neq("status", "cancelled")
+    .gte("start_time", nzStartOfDayUtc(today).toISOString())
+    .lt("start_time", nzStartOfDayUtc(tomorrow).toISOString())
+    .order("start_time", { ascending: true });
+
+  query = applyScope(query, resolvedBusinessId);
+
+  const { data: rows, error } = await query;
+  if (error) {
+    console.error("[getDashboardToday] bookings error:", error.message);
+    return { bookings: [], error: error.message };
+  }
+
+  const studentIds = Array.from(
+    new Set((rows || []).map((b: any) => b.student_id).filter(Boolean))
+  ) as string[];
+  const studentsResult = await loadStudentsByIds(supabase, studentIds);
+
+  return {
+    bookings: attachStudents(rows || [], studentsResult.students),
+    error: studentsResult.error,
+  };
+}
+
+/**
  * 仅加载一个日历月份实际需要的 6 周网格。
  */
 export async function getDashboardCalendarMonth(
