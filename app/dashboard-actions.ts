@@ -95,10 +95,11 @@ export async function getDashboardStats(businessId: string) {
       .from("students")
       .select("id,name,student_code,teacher,subject,balance,payment_type,currency,level,hourly_rate,business_unit_id");
 
-    studentsRes =
+    studentsRes = (
       resolvedBusinessId === "tangent"
         ? await fallbackBase.in("business_unit_id", unitFilter)
-        : await fallbackBase.eq("business_unit_id", resolvedBusinessId);
+        : await fallbackBase.eq("business_unit_id", resolvedBusinessId)
+    ) as any;
   }
 
   if (transactionsRes.error) {
