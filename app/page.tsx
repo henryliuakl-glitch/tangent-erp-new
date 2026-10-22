@@ -814,7 +814,7 @@ export default function Home() {
               <IncomeSourceSelect
                 value={completeIncomeSource}
                 onChange={setCompleteIncomeSource}
-                label="本次实际收入来源"
+                label="本次实际收款账户"
               />
               <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
                 一课一结：完成课程时同时记现金收入与消课产值，并同步更新 Family 实际账户。
