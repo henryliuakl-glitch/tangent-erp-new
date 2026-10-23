@@ -90,8 +90,12 @@ export async function getDashboardStats(businessId: string) {
   let accountsReceivable = 0;
   let accountsReceivableRmb = 0;
 
-  if (!rpc.error && rpc.data) {
-    const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+  const rpcRow = rpc.data ? (Array.isArray(rpc.data) ? rpc.data[0] : rpc.data) : null;
+  const rpcSupportsReceivables =
+    !!rpcRow && Object.prototype.hasOwnProperty.call(rpcRow, "receivable_nzd");
+
+  if (!rpc.error && rpcRow && rpcSupportsReceivables) {
+    const row = rpcRow;
     cashIncome = Number(row?.cash_income_nzd || 0);
     cashExpense = Number(row?.cash_expense_nzd || 0);
     cashIncomeRmb = Number(row?.cash_income_rmb || 0);
@@ -179,6 +183,7 @@ export async function getDashboardStats(businessId: string) {
 
   const lowBalanceStudents = (lowBalanceRes.data || [])
     .filter((student: any) =>
+      isPrepaid(student.payment_type) &&
       isPaymentAlert(
         Number(student.balance || 0),
         student.payment_type,
@@ -213,7 +218,7 @@ export async function getDashboardStats(businessId: string) {
     lowBalanceStudents,
     monthRange: { startIso, endIso, startDate, nextMonthStart },
     businessUnitId: resolvedBusinessId,
-    source: !rpc.error ? "rpc" : "fallback",
+    source: !rpc.error && rpcSupportsReceivables ? "rpc" : "fallback",
   };
 }
 
