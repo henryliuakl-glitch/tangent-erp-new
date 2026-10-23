@@ -27,6 +27,37 @@ import {
 
 type WeeklySession = { dayOfWeek: string; time: string };
 
+async function loadBookingStudent(supabase: any, studentId: string | null | undefined) {
+  if (!studentId) return { student: null as any, error: null as string | null };
+
+  let primary = await supabase
+    .from("students")
+    .select("id,name,student_code,hourly_rate,currency,level,payment_type,income_source")
+    .eq("id", studentId)
+    .maybeSingle();
+
+  if (
+    primary.error &&
+    /income_source|schema cache|column/i.test(primary.error.message || "")
+  ) {
+    const fallback = await supabase
+      .from("students")
+      .select("id,name,student_code,hourly_rate,currency,level,payment_type")
+      .eq("id", studentId)
+      .maybeSingle();
+
+    return {
+      student: fallback.data ? { ...fallback.data, income_source: null } : null,
+      error: fallback.error?.message || null,
+    };
+  }
+
+  return {
+    student: primary.data || null,
+    error: primary.error?.message || null,
+  };
+}
+
 /** 循环排课：新西兰本地时间 → UTC ISO 会话列表 */
 function buildBookingSessions(params: {
   dateStr: string;
@@ -338,18 +369,24 @@ export async function completeBooking(
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select(`
-      id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata,
-      student:students ( id, name, student_code, hourly_rate, currency, level, payment_type, income_source )
-    `)
+    .select("id,status,student_id,duration,actual_rate,business_unit_id,start_time,metadata")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (fetchError || !booking) return { error: "Booking not found" };
+  if (fetchError) {
+    console.error("[completeBooking] booking lookup failed:", fetchError.message);
+    return { error: `课程读取失败：${fetchError.message}` };
+  }
+  if (!booking) return { error: "Booking not found" };
   if (booking.status === "completed") return { success: true };
   if (booking.status !== "confirmed") return { error: "只有待办课程可以完成" };
 
-  const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+  const studentResult = await loadBookingStudent(supabase, booking.student_id || studentId);
+  if (studentResult.error) {
+    console.error("[completeBooking] student lookup failed:", studentResult.error);
+    return { error: `学员读取失败：${studentResult.error}` };
+  }
+  const student = studentResult.student;
   const payAsYouGo = isPayAsYouGo(student?.payment_type);
   const resolvedIncomeSource = isIncomeSource(incomeSource)
     ? incomeSource
@@ -503,18 +540,23 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
     if (claimError) return { error: claimError.message };
     if (!claimed) continue;
 
-    const { data: full } = await supabase
+    const { data: full, error: fullError } = await supabase
       .from("bookings")
-      .select("id, business_unit_id, student_id, duration, metadata, student:students(payment_type)")
+      .select("id,business_unit_id,student_id,duration,metadata")
       .eq("id", b.id)
-      .single();
+      .maybeSingle();
 
-    if (!full) {
+    if (fullError || !full) {
       await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
-      return { error: "取消失败：课程详情读取失败" };
+      return { error: `取消失败：课程详情读取失败${fullError ? `：${fullError.message}` : ""}` };
     }
 
-    const fullStudent = Array.isArray((full as any).student) ? (full as any).student[0] : (full as any).student;
+    const fullStudentResult = await loadBookingStudent(supabase, full.student_id);
+    if (fullStudentResult.error) {
+      await supabase.from("bookings").update({ status: "completed" }).eq("id", b.id).eq("status", "cancelled");
+      return { error: `取消失败：学员详情读取失败：${fullStudentResult.error}` };
+    }
+    const fullStudent = fullStudentResult.student;
     const completedAsPayg =
       (full.metadata as Record<string, unknown> | null)?.settlementMode === "single" ||
       (!(full.metadata as Record<string, unknown> | null)?.settlementMode && isPayAsYouGo(fullStudent?.payment_type));
@@ -554,11 +596,21 @@ export async function deleteBooking(id: string) {
 
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, status, student_id, duration, actual_rate, business_unit_id, start_time, metadata, student:students(name, student_code, hourly_rate, currency, payment_type, income_source)")
+    .select("id,status,student_id,duration,actual_rate,business_unit_id,start_time,metadata")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (fetchError || !booking) return { error: "Booking not found" };
+  if (fetchError) {
+    console.error("[deleteBooking] booking lookup failed:", fetchError.message);
+    return { error: `课程读取失败：${fetchError.message}` };
+  }
+  if (!booking) return { error: "Booking not found" };
+
+  const bookingStudentResult = await loadBookingStudent(supabase, booking.student_id);
+  if (bookingStudentResult.error) {
+    return { error: `学员读取失败：${bookingStudentResult.error}` };
+  }
+  const bookingStudent = bookingStudentResult.student;
 
   // 已完成课程先抢占成 cancelled，再恢复课时/删除收入，防止并发重复回滚。
   if (booking.status === "completed") {
@@ -573,7 +625,6 @@ export async function deleteBooking(id: string) {
     if (claimError) return { error: claimError.message };
     if (!claimed) return { error: "课程状态已被其他操作修改，请刷新后重试" };
 
-    const bookingStudent = Array.isArray(booking.student) ? booking.student[0] : booking.student;
     const completedAsPayg =
       (booking.metadata as Record<string, unknown> | null)?.settlementMode === "single" ||
       (!(booking.metadata as Record<string, unknown> | null)?.settlementMode && isPayAsYouGo(bookingStudent?.payment_type));
@@ -605,7 +656,7 @@ export async function deleteBooking(id: string) {
     if (deleteError) {
       // 删除失败：尽力恢复到“已完成 + 已扣课时/已记收入”的原状态。
       if (completedAsPayg) {
-        const student = Array.isArray(booking.student) ? booking.student[0] : booking.student;
+        const student = bookingStudent;
         await recordPayAsYouGoLessonTuition(
           supabase,
           {
