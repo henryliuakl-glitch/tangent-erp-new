@@ -128,6 +128,8 @@ export default function Home() {
     realizedRevenueRmb: 0,
     unearnedRevenue: 0,
     unearnedRevenueRmb: 0,
+    accountsReceivable: 0,
+    accountsReceivableRmb: 0,
     lowBalanceStudents: [],
   });
 
@@ -525,7 +527,7 @@ export default function Home() {
             </div>
           </header>
 
-          <section className="grid grid-cols-2 gap-2 lg:grid-cols-6">
+          <section className="grid grid-cols-2 gap-2 lg:grid-cols-7">
             <MetricCard
               label="今日课程"
               value={todayLoading ? "—" : String(todayLessons.length)}
@@ -566,8 +568,23 @@ export default function Home() {
               }
               meta={`¥${Number(stats.unearnedRevenueRmb || 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
-              })} RMB · 仅预充值学员`}
+              })} RMB · 我们欠学生的课`}
               icon={BookOpen}
+              href="/students"
+            />
+            <MetricCard
+              label="应收课款"
+              value={
+                loading
+                  ? "—"
+                  : `${Number(stats.accountsReceivable || 0).toLocaleString(undefined, {
+                      maximumFractionDigits: 0,
+                    })}`
+              }
+              meta={`¥${Number(stats.accountsReceivableRmb || 0).toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })} RMB · 后付费学生欠款`}
+              icon={WalletCards}
               href="/students"
             />
             <MetricCard
@@ -581,7 +598,7 @@ export default function Home() {
               }
               meta={`¥${Number(stats.cashIncomeRmb || 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
-              })} RMB · 充值/一课一结`}
+              })} RMB · 预充值/后付结算/一课一结`}
               icon={WalletCards}
               href="/finance"
             />
