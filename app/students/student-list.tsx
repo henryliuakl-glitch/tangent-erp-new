@@ -284,9 +284,10 @@ export function StudentList({ students }: { students: any[] }) {
                </Link>
              )}
              <div className="flex items-center gap-1">
-                {!payAsYouGo && (
+                {!payAsYouGo && (!postpaid || totalBalance < 0) && (
                   <Button size="sm" variant="ghost" className="h-8 px-2 text-[10px] md:h-9 md:px-2.5 md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => {
                     setTopUpTarget(student);
+                    setTopUpAmount(postpaid ? String(Math.max(0.5, -totalBalance)) : "10");
                     setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
                     setTopUpIncomeSource(student.income_source || "");
                   }}><Coins className="h-4 w-4" /> {postpaid ? "结算" : "充值"}</Button>
