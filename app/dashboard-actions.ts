@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isPaymentAlert, isPrepaid } from "@/lib/student-payment";
+import { isPaymentAlert, isPostpaid, isPrepaid } from "@/lib/student-payment";
 import { emptyDualTotals, normalizeCurrency } from "@/lib/currency";
 import {
   addCalendarDaysInNZ,
@@ -87,6 +87,8 @@ export async function getDashboardStats(businessId: string) {
   let realizedRevenueRmb = 0;
   let unearnedRevenue = 0;
   let unearnedRevenueRmb = 0;
+  let accountsReceivable = 0;
+  let accountsReceivableRmb = 0;
 
   if (!rpc.error && rpc.data) {
     const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
@@ -98,6 +100,8 @@ export async function getDashboardStats(businessId: string) {
     realizedRevenueRmb = Number(row?.realized_rmb || 0);
     unearnedRevenue = Number(row?.unearned_nzd || 0);
     unearnedRevenueRmb = Number(row?.unearned_rmb || 0);
+    accountsReceivable = Number(row?.receivable_nzd || 0);
+    accountsReceivableRmb = Number(row?.receivable_rmb || 0);
   } else {
     let txQuery = supabase
       .from("transactions")
@@ -157,6 +161,11 @@ export async function getDashboardStats(businessId: string) {
         if (normalizeCurrency(student.currency) === "RMB") unearnedRevenueRmb += value;
         else unearnedRevenue += value;
       }
+      if (isPostpaid(student.payment_type) && balance < 0) {
+        const value = Math.abs(balance) * rate;
+        if (normalizeCurrency(student.currency) === "RMB") accountsReceivableRmb += value;
+        else accountsReceivable += value;
+      }
     }
   }
 
@@ -199,6 +208,8 @@ export async function getDashboardStats(businessId: string) {
     realizedRevenueRmb,
     unearnedRevenue,
     unearnedRevenueRmb,
+    accountsReceivable,
+    accountsReceivableRmb,
     lowBalanceStudents,
     monthRange: { startIso, endIso, startDate, nextMonthStart },
     businessUnitId: resolvedBusinessId,
