@@ -14,7 +14,7 @@ import { DEFAULT_CURRENCY, normalizeCurrency, type Currency } from "@/lib/curren
 import { insertTransaction } from "@/lib/transaction-write";
 import { isIncomeSource } from "@/lib/income-source";
 import { isOperationalBusinessId } from "@/lib/business";
-import { isPayAsYouGo, normalizePaymentType } from "@/lib/student-payment";
+import { isPayAsYouGo, isPostpaid, isPrepaid, normalizePaymentType } from "@/lib/student-payment";
 
 
 
@@ -54,8 +54,8 @@ export async function createStudent(prevState: any, formData: FormData) {
   if (!Number.isFinite(initialBalance) || initialBalance < 0) {
     return { error: "初始课时必须是有效的非负数" };
   }
-  if (isPayAsYouGo(paymentType) && initialBalance > 0) {
-    return { error: "一课一结学员不使用预付课时余额；请将初始课时设为 0，或改为预充值" };
+  if (!isPrepaid(paymentType) && initialBalance > 0) {
+    return { error: `${paymentType === "postpaid" ? "后付费" : "一课一结"}学员初始课时必须为 0；只有预充值学员可以录入预付课时` };
   }
 
   const currency = normalizeCurrency(formData.get("currency") as string);
@@ -204,17 +204,23 @@ export async function updateStudent(id: string, data: {
 
 
   const currentBalance = Number(current.balance);
+  const currentPaymentType = normalizePaymentType(current.payment_type);
   const nextPaymentType =
     data.paymentType !== undefined
       ? normalizePaymentType(data.paymentType)
-      : normalizePaymentType(current.payment_type);
+      : currentPaymentType;
   const requestedBalance =
     data.targetBalance !== undefined && data.targetBalance !== null
       ? roundHours(Number(data.targetBalance))
       : roundHours(currentBalance);
 
-  if (isPayAsYouGo(nextPaymentType) && requestedBalance !== 0) {
-    return { error: "切换为一课一结前，请先将剩余预付课时处理到 0；系统不会自动抹掉预收课时" };
+  if (nextPaymentType !== currentPaymentType && requestedBalance !== 0) {
+    return {
+      error: "切换结算方式前，请先把当前课时余额/欠课处理到 0；系统不会自动把预收课时与应收欠款互相转换",
+    };
+  }
+  if ((isPayAsYouGo(nextPaymentType) || isPostpaid(nextPaymentType)) && requestedBalance > 0) {
+    return { error: "只有预充值学员可以保留正的预付课时余额" };
   }
 
 
@@ -387,7 +393,14 @@ export async function topUpStudent(
   if (fetchError) return { error: `读取学员失败：${fetchError.message}` };
   if (!student) return { error: "找不到学员" };
   if (isPayAsYouGo(student.payment_type)) {
-    return { error: "该学员当前是一课一结；如需购买课时包，请先把结算方式改为预充值" };
+    return { error: "该学员当前是一课一结，不使用课时余额结算" };
+  }
+  if (isPostpaid(student.payment_type)) {
+    const debtHours = Math.max(0, -Number(student.balance || 0));
+    if (debtHours <= 0) return { error: "该后付费学员当前没有待结算课时" };
+    if (hoursToAdd > debtHours) {
+      return { error: `后付费结算不能超过当前欠款课时 ${debtHours}h；如需预存课时，请先结清后切换为预充值` };
+    }
   }
 
   const resolvedIncomeSource = isIncomeSource(incomeSource)
@@ -396,7 +409,7 @@ export async function topUpStudent(
       ? student.income_source
       : null;
   if (!resolvedIncomeSource) {
-    return { error: "预充值必须选择实际到账 Family 账户" };
+    return { error: "实际付款入账必须选择 Family 到账账户" };
   }
 
   const txCurrency = normalizeCurrency(currency ?? student.currency ?? DEFAULT_CURRENCY);
@@ -413,7 +426,9 @@ export async function topUpStudent(
 
     const incomeAmount = hoursToAdd * (student.hourly_rate || 70);
 
-    const desc = `学员充值: [${student.student_code || '无学号'}] ${student.name} (+${hoursToAdd}课时)`;
+    const desc = isPostpaid(student.payment_type)
+      ? `后付费结算: [${student.student_code || '无学号'}] ${student.name} (+${hoursToAdd}课时)`
+      : `学员充值: [${student.student_code || '无学号'}] ${student.name} (+${hoursToAdd}课时)`;
 
     const txRes = await insertTransaction(supabase, {
       type: "income",
