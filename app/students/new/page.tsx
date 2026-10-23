@@ -219,9 +219,9 @@ export default function NewStudentPage() {
                       <Input 
                         name="balance" 
                         type="number" 
-                        value={paymentType === "single" ? "0" : balance}
+                        value={paymentType === "single" || paymentType === "postpaid" ? "0" : balance}
                         onChange={(e) => setBalance(e.target.value)}
-                        disabled={paymentType === "single"}
+                        disabled={paymentType === "single" || paymentType === "postpaid"}
                         className="h-10 md:h-11 pr-10 rounded-xl border-slate-200 bg-white disabled:bg-slate-100 disabled:text-slate-400" 
                         placeholder="0"
                       />
@@ -234,7 +234,7 @@ export default function NewStudentPage() {
                       value={paymentType}
                       onValueChange={(value) => {
                         setPaymentType(value);
-                        if (value === "single") setBalance("0");
+                        if (value === "single" || value === "postpaid") setBalance("0");
                       }}
                     >
                       <SelectTrigger className="h-10 md:h-11 rounded-xl border-slate-200 bg-white">
@@ -262,7 +262,9 @@ export default function NewStudentPage() {
                     <p className="mt-1 text-[10px] text-slate-400">
                       {paymentType === "single"
                         ? "一课一结完成课程时会默认带入该账户，并可按本次实际收款修改。"
-                        : "预充值时会默认带入该账户，并可按本次实际付款方式修改。"}
+                        : paymentType === "postpaid"
+                          ? "后付费结算时会默认带入该账户；上课本身不会产生现金收入。"
+                          : "预充值时会默认带入该账户，并可按本次实际付款方式修改。"}
                     </p>
                   </div>
                </div>
