@@ -11,15 +11,20 @@ import { CreditCard, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CURRENCY_OPTIONS, type Currency } from "@/lib/currency";
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
+import { isPostpaid } from "@/lib/student-payment";
 
 export default function TopUpButton({
   studentId,
   defaultCurrency = "NZD",
   defaultIncomeSource = "",
+  paymentType = "monthly",
+  currentBalance = 0,
 }: {
   studentId: string;
   defaultCurrency?: string;
   defaultIncomeSource?: string;
+  paymentType?: string;
+  currentBalance?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -27,6 +32,8 @@ export default function TopUpButton({
   const [loading, setLoading] = useState(false);
   const [incomeSource, setIncomeSource] = useState(defaultIncomeSource);
   const router = useRouter();
+  const postpaid = isPostpaid(paymentType);
+  const debtHours = Math.max(0, -Number(currentBalance || 0));
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
@@ -49,7 +56,7 @@ export default function TopUpButton({
     setLoading(false);
 
     if (res?.error) {
-      alert("充值失败: " + res.error);
+      alert((postpaid ? "结算失败: " : "充值失败: ") + res.error);
     } else {
       setOpen(false);
       setAmount("");
@@ -63,23 +70,23 @@ export default function TopUpButton({
       <DialogTrigger asChild>
         <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm">
           <CreditCard className="h-4 w-4" />
-          充值课时 (Top Up)
+          {postpaid ? "结算欠款 (Settle)" : "充值课时 (Top Up)"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-indigo-700">
-            <Plus className="h-5 w-5" /> 增加课时余额
+            <Plus className="h-5 w-5" /> {postpaid ? "结算后付费课时" : "增加课时余额"}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">充值数量 (Hours to add)</Label>
+            <Label htmlFor="amount">{postpaid ? "结算课时" : "充值数量"} (Hours)</Label>
             <div className="relative">
               <Input
                 id="amount"
                 type="number"
-                placeholder="例如: 10"
+                placeholder={postpaid ? `最多 ${debtHours}h` : "例如: 10"}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="h-12 text-lg font-bold pr-12"
@@ -100,7 +107,9 @@ export default function TopUpButton({
               </SelectContent>
             </Select>
             <p className="text-[10px] text-slate-500">
-              课时余额与币种无关；币种仅决定对应财务流水进入 NZD 或 RMB 轨道。
+              {postpaid
+                ? `当前待结算 ${debtHours}h；确认后减少应收课款，并产生真实现金收入。`
+                : "课时余额与币种无关；币种仅决定对应财务流水进入 NZD 或 RMB 轨道。"}
             </p>
           </div>
           <IncomeSourceSelect
@@ -113,7 +122,7 @@ export default function TopUpButton({
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
           <Button onClick={handleTopUp} disabled={loading || !amount || !incomeSource} className="bg-indigo-600 hover:bg-indigo-700">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "确认充值"}
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : postpaid ? "确认结算并入账" : "确认充值"}
           </Button>
         </DialogFooter>
       </DialogContent>
