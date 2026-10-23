@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PAYMENT_TYPE_OPTIONS, isPayAsYouGo, isPaymentAlert, normalizePaymentType } from "@/lib/student-payment";
+import { PAYMENT_TYPE_OPTIONS, getPaymentTypeLabel, isPayAsYouGo, isPostpaid, isPaymentAlert, normalizePaymentType } from "@/lib/student-payment";
 import { CURRENCY_OPTIONS, currencySymbol, type Currency } from "@/lib/currency";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import { isTodayInNZ, utcToNzTimeStr } from "@/lib/timezone";
@@ -101,7 +101,7 @@ export function StudentList({ students }: { students: any[] }) {
 
     list.forEach(student => {
       let isActive = false;
-      if (Number(student.balance) > 0) isActive = true;
+      if (Number(student.balance) !== 0) isActive = true;
       else if (new Date(student.created_at) > fourteenDaysAgo) isActive = true;
       else if (student.bookings?.some((b: any) => b.start_time && new Date(b.start_time) > fourteenDaysAgo)) isActive = true;
       
@@ -168,7 +168,11 @@ export function StudentList({ students }: { students: any[] }) {
     setLoadingId(null);
     if (res?.error) toast.error(res.error);
     else {
-      toast.success(`充值成功！当前余额: ${Number(topUpTarget.balance) + amount}`);
+      toast.success(
+        isPostpaid(topUpTarget.payment_type)
+          ? `结算成功！剩余欠款课时: ${Math.max(0, -(Number(topUpTarget.balance) + amount))}h`
+          : `充值成功！当前余额: ${Number(topUpTarget.balance) + amount}h`
+      );
       setTopUpTarget(null);
       setTopUpCurrency("NZD");
       setTopUpIncomeSource("");
@@ -194,6 +198,7 @@ export function StudentList({ students }: { students: any[] }) {
         .reduce((sum: number, b: any) => sum + Number(b.duration), 0);
       const unscheduledHours = Number((totalBalance - scheduledHours).toFixed(1));
       const payAsYouGo = isPayAsYouGo(student.payment_type);
+      const postpaid = isPostpaid(student.payment_type);
       const paymentAlert = isPaymentAlert(
         totalBalance,
         student.payment_type,
@@ -203,7 +208,7 @@ export function StudentList({ students }: { students: any[] }) {
         },
         scheduledHours
       );
-      const isOverScheduled = !payAsYouGo && unscheduledHours < 0;
+      const isOverScheduled = !payAsYouGo && !postpaid && unscheduledHours < 0;
       const nextBooking = bookings
         .filter((b: any) => b.status === "confirmed" && b.start_time)
         .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
@@ -232,7 +237,9 @@ export function StudentList({ students }: { students: any[] }) {
                 )}
                 {student.student_code && <Badge variant="outline" className="text-[10px] h-4 px-1.5 rounded-sm border-slate-200 text-slate-500 font-mono">{student.student_code}</Badge>}
                 {paymentAlert && (
-                  <Badge variant="destructive" className="bg-rose-100 text-rose-600 border-none px-1.5 py-0 h-4 text-[10px] shadow-none">欠费</Badge>
+                  <Badge variant="destructive" className="bg-rose-100 text-rose-600 border-none px-1.5 py-0 h-4 text-[10px] shadow-none">
+                    {postpaid ? "待结算" : "欠费"}
+                  </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2 text-[10px] md:gap-3 md:text-xs text-slate-500 truncate">
@@ -243,7 +250,7 @@ export function StudentList({ students }: { students: any[] }) {
                    {currencySymbol(student.currency)}{student.hourly_rate || 0}/h
                  </span>
                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
-                   {payAsYouGo ? "一课一结" : "预充值"}
+                   {getPaymentTypeLabel(student.payment_type)}
                  </span>
               </div>
             </div>
@@ -253,6 +260,13 @@ export function StudentList({ students }: { students: any[] }) {
                <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[4.5rem]">
                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">下次课</span>
                  <span className={`text-sm font-black tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>{nextLabel}</span>
+               </Link>
+             ) : postpaid ? (
+               <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[5rem]">
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">欠款课时</span>
+                 <span className={`text-sm md:text-base font-black ${totalBalance < 0 ? "text-rose-600" : "text-slate-400"}`}>
+                   {Math.max(0, -totalBalance)}<span className="ml-0.5 text-[10px] font-bold">h</span>
+                 </span>
                </Link>
              ) : (
                <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-4">
@@ -275,7 +289,7 @@ export function StudentList({ students }: { students: any[] }) {
                     setTopUpTarget(student);
                     setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
                     setTopUpIncomeSource(student.income_source || "");
-                  }}><Coins className="h-4 w-4" /> 充值</Button>
+                  }}><Coins className="h-4 w-4" /> {postpaid ? "结算" : "充值"}</Button>
                 )}
                 <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-slate-400 hover:text-slate-700"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl">
@@ -448,7 +462,14 @@ export function StudentList({ students }: { students: any[] }) {
 
       <Dialog open={!!topUpTarget} onOpenChange={(open) => { if (!open) { setTopUpTarget(null); setTopUpCurrency("NZD"); setTopUpIncomeSource(""); } }}>
         <DialogContent className="sm:max-w-[325px] rounded-3xl">
-          <DialogHeader className="text-center"><DialogTitle className="text-xl">课时充值</DialogTitle><p className="text-xs text-slate-500">为 {topUpTarget?.name} 增加课时</p></DialogHeader>
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-xl">{topUpTarget && isPostpaid(topUpTarget.payment_type) ? "后付费结算" : "课时充值"}</DialogTitle>
+            <p className="text-xs text-slate-500">
+              {topUpTarget && isPostpaid(topUpTarget.payment_type)
+                ? `为 ${topUpTarget?.name} 结算已上课程`
+                : `为 ${topUpTarget?.name} 增加预付课时`}
+            </p>
+          </DialogHeader>
           <div className="py-6 flex flex-col items-center gap-2 md:gap-4">
              <div className="flex items-center justify-center gap-2">
                 <Button variant="outline" size="icon" className="rounded-full h-10 w-10" onClick={() => setTopUpAmount(String(Math.max(0.5, Number((Number(topUpAmount) - 0.5).toFixed(1)))))}>-</Button>
@@ -479,7 +500,7 @@ export function StudentList({ students }: { students: any[] }) {
                 {[5, 10, 20].map(amt => (<button key={amt} onClick={() => setTopUpAmount(String(amt))} className="bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 py-2 rounded-xl text-xs font-bold transition-colors">+{amt}</button>))}
              </div>
           </div>
-          <DialogFooter><Button onClick={handleTopUp} disabled={!!loadingId} className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-12 font-bold shadow-lg shadow-emerald-200">{loadingId ? <Loader2 className="animate-spin" /> : "确认充值"}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleTopUp} disabled={!!loadingId} className="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl h-12 font-bold shadow-lg shadow-emerald-200">{loadingId ? <Loader2 className="animate-spin" /> : topUpTarget && isPostpaid(topUpTarget.payment_type) ? "确认结算并入账" : "确认充值"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
