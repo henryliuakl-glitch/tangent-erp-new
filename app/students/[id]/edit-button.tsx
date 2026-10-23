@@ -148,7 +148,7 @@ export default function EditStudentButton({ student }: { student: any }) {
                  label="默认实际收款账户"
                  placeholder="选择该学员通常付款到哪里"
                />
-               <p className="text-[11px] text-slate-400">预充值和一课一结都会使用该账户作为默认实际收款账户。</p>
+               <p className="text-[11px] text-slate-400">预充值、后付费结算和一课一结都会使用该账户作为默认实际收款账户。</p>
              </div>
              <div className="space-y-2">
                <Label>当前总课时</Label>
@@ -164,7 +164,7 @@ export default function EditStudentButton({ student }: { student: any }) {
                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
                </div>
                <p className="text-[11px] text-slate-400 leading-snug">
-                 提示：手动修改总课时将由系统自动生成一笔无现金流的 [系统调账] 流水，以供财务审计。
+                 提示：正数代表预付课时，负数代表后付费欠课。正常情况下应由充值/结算与消课自动形成；手工修改只用于纠错。
                </p>
              </div>
           </div>
