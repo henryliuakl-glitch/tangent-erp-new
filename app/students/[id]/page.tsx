@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import TopUpButton from "./top-up-button"; 
 import EditStudentButton from "./edit-button";
 import { getStudentHistory } from "../actions";
-import { isPaymentAlert, getPaymentTypeLabel, isPayAsYouGo } from "@/lib/student-payment";
+import { isPaymentAlert, getPaymentTypeLabel, isPayAsYouGo, isPostpaid } from "@/lib/student-payment";
 import { currencySymbol, formatMoney } from "@/lib/currency";
 import { MobileDock } from "@/components/MobileDock";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -41,6 +41,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   });
   const driving = isDrivingSchoolBusiness(student.business_unit_id);
   const payAsYouGo = isPayAsYouGo(student.payment_type);
+  const postpaid = isPostpaid(student.payment_type);
   const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${student.name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
 
   return (
@@ -95,6 +96,20 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                       <span className="text-xl font-black text-slate-800">一课一结</span>
                     </div>
                  </div>
+               ) : postpaid ? (
+                 <div className="p-4 rounded-xl md:rounded-2xl border border-rose-100 bg-rose-50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-rose-500" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-rose-400">待结算课时</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-rose-600">{Math.max(0, -Number(student.balance))}</span>
+                      <span className="text-sm font-bold text-rose-400">hrs</span>
+                    </div>
+                    <p className="mt-1 text-[10px] font-semibold text-rose-400">
+                      应收 {formatMoney(Math.max(0, -Number(student.balance)) * Number(student.hourly_rate || 0), student.currency || "NZD")}
+                    </p>
+                 </div>
                ) : (
                  <div className={`p-4 rounded-xl md:rounded-2xl border ${paymentAlert ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -132,7 +147,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
               <p className="mt-1 text-[10px] text-slate-400">
                 {payAsYouGo
                   ? "一课一结完成课程时默认带入；仍可按本次实际收款修改。"
-                  : "预充值时默认带入；仍可按本次实际收款修改。"}
+                  : postpaid
+                    ? "后付费结算时默认带入；真正收到钱时才形成现金收入。"
+                    : "预充值时默认带入；仍可按本次实际收款修改。"}
               </p>
             </div>
             {!payAsYouGo ? (
@@ -141,6 +158,8 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                   studentId={student.id}
                   defaultCurrency={student.currency || "NZD"}
                   defaultIncomeSource={student.income_source || ""}
+                  paymentType={student.payment_type}
+                  currentBalance={Number(student.balance || 0)}
                 />
               </div>
             ) : null}
