@@ -152,7 +152,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                     : "预充值时默认带入；仍可按本次实际收款修改。"}
               </p>
             </div>
-            {!payAsYouGo ? (
+            {!payAsYouGo && (!postpaid || Number(student.balance) < 0) ? (
               <div className="mt-4">
                 <TopUpButton
                   studentId={student.id}
