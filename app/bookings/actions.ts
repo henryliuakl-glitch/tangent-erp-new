@@ -9,7 +9,7 @@ import {
   recordPayAsYouGoLessonTuition,
   reversePayAsYouGoLessonTuition,
 } from "@/lib/driving-settlement";
-import { isPayAsYouGo } from "@/lib/student-payment";
+import { isPayAsYouGo, isPostpaid } from "@/lib/student-payment";
 import {
   addCalendarDaysInNZ,
   addCalendarMonthsInNZ,
@@ -357,7 +357,8 @@ export async function updateBooking(
 // 3. 完成预约
 // 结算方式属于学员，不属于业务实体：
 // 一课一结：完成时记 Tuition 现金收入，不扣预付课时。
-// 预充值：完成时只扣课时；现金已在充值时入账。
+// 预充值：完成时扣预付课时；现金已在充值时入账。
+// 后付费：完成时形成负课时（应收），不记现金；实际结算时才记现金。
 export async function completeBooking(
   id: string,
   studentId: string,
@@ -476,7 +477,7 @@ export async function completeBooking(
       .update({
         metadata: {
           ...baseMetadata,
-          settlementMode: "prepaid",
+          settlementMode: isPostpaid(student?.payment_type) ? "postpaid" : "prepaid",
         },
       })
       .eq("id", id)
