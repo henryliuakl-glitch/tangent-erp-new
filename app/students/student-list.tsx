@@ -339,7 +339,7 @@ export function StudentList({ students }: { students: any[] }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>          </div>
+          </div>
         </div>
       );
     });
