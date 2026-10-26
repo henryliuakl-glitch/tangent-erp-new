@@ -90,11 +90,13 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
                  <div className="p-4 rounded-xl md:rounded-2xl border border-slate-100 bg-slate-50">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-slate-400" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">结算方式</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">剩余课时</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-black text-slate-800">一课一结</span>
+                      <span className="text-3xl font-black text-slate-800">{Number(student.balance || 0)}</span>
+                      <span className="text-sm font-bold text-slate-400">hrs</span>
                     </div>
+                    <p className="mt-1 text-[10px] font-semibold text-slate-400">一课一结</p>
                  </div>
                ) : postpaid ? (
                  <div className="p-4 rounded-xl md:rounded-2xl border border-rose-100 bg-rose-50">
