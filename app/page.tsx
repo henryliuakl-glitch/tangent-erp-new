@@ -730,26 +730,16 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div>
                 <Link
                   href={quickBookHref}
-                  className="flex h-10 items-center justify-between rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white hover:bg-slate-800"
+                  className="flex h-10 w-full items-center justify-between rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white hover:bg-slate-800"
                 >
                   <span className="flex items-center gap-1.5">
                     <Plus className="h-3.5 w-3.5" />
                     {quickBookLabel}
                   </span>
                   <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                </Link>
-                <Link
-                  href="/finance/add"
-                  className="flex h-10 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <WalletCards className="h-3.5 w-3.5 text-slate-400" />
-                    记一笔
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
                 </Link>
               </div>
 
