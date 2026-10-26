@@ -31,7 +31,6 @@ import {
 import { toast } from "sonner";
 import {
   createFamilyAccount,
-  createFamilyTransaction,
   createRecurringCashflow,
   deleteFamilyAccount,
   deleteRecurringCashflow,
@@ -102,7 +101,6 @@ export default function FamilyPage() {
   const [schemaError, setSchemaError] = useState("");
   const [displayCurrency, setDisplayCurrency] = useState<"NZD" | "RMB">("NZD");
   const [accountOpen, setAccountOpen] = useState(false);
-  const [txOpen, setTxOpen] = useState(false);
   const [forecastOpen, setForecastOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingBalance, setEditingBalance] = useState<{ id: string; value: string } | null>(null);
@@ -118,17 +116,6 @@ export default function FamilyPage() {
     includeInNetWorth: true,
     isBusinessAccount: false,
     notes: "",
-  });
-
-  const [txForm, setTxForm] = useState({
-    type: "expense",
-    date: new Date().toISOString().slice(0, 10),
-    accountId: "",
-    transferAccountId: "",
-    amount: "",
-    currency: "NZD",
-    category: "",
-    description: "",
   });
 
   const [forecastForm, setForecastForm] = useState({
@@ -298,18 +285,6 @@ export default function FamilyPage() {
     await load();
   };
 
-  const saveTx = async () => {
-    setSaving(true);
-    const fd = new FormData();
-    Object.entries(txForm).forEach(([k, v]) => fd.append(k, String(v)));
-    const res = await createFamilyTransaction(fd);
-    setSaving(false);
-    if (res.error) return toast.error(res.error);
-    toast.success("家庭流水已记录");
-    setTxOpen(false);
-    await load();
-  };
-
   const saveRecurring = async () => {
     setSaving(true);
     const fd = new FormData();
@@ -418,7 +393,7 @@ export default function FamilyPage() {
                 <WalletCards className="h-5 w-5 shrink-0 text-indigo-600" />
                 <h1 className="truncate text-xl font-black tracking-tight md:text-2xl">Family Treasury</h1>
               </div>
-              <p className="mt-1 text-xs text-slate-500">家庭资产、账户余额、内部现金流与未来存款预测</p>
+              <p className="mt-1 text-xs text-slate-500">家庭资产、账户余额与未来存款预测</p>
             </div>
 
             <div className="shrink-0 md:hidden">
@@ -719,12 +694,9 @@ export default function FamilyPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-black">Family Cashflow</h2>
-                  <p className="text-[10px] text-slate-400">内部家庭流水；Transfer 不计收入支出</p>
-                </div>
-                <Button onClick={() => setTxOpen(true)} className="h-8 rounded-lg bg-indigo-600 px-3 text-[10px] font-bold hover:bg-indigo-700">记一笔</Button>
+              <div className="mb-3">
+                <h2 className="text-sm font-black">Automatic Cashflow</h2>
+                <p className="text-[10px] text-slate-400">仅保留课程与业务自动产生的必要流水；日常家庭支出不再逐笔记录</p>
               </div>
 
               <div className="space-y-1">
@@ -771,30 +743,6 @@ export default function FamilyPage() {
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setAccountOpen(false)}>取消</Button><Button onClick={saveAccount} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}添加账户</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={txOpen} onOpenChange={setTxOpen}>
-        <DialogContent className="rounded-2xl sm:max-w-lg">
-          <DialogHeader><DialogTitle>家庭记一笔</DialogTitle></DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label>类型</Label><Select value={txForm.type} onValueChange={(v) => setTxForm((p) => ({ ...p, type: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="income">收入</SelectItem><SelectItem value="expense">支出</SelectItem><SelectItem value="transfer">账户转账</SelectItem><SelectItem value="adjustment">余额调整</SelectItem></SelectContent></Select></div>
-              <div className="space-y-1"><Label>日期</Label><Input type="date" value={txForm.date} onChange={(e) => setTxForm((p) => ({ ...p, date: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label>账户</Label><Select value={txForm.accountId} onValueChange={(v) => { const a=accounts.find((x)=>x.id===v); setTxForm((p) => ({ ...p, accountId: v, currency: a?.currency || p.currency })); }}><SelectTrigger><SelectValue placeholder="选择账户" /></SelectTrigger><SelectContent>{accounts.map((a)=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1"><Label>金额</Label><Input type="number" value={txForm.amount} onChange={(e) => setTxForm((p) => ({ ...p, amount: e.target.value }))} /></div>
-            </div>
-            {txForm.type === "transfer" ? (
-              <div className="space-y-1"><Label>转入账户</Label><Select value={txForm.transferAccountId} onValueChange={(v) => setTxForm((p) => ({ ...p, transferAccountId: v }))}><SelectTrigger><SelectValue placeholder="选择转入账户" /></SelectTrigger><SelectContent>{accounts.filter((a)=>a.currency===txForm.currency && a.id!==txForm.accountId).map((a)=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
-            ) : null}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label>分类</Label><Input value={txForm.category} onChange={(e) => setTxForm((p) => ({ ...p, category: e.target.value }))} placeholder="生活 / 房租 / 工资 / 经营…" /></div>
-              <div className="space-y-1"><Label>备注</Label><Input value={txForm.description} onChange={(e) => setTxForm((p) => ({ ...p, description: e.target.value }))} /></div>
-            </div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setTxOpen(false)}>取消</Button><Button onClick={saveTx} disabled={saving}>保存流水</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
