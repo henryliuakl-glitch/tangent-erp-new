@@ -255,53 +255,91 @@ export function StudentList({ students }: { students: any[] }) {
               </div>
             </div>
           </Link>
-          <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 border-t border-slate-100 md:border-t-0 pt-2 md:pt-0">
-             {payAsYouGo ? (
-               <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[4.5rem]">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span>
-                 <span className="text-sm md:text-base font-black text-slate-700">
-                   {totalBalance}<span className="ml-0.5 text-[10px] font-bold">h</span>
-                 </span>
-               </Link>
-             ) : postpaid ? (
-               <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[5rem]">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">欠款课时</span>
-                 <span className={`text-sm md:text-base font-black ${totalBalance < 0 ? "text-rose-600" : "text-slate-400"}`}>
-                   {Math.max(0, -totalBalance)}<span className="ml-0.5 text-[10px] font-bold">h</span>
-                 </span>
-               </Link>
-             ) : (
-               <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-4">
-                  <div className="flex flex-col items-end"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span><span className={`text-sm md:text-base font-black ${paymentAlert ? 'text-rose-600' : 'text-slate-700'}`}>{totalBalance}<span className="text-[10px] font-bold ml-0.5">h</span></span></div>
-                  <div className="h-8 w-px bg-slate-200"></div>
-                  <div className="flex flex-col items-end min-w-[3.5rem]">
-                     <span className="text-[10px] font-medium tracking-wider text-slate-400">已预排</span>
-                     <div className="text-xs font-medium text-slate-400 flex items-center gap-0.5 tabular-nums">
-                       {scheduledHours}<span className="text-[10px]">h</span>
-                       {isOverScheduled ? (
-                         <span title="已预排超过剩余课时" className="inline-flex"><Info className="h-3 w-3 ml-0.5 text-slate-300" /></span>
-                       ) : null}
-                     </div>
-                  </div>
-               </Link>
-             )}
-             <div className="flex items-center gap-1">
-                {!payAsYouGo && (!postpaid || totalBalance < 0) && (
-                  <Button size="sm" variant="ghost" className="h-8 px-2 text-[10px] md:h-9 md:px-2.5 md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg" onClick={() => {
+          <div className="grid grid-cols-4 items-center gap-2 md:gap-4 border-t border-slate-100 pt-2 md:border-t-0 md:pt-0 md:min-w-[520px]">
+            <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
+              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span>
+              <span className={`text-sm md:text-base font-black tabular-nums ${totalBalance < 0 ? "text-rose-600" : "text-slate-700"}`}>
+                {totalBalance}<span className="ml-0.5 text-[10px] font-bold">h</span>
+              </span>
+            </Link>
+
+            <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
+              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">已预排</span>
+              <div className="flex items-center gap-0.5 text-sm md:text-base font-black text-slate-600 tabular-nums">
+                {scheduledHours}<span className="text-[10px] font-bold">h</span>
+                {isOverScheduled ? (
+                  <span title="已预排超过剩余课时" className="inline-flex">
+                    <Info className="ml-0.5 h-3 w-3 text-slate-300" />
+                  </span>
+                ) : null}
+              </div>
+            </Link>
+
+            <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
+              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">下一节</span>
+              <span className={`max-w-full truncate text-[11px] md:text-xs font-bold tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>
+                {nextLabel}
+              </span>
+            </Link>
+
+            <div className="flex min-w-0 items-center justify-end gap-1">
+              {payAsYouGo ? (
+                <span className="inline-flex h-8 md:h-9 items-center rounded-lg bg-slate-100 px-2 md:px-2.5 text-[10px] md:text-xs font-bold text-slate-400 whitespace-nowrap">
+                  无需充值
+                </span>
+              ) : postpaid ? (
+                totalBalance < 0 ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 md:h-9 px-2 md:px-2.5 text-[10px] md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg whitespace-nowrap"
+                    onClick={() => {
+                      setTopUpTarget(student);
+                      setTopUpAmount(String(Math.max(0.5, -totalBalance)));
+                      setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
+                      setTopUpIncomeSource(student.income_source || "");
+                    }}
+                  >
+                    <Coins className="h-4 w-4" /> 结算
+                  </Button>
+                ) : (
+                  <span className="inline-flex h-8 md:h-9 items-center rounded-lg bg-slate-100 px-2 md:px-2.5 text-[10px] md:text-xs font-bold text-slate-400 whitespace-nowrap">
+                    无需结算
+                  </span>
+                )
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 md:h-9 px-2 md:px-2.5 text-[10px] md:text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 rounded-lg whitespace-nowrap"
+                  onClick={() => {
                     setTopUpTarget(student);
-                    setTopUpAmount(postpaid ? String(Math.max(0.5, -totalBalance)) : "10");
+                    setTopUpAmount("10");
                     setTopUpCurrency((student.currency === "RMB" ? "RMB" : "NZD") as Currency);
                     setTopUpIncomeSource(student.income_source || "");
-                  }}><Coins className="h-4 w-4" /> {postpaid ? "结算" : "充值"}</Button>
-                )}
-                <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8 md:h-9 md:w-9 rounded-lg text-slate-400 hover:text-slate-700"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem onClick={() => setEditingStudent({ ...student, targetBalance: Number(student.balance), currency: student.currency || "NZD" })}><Pencil className="mr-2 h-4 w-4" /> 编辑资料</DropdownMenuItem>
-                    <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => handleDelete(student.id)}><Trash2 className="mr-2 h-4 w-4" /> 删除学员</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-             </div>
-          </div>
+                  }}
+                >
+                  <Coins className="h-4 w-4" /> 充值
+                </Button>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 md:h-9 md:w-9 shrink-0 rounded-lg text-slate-400 hover:text-slate-700">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl">
+                  <DropdownMenuItem onClick={() => setEditingStudent({ ...student, targetBalance: Number(student.balance), currency: student.currency || "NZD" })}>
+                    <Pencil className="mr-2 h-4 w-4" /> 编辑资料
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-rose-600 focus:text-rose-600" onClick={() => handleDelete(student.id)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> 删除学员
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>          </div>
         </div>
       );
     });
