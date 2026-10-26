@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { Toaster } from "sonner";
-import { GlobalLedgerButton } from "@/components/GlobalLedgerButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -52,7 +51,6 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-50 overflow-x-hidden overscroll-none`}>
         <BusinessProvider>
           {children}
-          <GlobalLedgerButton />
           <Toaster position="top-center" />
         </BusinessProvider>
       </body>
