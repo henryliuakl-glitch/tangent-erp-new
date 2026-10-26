@@ -258,8 +258,10 @@ export function StudentList({ students }: { students: any[] }) {
           <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 border-t border-slate-100 md:border-t-0 pt-2 md:pt-0">
              {payAsYouGo ? (
                <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[4.5rem]">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">下次课</span>
-                 <span className={`text-sm font-black tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>{nextLabel}</span>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span>
+                 <span className="text-sm md:text-base font-black text-slate-700">
+                   {totalBalance}<span className="ml-0.5 text-[10px] font-bold">h</span>
+                 </span>
                </Link>
              ) : postpaid ? (
                <Link href={`/students/${student.id}`} className="flex flex-col items-end min-w-[5rem]">
