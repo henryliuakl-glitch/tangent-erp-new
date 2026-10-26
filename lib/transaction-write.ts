@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeCurrency, type Currency } from "@/lib/currency";
+import { convertCurrencyAmount } from "@/lib/fx";
 
 /** PostgREST / schema cache 报缺可选列 */
 export function isMissingOptionalColumnError(message: string | undefined | null): boolean {
@@ -91,19 +92,24 @@ async function applyFamilyMirror(
     .single();
 
   if (accountError || !account) return { error: accountError?.message || "Family 账户不存在" };
-  if (normalizeCurrency(account.currency) !== currency) {
-    return { error: `实际账户币种为 ${normalizeCurrency(account.currency)}，但流水币种为 ${currency}` };
-  }
+
+  const accountCurrency = normalizeCurrency(account.currency);
+  const fx = await convertCurrencyAmount(amount, currency, accountCurrency);
+  const mirrorAmount = fx.amount;
+  const fxNote =
+    accountCurrency === currency
+      ? ""
+      : ` [FX ${currency} ${amount.toFixed(2)} → ${accountCurrency} ${mirrorAmount.toFixed(2)} @ ${fx.rate.toFixed(4)}]`;
 
   const { data: mirror, error: mirrorError } = await supabase
     .from("family_transactions")
     .insert({
       transaction_date: String(row.transaction_date || new Date().toISOString()).slice(0, 10),
       type,
-      amount,
-      currency,
+      amount: mirrorAmount,
+      currency: accountCurrency,
       category: row.category ?? null,
-      description: row.description ?? null,
+      description: `${String(row.description || "")}${fxNote}`.trim() || null,
       account_id: accountId,
       source_business_unit_id: row.business_unit_id ?? null,
       source_transaction_id: transactionId,
@@ -119,7 +125,7 @@ async function applyFamilyMirror(
     return { error: mirrorError.message };
   }
 
-  const delta = type === "income" ? amount : -amount;
+  const delta = type === "income" ? mirrorAmount : -mirrorAmount;
   const { error: balanceError } = await supabase
     .from("family_accounts")
     .update({
@@ -245,11 +251,6 @@ export async function insertTransaction(
 
     if ((incomeSource || explicitFamilyAccountId) && !familyAccount) {
       return { error: "找不到对应的 Family 实际账户" };
-    }
-    if (familyAccount && normalizeCurrency(familyAccount.currency) !== currency) {
-      return {
-        error: `实际账户 ${familyAccount.name || ""} 为 ${normalizeCurrency(familyAccount.currency)}，不能记录 ${currency} 流水`,
-      };
     }
   }
 
@@ -393,9 +394,6 @@ export async function updateTransactionRow(
       const resolved = await resolveFamilyAccount(supabase, null, source);
       if (resolved.error) return { error: resolved.error };
       if (!resolved.account) return { error: "找不到新的 Family 实际账户" };
-      if (normalizeCurrency(resolved.account.currency) !== nextCurrency) {
-        return { error: "新的实际账户币种与流水币种不一致" };
-      }
       nextAccountId = resolved.account.id;
     } else if (nextType === "expense" && reverse.mirror?.account_id) {
       nextAccountId = reverse.mirror.account_id;
