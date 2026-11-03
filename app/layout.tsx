@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import type { Metadata, Viewport } from "next"; 
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -41,15 +42,16 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const businessId = (await cookies()).get("businessId")?.value || "cus";
   return (
     <html lang="en" className="h-full max-w-full overflow-x-hidden overscroll-none">
       <body className={`${inter.className} bg-slate-50 overflow-x-hidden overscroll-none`}>
-        <BusinessProvider>
+        <BusinessProvider initialBusinessId={businessId}>
           {children}
           <Toaster position="top-center" />
         </BusinessProvider>

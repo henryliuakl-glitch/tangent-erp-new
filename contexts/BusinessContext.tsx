@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type BusinessContextType = {
@@ -11,20 +11,11 @@ type BusinessContextType = {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-export function BusinessProvider({ children }: { children: React.ReactNode }) {
+export function BusinessProvider({ children, initialBusinessId = "cus" }: { children: React.ReactNode; initialBusinessId?: string }) {
   const router = useRouter();
   // 默认值，防止服务端渲染时为空
-  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>("cus");
-  const [currentLabel, setCurrentLabel] = useState("CuS Academy (教培)");
-
-  // 1. 初始化时读取 Cookie
-  useEffect(() => {
-    // 简单的读取 Cookie 逻辑
-    const match = document.cookie.match(new RegExp('(^| )businessId=([^;]+)'));
-    if (match) {
-      updateState(match[2]);
-    }
-  }, []);
+  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(initialBusinessId);
+  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[initialBusinessId] || initialBusinessId);
 
   // 2. 统一更新逻辑
   const updateState = (id: string) => {

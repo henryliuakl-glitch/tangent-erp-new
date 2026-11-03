@@ -14,7 +14,49 @@ export default async function BookingsPage() {
 
   // 日程页不再做 bookings -> students 的数据库嵌套 join。
   // 这样可以避免 students 可选字段（如 income_source）schema cache 不一致时整页直接变空。
-  // 先分页取 bookings，再一次性取当前实体 students，最后在服务端按 student_id 合并。
+  // 并行读取 bookings 和当前实体 students，最后在服务端按 student_id 合并。
+  const studentsPromise = (async () => {
+    let studentsQuery = supabase
+      .from("students")
+      .select("id,name,teacher,subject,hourly_rate,student_code,currency,payment_type,income_source,business_unit_id");
+
+    if (businessId === "tangent") {
+      studentsQuery = studentsQuery.in("business_unit_id", ["cus", "sine"]);
+    } else {
+      studentsQuery = studentsQuery.eq("business_unit_id", businessId);
+    }
+
+    let { data: students, error: studentsError } = await studentsQuery;
+
+    if (
+      studentsError &&
+      /income_source|schema cache|column/i.test(studentsError.message || "")
+    ) {
+      let fallbackQuery = supabase
+        .from("students")
+        .select("id,name,teacher,subject,hourly_rate,student_code,currency,payment_type,business_unit_id");
+
+      if (businessId === "tangent") {
+        fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
+      } else {
+        fallbackQuery = fallbackQuery.eq("business_unit_id", businessId);
+      }
+
+      const fallback = await fallbackQuery;
+      students = (fallback.data || []).map((student: any) => ({
+        ...student,
+        income_source: null,
+      })) as any;
+      studentsError = fallback.error;
+    }
+
+    if (studentsError) {
+      console.error("Failed to load booking students:", studentsError);
+    }
+
+    return students;
+  })();
+
   const rawBookings: any[] = [];
   let from = 0;
 
@@ -45,43 +87,8 @@ export default async function BookingsPage() {
     from += BOOKINGS_PAGE_SIZE;
   }
 
-  let studentsQuery = supabase
-    .from("students")
-    .select("id,name,teacher,subject,hourly_rate,student_code,currency,payment_type,income_source,business_unit_id");
 
-  if (businessId === "tangent") {
-    studentsQuery = studentsQuery.in("business_unit_id", ["cus", "sine"]);
-  } else {
-    studentsQuery = studentsQuery.eq("business_unit_id", businessId);
-  }
-
-  let { data: students, error: studentsError } = await studentsQuery;
-
-  if (
-    studentsError &&
-    /income_source|schema cache|column/i.test(studentsError.message || "")
-  ) {
-    let fallbackQuery = supabase
-      .from("students")
-      .select("id,name,teacher,subject,hourly_rate,student_code,currency,payment_type,business_unit_id");
-
-    if (businessId === "tangent") {
-      fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
-    } else {
-      fallbackQuery = fallbackQuery.eq("business_unit_id", businessId);
-    }
-
-    const fallback = await fallbackQuery;
-    students = (fallback.data || []).map((student: any) => ({
-      ...student,
-      income_source: null,
-    })) as any;
-    studentsError = fallback.error;
-  }
-
-  if (studentsError) {
-    console.error("Failed to load booking students:", studentsError);
-  }
+  const students = await studentsPromise;
 
   const studentsById = new Map(
     (students || []).map((student: any) => [student.id, student])

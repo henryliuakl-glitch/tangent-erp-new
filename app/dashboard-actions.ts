@@ -71,6 +71,15 @@ export async function getDashboardStats(businessId: string) {
   const supabase = await createClient();
   const { startIso, endIso, startDate, nextMonthStart } = getNzMonthBounds(0);
 
+  let lowBalanceQuery = supabase
+    .from("students")
+    .select("id,name,balance,hourly_rate,payment_type,currency,business_unit_id")
+    .lt("balance", 0);
+
+  lowBalanceQuery = applyScope(lowBalanceQuery, resolvedBusinessId);
+  const lowBalancePromise = Promise.resolve(lowBalanceQuery);
+
+
   const rpc = await supabase.rpc("get_dashboard_kpis", {
     p_business_id: resolvedBusinessId,
     p_start_date: startDate,
@@ -173,14 +182,7 @@ export async function getDashboardStats(businessId: string) {
     }
   }
 
-  let lowBalanceQuery = supabase
-    .from("students")
-    .select("id,name,balance,hourly_rate,payment_type,currency,business_unit_id")
-    .lt("balance", 0);
-
-  lowBalanceQuery = applyScope(lowBalanceQuery, resolvedBusinessId);
-  const lowBalanceRes = await lowBalanceQuery;
-
+  const lowBalanceRes = await lowBalancePromise;
   const lowBalanceStudents = (lowBalanceRes.data || [])
     .filter((student: any) =>
       isPrepaid(student.payment_type) &&

@@ -31,7 +31,7 @@ import {
   getDashboardStats,
   getDashboardToday,
   getDashboardUpcoming,
-} from "./dashboard-actions";
+} from "@/lib/dashboard-client";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
@@ -175,42 +175,26 @@ export default function Home() {
 
       const currentMonth = getTodayInNZ().slice(0, 7);
 
-      const [calendarResult, todayResult, upcomingResult] = await Promise.allSettled([
-        getDashboardCalendarMonth(currentBusinessId || "cus", currentMonth),
-        getDashboardToday(currentBusinessId || "cus"),
-        getDashboardUpcoming(currentBusinessId || "cus"),
+      await Promise.allSettled([
+        getDashboardCalendarMonth(currentBusinessId, currentMonth).then(result => {
+          if (!cancelled) setCalendarBookings(result.bookings || []);
+        }).catch(error => {
+          if (!cancelled) { setCalendarBookings([]); console.error(error); }
+        }).finally(() => { if (!cancelled) setCalendarLoading(false); }),
+        getDashboardToday(currentBusinessId).then(result => {
+          if (!cancelled) setTodayBookings(result.bookings || []);
+        }).catch(error => {
+          if (!cancelled) { setTodayBookings([]); console.error(error); }
+        }).finally(() => { if (!cancelled) setTodayLoading(false); }),
+        getDashboardUpcoming(currentBusinessId).then(result => {
+          if (!cancelled) {
+            setUpcomingBookings(result.bookings || []);
+            setPendingCount(Number(result.count || 0));
+          }
+        }).catch(error => {
+          if (!cancelled) { setUpcomingBookings([]); setPendingCount(0); console.error(error); }
+        }).finally(() => { if (!cancelled) setUpcomingLoading(false); }),
       ]);
-
-      if (cancelled) return;
-
-      if (calendarResult.status === "fulfilled") {
-        setCalendarBookings(calendarResult.value.bookings || []);
-        if (calendarResult.value.error) {
-          console.error("[dashboard] calendar partial error:", calendarResult.value.error);
-        }
-      } else {
-        console.error("[dashboard] calendar load failed:", calendarResult.reason);
-        setCalendarBookings([]);
-      }
-      setCalendarLoading(false);
-
-      if (todayResult.status === "fulfilled") {
-        setTodayBookings(todayResult.value.bookings || []);
-      } else {
-        console.error("[dashboard] today load failed:", todayResult.reason);
-        setTodayBookings([]);
-      }
-      setTodayLoading(false);
-
-      if (upcomingResult.status === "fulfilled") {
-        setUpcomingBookings(upcomingResult.value.bookings || []);
-        setPendingCount(Number(upcomingResult.value.count || 0));
-      } else {
-        console.error("[dashboard] upcoming load failed:", upcomingResult.reason);
-        setUpcomingBookings([]);
-        setPendingCount(0);
-      }
-      setUpcomingLoading(false);
     }
 
     void loadOperationalWidgets();
