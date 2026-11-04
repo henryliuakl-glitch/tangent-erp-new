@@ -182,7 +182,7 @@ export function StudentList({ students }: { students: any[] }) {
   const Avatar = ({ name }: { name: string }) => {
     const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
     return (
-      <div className="h-8 w-8 md:h-12 md:w-12 rounded-full border border-slate-100 shadow-sm overflow-hidden bg-slate-100 shrink-0">
+      <div className="h-8 w-8 md:h-9 md:w-9 rounded-full border border-slate-100 shadow-sm overflow-hidden bg-slate-100 shrink-0">
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       </div>
     );
@@ -217,12 +217,12 @@ export function StudentList({ students }: { students: any[] }) {
         : "无待办";
 
       return (
-        <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-slate-200 rounded-xl md:rounded-2xl p-2.5 md:p-4 hover:border-indigo-300 hover:shadow-md transition-all gap-2 md:gap-4">
-          <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+        <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-slate-200 rounded-xl p-2.5 md:px-3 md:py-2.5 hover:border-indigo-300 hover:shadow-sm transition-all gap-2 md:gap-3">
+          <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <Avatar name={student.name} />
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-0.5 md:mb-1">
-                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm md:text-sm md:text-base truncate">{student.name}</h3>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm md:text-[13px] truncate">{student.name}</h3>
                 {currentBusinessId === "tangent" && (
                   <Badge
                     variant="outline"
@@ -242,7 +242,7 @@ export function StudentList({ students }: { students: any[] }) {
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-[10px] md:gap-3 md:text-xs text-slate-500 truncate">
+              <div className="flex items-center gap-1.5 text-[10px] md:gap-2 md:text-[11px] text-slate-500 truncate">
                  {!driving && <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5 text-slate-400"/> {student.level || "-"}</span>}
                  <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5 text-slate-400"/> {student.subject || (driving ? "练车" : "-")}</span>
                  <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-slate-400"/> {student.teacher || "-"}</span>
@@ -255,17 +255,17 @@ export function StudentList({ students }: { students: any[] }) {
               </div>
             </div>
           </Link>
-          <div className="grid grid-cols-4 items-center gap-2 md:gap-4 border-t border-slate-100 pt-2 md:border-t-0 md:pt-0 md:min-w-[520px]">
+          <div className="grid grid-cols-4 items-center gap-2 md:gap-2.5 border-t border-slate-100 pt-2 md:border-t-0 md:pt-0 md:min-w-[470px]">
             <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">剩余课时</span>
-              <span className={`text-sm md:text-base font-black tabular-nums ${totalBalance < 0 ? "text-rose-600" : "text-slate-700"}`}>
+              <span className="text-[9px] md:text-[9px] font-bold text-slate-400 uppercase tracking-wide">剩余课时</span>
+              <span className={`text-sm md:text-sm font-black tabular-nums ${totalBalance < 0 ? "text-rose-600" : "text-slate-700"}`}>
                 {totalBalance}<span className="ml-0.5 text-[10px] font-bold">h</span>
               </span>
             </Link>
 
             <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">已预排</span>
-              <div className="flex items-center gap-0.5 text-sm md:text-base font-black text-slate-600 tabular-nums">
+              <span className="text-[9px] md:text-[9px] font-bold text-slate-400 uppercase tracking-wide">已预排</span>
+              <div className="flex items-center gap-0.5 text-sm md:text-sm font-black text-slate-600 tabular-nums">
                 {scheduledHours}<span className="text-[10px] font-bold">h</span>
                 {isOverScheduled ? (
                   <span title="已预排超过剩余课时" className="inline-flex">
@@ -276,8 +276,8 @@ export function StudentList({ students }: { students: any[] }) {
             </Link>
 
             <Link href={`/students/${student.id}`} className="flex min-w-0 flex-col items-end">
-              <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">下一节</span>
-              <span className={`max-w-full truncate text-[11px] md:text-xs font-bold tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>
+              <span className="text-[9px] md:text-[9px] font-bold text-slate-400 uppercase tracking-wide">下一节</span>
+              <span className={`max-w-full truncate text-[11px] md:text-[11px] font-bold tabular-nums ${nextBooking ? "text-slate-700" : "text-slate-300"}`}>
                 {nextLabel}
               </span>
             </Link>
@@ -348,16 +348,16 @@ export function StudentList({ students }: { students: any[] }) {
   return (
     <div className="space-y-2 md:space-y-4">
       {/* --- 顶栏：搜索、筛选与排序 --- */}
-      <div className="flex flex-col gap-2 md:gap-3">
-        <div className="relative">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
+        <div className="relative md:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input placeholder="搜索姓名或学号..." className="pl-9 h-10 md:h-12 rounded-lg md:rounded-xl bg-white border-slate-200 shadow-sm text-sm md:text-base" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Input placeholder="搜索姓名或学号..." className="pl-9 h-9 md:h-9 rounded-lg bg-white border-slate-200 shadow-sm text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         
-        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 md:flex-nowrap md:gap-1.5">
           {/* 老师筛选 */}
           <Select value={filterTeacher} onValueChange={setFilterTeacher}>
-            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[120px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-slate-500"><User className="h-3.5 w-3.5"/> <SelectValue placeholder="老师" /></div>
             </SelectTrigger>
             <SelectContent>
@@ -368,7 +368,7 @@ export function StudentList({ students }: { students: any[] }) {
 
           {/* 学科筛选 */}
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[120px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-slate-500"><BookOpen className="h-3.5 w-3.5"/> <SelectValue placeholder="学科" /></div>
             </SelectTrigger>
             <SelectContent>
@@ -379,7 +379,7 @@ export function StudentList({ students }: { students: any[] }) {
 
           {/* 排序字段 */}
           <Select value={sortKey} onValueChange={setSortKey}>
-            <SelectTrigger className="h-8 w-[122px] md:h-9 md:w-[130px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-8 w-[122px] md:h-9 md:w-[116px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-indigo-600"><SortAsc className="h-3.5 w-3.5"/> <SelectValue placeholder="排序" /></div>
             </SelectTrigger>
             <SelectContent>
@@ -407,11 +407,11 @@ export function StudentList({ students }: { students: any[] }) {
            <p className="text-slate-500 font-medium text-sm">未找到匹配的学员</p>
         </div>
       ) : (
-        <div className="space-y-3 md:space-y-6">
-           {activeStudents.length > 0 && <div className="flex flex-col gap-1.5 md:gap-2">{renderStudentRows(activeStudents)}</div>}
+        <div className="space-y-2 md:space-y-3">
+           {activeStudents.length > 0 && <div className="flex flex-col gap-1.5 md:gap-1.5">{renderStudentRows(activeStudents)}</div>}
            {inactiveStudents.length > 0 && (
              <div className="pt-2">
-               <div className="flex items-center gap-2 md:gap-4 mb-4">
+               <div className="flex items-center gap-2 md:gap-3 mb-2">
                  <div className="h-px bg-slate-200 flex-1"></div>
                  <Button variant="outline" size="sm" className="rounded-full text-xs font-bold text-slate-500 gap-2 border-slate-200 bg-slate-50" onClick={() => setShowInactive(!showInactive)}>
                     <ArchiveX className="h-4 w-4" />{showInactive ? "收起沉睡名单" : `展开 ${inactiveStudents.length} 名沉睡学员`}
@@ -419,7 +419,7 @@ export function StudentList({ students }: { students: any[] }) {
                  </Button>
                  <div className="h-px bg-slate-200 flex-1"></div>
                </div>
-               {showInactive && <div className="flex flex-col gap-2 opacity-75 grayscale-[20%] transition-all animate-in fade-in slide-in-from-top-4">{renderStudentRows(inactiveStudents)}</div>}
+               {showInactive && <div className="flex flex-col gap-1.5 opacity-75 grayscale-[20%] transition-all animate-in fade-in slide-in-from-top-4">{renderStudentRows(inactiveStudents)}</div>}
              </div>
            )}
         </div>
