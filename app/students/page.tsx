@@ -68,16 +68,16 @@ export default async function StudentsPage() {
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-7xl px-3 py-3 md:px-6 md:py-8">
+      <main className="mx-auto max-w-[1480px] px-3 py-3 md:px-5 md:py-5">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-3 md:mb-6">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
           <div>
-            <h1 className="text-lg md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <Users className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
               学员管理 (Students)
             </h1>
-            <p className="text-[9px] md:text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
               Directory & Balance
             </p>
           </div>
