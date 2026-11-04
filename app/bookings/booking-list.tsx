@@ -279,27 +279,27 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   const Avatar = ({ name }: { name: string }) => {
     const avatarUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${name}&backgroundColor=e5e7eb,d1d5db,9ca3af`;
     return (
-      <div className="h-8 w-8 md:h-10 md:w-10 rounded-full border border-slate-200 shadow-sm bg-white overflow-hidden flex-shrink-0">
+      <div className="h-8 w-8 md:h-8 md:w-8 rounded-full border border-slate-200 shadow-sm bg-white overflow-hidden flex-shrink-0">
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       </div>
     );
   };
 
   return (
-    <div className="space-y-1 md:space-y-6">
+    <div className="space-y-1 md:space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           placeholder="搜索学员、编号、地点、教练…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 md:h-11 rounded-lg md:rounded-xl border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
+          className="h-9 rounded-lg border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
         />
       </div>
-      <div className="mx-auto w-full max-w-md bg-slate-100 p-0.5 md:p-1 rounded-lg md:rounded-xl grid grid-cols-2">
+      <div className="mx-auto w-full max-w-sm bg-slate-100 p-0.5 rounded-lg grid grid-cols-2">
         <button 
           onClick={() => setActiveTab('upcoming')}
-          className={`py-1 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
+          className={`py-1.5 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'upcoming' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -307,7 +307,7 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
         </button>
         <button 
           onClick={() => setActiveTab('history')}
-          className={`py-1 md:py-2 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
+          className={`py-1.5 text-[11px] md:text-xs font-bold rounded-lg transition-all ${
             activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -336,14 +336,14 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
 
           return (
             <div key={dateKey} className="relative">
-              <div className="sticky top-0 z-10 bg-slate-50 py-1 md:py-3 flex items-center gap-2 md:gap-3">
+              <div className="sticky top-0 z-10 bg-slate-50 py-1.5 flex items-center gap-2">
                  <h3 className={`text-[12px] md:text-sm font-bold ${isDateToday ? 'text-indigo-600' : 'text-slate-500'}`}>
                    {dateLabel}
                  </h3>
                  <div className="h-px flex-1 bg-slate-200"></div>
               </div>
 
-              <div className="space-y-1 md:space-y-3">
+              <div className="space-y-1 md:space-y-1.5">
                 {items.map(b => {
                    const isOverdue = activeTab === 'upcoming' && isPast(new Date(b.start_time)) && !isTodayInNZ(b.start_time);
                    const studentCode = b.student?.student_code?.trim() || "";
@@ -374,8 +374,8 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                    const rateLabel = b.actual_rate || b.student?.hourly_rate || null;
                    
                    return (
-                     <div key={b.id} className={`relative border-l-2 py-0 pl-1.5 md:py-1 md:pl-3 transition-colors group ${lineClass}`}>
-                        <div className={`absolute -left-[4px] top-2.5 h-1.5 w-1.5 md:top-4 md:h-2.5 md:w-2.5 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
+                     <div key={b.id} className={`relative border-l-2 py-0 pl-1.5 md:pl-2.5 transition-colors group ${lineClass}`}>
+                        <div className={`absolute -left-[4px] top-2.5 h-1.5 w-1.5 md:top-3 md:h-2 md:w-2 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
                         
                         <div className={`sm:hidden rounded-lg border px-2.5 py-2 shadow-sm ${cardClass}`}>
                           <div className="flex items-start justify-between gap-2">
@@ -479,110 +479,113 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
                           </div>
                         </div>
 
-                        <div className={`hidden sm:block rounded-xl md:rounded-2xl border p-2.5 md:p-3 shadow-sm transition-transform active:scale-[0.99] sm:p-4 ${cardClass}`}>
-                           <div className="mb-2 md:mb-3 flex items-start justify-between gap-2 md:gap-3">
-                              <div className="flex min-w-0 items-start gap-2 md:gap-3">
-                                 <Avatar name={studentName || studentCode || "?"} />
-                                 <div className="min-w-0 flex-1">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                                                          <h4 className="truncate text-sm md:text-base font-semibold text-slate-900">{studentTitle}</h4>
-                                      {currentBusinessId === "tangent" && (
-                                        <Badge
-                                          variant="outline"
-                                          className={`h-5 shrink-0 px-1.5 text-[9px] font-bold ${
-                                            isDrivingSchoolBusiness(b.business_unit_id)
-                                              ? "border-slate-300 bg-slate-900 text-white"
-                                              : "border-indigo-200 bg-indigo-50 text-indigo-600"
-                                          }`}
-                                        >
-                                          {isDrivingSchoolBusiness(b.business_unit_id) ? "Sine" : "CuS"}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="mt-0.5 truncate text-sm font-medium text-slate-700">{subjectLabel}</p>
-                                    <div className="mt-1 md:mt-2 flex flex-wrap items-center gap-1.5">
-                                      <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[11px] font-medium">
-                                        {b.status === "completed" ? "已完成" : b.status === "cancelled" ? "已取消" : "待办"}
+                        <div className={`hidden sm:grid grid-cols-[minmax(0,1fr)_150px_96px] items-center gap-3 rounded-xl border px-3 py-2 shadow-sm transition-transform active:scale-[0.99] ${cardClass}`}>
+                           <div className="flex min-w-0 items-center gap-2.5">
+                              <Avatar name={studentName || studentCode || "?"} />
+                              <div className="min-w-0 flex-1">
+                                 <div className="flex min-w-0 items-center gap-1.5">
+                                    <h4 className="truncate text-[13px] font-bold text-slate-900">{studentTitle}</h4>
+                                    {currentBusinessId === "tangent" && (
+                                      <Badge
+                                        variant="outline"
+                                        className={`h-4 shrink-0 px-1.5 text-[8px] font-bold ${
+                                          isDrivingSchoolBusiness(b.business_unit_id)
+                                            ? "border-slate-300 bg-slate-900 text-white"
+                                            : "border-indigo-200 bg-indigo-50 text-indigo-600"
+                                        }`}
+                                      >
+                                        {isDrivingSchoolBusiness(b.business_unit_id) ? "Sine" : "CuS"}
                                       </Badge>
-                                      {isOverdue && (
-                                        <Badge className="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600 hover:bg-rose-50">
-                                          已过期
-                                        </Badge>
-                                      )}
-                                      {coachLabel ? (
-                                        <Badge
-                                          variant="outline"
-                                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${staffAccent.label}`}
-                                        >
-                                          {coachLabel}
-                                        </Badge>
-                                      ) : null}
-                                    </div>
+                                    )}
+                                    <Badge variant="secondary" className="h-4 rounded px-1.5 py-0 text-[8px] font-medium">
+                                      {b.status === "completed" ? "已完成" : b.status === "cancelled" ? "已取消" : "待办"}
+                                    </Badge>
+                                    {coachLabel ? (
+                                      <Badge
+                                        variant="outline"
+                                        className={`h-4 rounded px-1.5 py-0 text-[8px] font-medium ${staffAccent.label}`}
+                                      >
+                                        {coachLabel}
+                                      </Badge>
+                                    ) : null}
+                                    {isOverdue ? (
+                                      <Badge className="h-4 rounded bg-rose-50 px-1.5 py-0 text-[8px] font-medium text-rose-600 hover:bg-rose-50">
+                                        过期
+                                      </Badge>
+                                    ) : null}
                                  </div>
-                              </div>
-                              <div className="shrink-0 text-right">
-                                 <DualTimezoneTime
-                                   utcIso={b.start_time}
-                                   endUtc={b.end_time}
-                                   durationHours={b.duration}
-                                   compact
-                                   className={isOverdue ? "text-rose-500" : undefined}
-                                 />
-                                 {rateLabel ? (
-                                   <div className="mt-1 text-sm font-bold text-emerald-600">
-                                     ${rateLabel}
-                                   </div>
-                                 ) : null}
+
+                                 <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-slate-500">
+                                    <span className="truncate font-medium text-slate-700">{subjectLabel}</span>
+                                    <span className="text-slate-300">·</span>
+                                    <span className="shrink-0">{b.duration}h</span>
+                                    <span className="text-slate-300">·</span>
+                                    <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                                    <span className="truncate">{b.location || "线上"}</span>
+                                    {carLabel ? (
+                                      <>
+                                        <span className="text-slate-300">·</span>
+                                        <span className="shrink-0">{carLabel}</span>
+                                      </>
+                                    ) : null}
+                                 </div>
                               </div>
                            </div>
 
-                           <div className="space-y-1 md:space-y-2 border-t border-slate-50 pt-1.5 md:pt-2">
-                              <div className="space-y-1 text-xs text-slate-500">
-                                <div className="flex items-start gap-1.5">
-                                  <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                                  <span className="min-w-0 truncate">{b.location || "线上"}</span>
+                           <div className="text-right">
+                              <DualTimezoneTime
+                                utcIso={b.start_time}
+                                endUtc={b.end_time}
+                                durationHours={b.duration}
+                                compact
+                                className={isOverdue ? "text-rose-500" : undefined}
+                              />
+                              {rateLabel ? (
+                                <div className="mt-0.5 text-[12px] font-bold text-emerald-600">
+                                  ${rateLabel}
                                 </div>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[18px]">
-                                  {coachLabel ? (
-                                    <span className="truncate">
-                                      {isDrivingSchoolBusiness(b.business_unit_id) ? "教练" : "老师"}：{coachLabel}
-                                    </span>
-                                  ) : null}
-                                  {carLabel ? <span className="truncate">用车：{carLabel}</span> : null}
-                                </div>
-                              </div>
+                              ) : null}
+                           </div>
 
-                              <div className="flex flex-wrap items-center justify-end gap-2">
-                                {activeTab === 'upcoming' ? (
-                                  <>
-                                    <button onClick={() => openEdit(b)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors">
-                                      <Pencil className="h-4 w-4" />
+                           <div className="flex items-center justify-end gap-1">
+                              {activeTab === "upcoming" ? (
+                                <>
+                                  <button
+                                    onClick={() => openEdit(b)}
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                    aria-label="编辑课程"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleComplete(b)}
+                                    disabled={!!loadingId}
+                                    className="flex h-7 items-center gap-1 rounded-md bg-slate-900 px-2 text-[10px] font-bold text-white shadow-sm disabled:opacity-50"
+                                  >
+                                    {loadingId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                    完成
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {b.status === "completed" ? (
+                                    <button
+                                      onClick={() => { setInvoiceBooking(b); setInvoiceOpen(true); }}
+                                      className="flex h-7 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 text-[9px] font-semibold text-indigo-600"
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      单据
                                     </button>
-                                    <button onClick={() => handleComplete(b)} disabled={!!loadingId} className="flex h-8 items-center gap-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-800">
-                                      {loadingId === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                                      <span>完成</span>
-                                    </button>
-                                  </>
-                                ) : (
-                                  <div className="flex flex-wrap items-center justify-end gap-2">
-                                     {b.status === 'completed' && (
-                                       <Button 
-                                         size="sm" variant="outline" className="h-7 gap-1 border-indigo-100 bg-indigo-50 px-2 text-[10px] text-indigo-600 hover:bg-indigo-100"
-                                         onClick={() => { setInvoiceBooking(b); setInvoiceOpen(true); }}
-                                       >
-                                         <FileText className="h-3 w-3" /> 单据
-                                       </Button>
-                                     )}
-                                     
-                                     <Badge variant="secondary" className="rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-normal text-slate-400">
-                                       {b.status === 'completed' ? '已完成' : '已取消'}
-                                     </Badge>
-                                     <button onClick={() => handleDelete(b.id)} className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors">
-                                       <Trash2 className="h-4 w-4" />
-                                     </button>
-                                  </div>
-                                )}
-                              </div>
+                                  ) : null}
+                                  <button
+                                    onClick={() => handleDelete(b.id)}
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                                    aria-label="删除记录"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              )}
                            </div>
                         </div>
                      </div>
