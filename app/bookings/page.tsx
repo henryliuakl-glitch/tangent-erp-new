@@ -104,8 +104,8 @@ export default async function BookingsPage() {
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-4xl px-2.5 py-2 md:px-6 md:py-8">
-        <div className="mb-2 flex flex-row items-center justify-between gap-2 sm:mb-5 sm:items-center sm:justify-between">
+      <main className="mx-auto max-w-6xl px-2.5 py-2 md:px-5 md:py-5">
+        <div className="mb-2 flex flex-row items-center justify-between gap-2 sm:mb-3 sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="flex items-center gap-1.5 text-[17px] font-black tracking-tight text-slate-900 sm:gap-2 sm:text-2xl">
               <CalendarIcon className="h-4.5 w-4.5 text-indigo-600 sm:h-5 sm:w-5" />
