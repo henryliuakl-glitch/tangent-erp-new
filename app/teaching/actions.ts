@@ -111,3 +111,62 @@ export async function setAttendance(form: FormData) {
   fail(error);
   revalidatePath("/teaching");
 }
+
+/** Classroom notes and 1:1 notes share a single teaching ledger; scheduling remains in Booking. */
+export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:false;error:string}> {
+  try {
+    const db = await staff();
+    const target = required(form, "target");
+    const divider = target.indexOf(":");
+    const type = target.slice(0, divider);
+    const id = target.slice(divider + 1);
+    if (!["booking", "session"].includes(type) ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return {ok:false,error:"请选择有效的课程"};
+    }
+    const content = required(form,"lesson_content");
+    if (content.length > 8000) return {ok:false,error:"课堂内容不能超过 8000 字"};
+    const teacher = optional(form,"teacher");
+    const homework = optional(form,"homework");
+    const student_feedback = optional(form,"student_feedback");
+    const next_steps = optional(form,"next_steps");
+    const payload = {teacher,lesson_content:content,homework,student_feedback,next_steps};
+    const foreignKey = type === "booking" ? "booking_id" : "class_session_id";
+    let studentId: string | null = null;
+    if (type === "booking") {
+      const {data, error} = await db.from("bookings").select("id,student_id")
+        .eq("id",id).eq("business_unit_id","cus").single();
+      if (error || !data?.student_id) return {ok:false,error:"找不到这节 CuS 一对一课程"};
+      const {data:student} = await db.from("students").select("id").eq("id",data.student_id)
+        .eq("business_unit_id","cus").single();
+      if (!student) return {ok:false,error:"学员不属于 CuS"};
+      studentId = student.id;
+    } else {
+      const {data:session} = await db.from("cus_class_sessions")
+        .select("id,class_id").eq("id",id).single();
+      if (!session) return {ok:false,error:"班级课次不存在"};
+      const {data:cls} = await db.from("cus_classes")
+        .select("programme_id").eq("id",session.class_id).single();
+      const {data:programme} = await db.from("cus_programmes")
+        .select("id").eq("id",cls?.programme_id ?? "").eq("business_unit_id","cus").maybeSingle();
+      if (!programme) return {ok:false,error:"课次不属于 CuS"};
+    }
+    const {data:existing, error:findError} = await db.from("cus_teaching_records")
+      .select("id").eq(foreignKey,id).maybeSingle();
+    if (findError) throw findError;
+    if (existing) {
+      const {error} = await db.from("cus_teaching_records").update(payload).eq("id",existing.id);
+      if (error) throw error;
+    } else {
+      const {error} = await db.from("cus_teaching_records").insert({
+        ...payload,[foreignKey]:id,student_id:studentId
+      });
+      if (error) throw error;
+    }
+    revalidatePath("/teaching");
+    return {ok:true};
+  } catch(error) {
+    console.error("[teaching-records]",error);
+    return {ok:false,error:"保存失败，请确认课程和必填内容；若问题持续，请联系管理员"};
+  }
+}
