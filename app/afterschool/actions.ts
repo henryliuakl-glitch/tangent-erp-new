@@ -116,7 +116,7 @@ export async function createTodayCareVisits() {
     },{onConflict:"student_id,care_date",ignoreDuplicates:true});
     check(result.error);created++;
   }
-  revalidatePath("/afterschool");return {count:created};
+  revalidatePath("/afterschool");
 }
 export async function clockCare(form:FormData){
   const {db,user}=await operator();
