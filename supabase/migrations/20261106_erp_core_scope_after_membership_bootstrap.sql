@@ -22,27 +22,27 @@ begin
     execute format('grant select,insert,update,delete on public.%I to authenticated',t);
     execute format($q$create policy erp_scoped_read on public.%I for select to authenticated using (
       exists (select 1 from public.erp_memberships m
-        where m.user_id=(select auth.uid()) and m.business_unit_id=business_unit_id)
-    )$q$,t);
+        where m.user_id=(select auth.uid()) and m.business_unit_id=%I.business_unit_id)
+    )$q$,t,t);
     execute format($q$create policy erp_scoped_insert on public.%I for insert to authenticated with check (
       exists (select 1 from public.erp_memberships m
-        where m.user_id=(select auth.uid()) and m.business_unit_id=business_unit_id
+        where m.user_id=(select auth.uid()) and m.business_unit_id=%I.business_unit_id
           and m.role in ('owner','admin','teacher'))
-    )$q$,t);
+    )$q$,t,t);
     execute format($q$create policy erp_scoped_update on public.%I for update to authenticated using (
       exists (select 1 from public.erp_memberships m
-        where m.user_id=(select auth.uid()) and m.business_unit_id=business_unit_id
+        where m.user_id=(select auth.uid()) and m.business_unit_id=%I.business_unit_id
           and m.role in ('owner','admin','teacher'))
     ) with check (
       exists (select 1 from public.erp_memberships m
-        where m.user_id=(select auth.uid()) and m.business_unit_id=business_unit_id
+        where m.user_id=(select auth.uid()) and m.business_unit_id=%I.business_unit_id
           and m.role in ('owner','admin','teacher'))
-    )$q$,t);
+    )$q$,t,t);
     execute format($q$create policy erp_scoped_delete on public.%I for delete to authenticated using (
       exists (select 1 from public.erp_memberships m
-        where m.user_id=(select auth.uid()) and m.business_unit_id=business_unit_id
+        where m.user_id=(select auth.uid()) and m.business_unit_id=%I.business_unit_id
           and m.role in ('owner','admin'))
-    )$q$,t);
+    )$q$,t,t);
   end loop;
 end $$;
 
