@@ -22,7 +22,7 @@ function check(error:{message:string}|null){if(error) throw new Error(error.mess
 function phoneNumber(value:string){ensure(/^\+?[0-9 ()-]{7,22}$/.test(value),"请输入有效的联系电话");return value;}
 
 /** Parent-assisted enrollment on a supervised device. Missing second guardian remains pending, not waived. */
-export async function registerCareChild(form:FormData) {
+async function registerCareChildInternal(form:FormData) {
   const {db,user}=await operator(["owner","admin"]);
   const fullName=must(form,"child_name"), existingId=text(form,"student_id");
   let studentId=existingId, created=false;
@@ -101,6 +101,34 @@ export async function registerCareChild(form:FormData) {
   revalidatePath("/afterschool");revalidatePath("/students");
   return {student_id:studentId,created,status:parent2?"active":"pending"};
 }
+/**
+ * Client-facing action must return field errors instead of throwing, so a failed
+ * phone/name/signature validation doesn't crash the Server Components boundary.
+ */
+export async function registerCareChild(form: FormData): Promise<
+  {ok:true;student_id:string;created:boolean;status:"active"|"pending"} |
+  {ok:false;error:string}
+> {
+  try {
+    const result = await registerCareChildInternal(form);
+    return {ok:true,...result,status:result.status as "active"|"pending"};
+  } catch (error) {
+    // Supabase errors are sanitized to avoid exposing private DB internals.
+    console.error("[care-registration] failed:",error instanceof Error?error.message:error);
+    const message=error instanceof Error?error.message:"登记失败，请联系教务";
+    const safe=[
+      "请先登录","权限不足","请填写：","请输入有效的联系电话",
+      "必须在签名框内手写签名","签署姓名必须与档案中姓名一致",
+      "必须填写第二家长信息","第二家长必须填写电话",
+      "至少选择一个上课星期","必须确认已阅读托管及隐私条款",
+      "未填写第二家长时不能指定为主要联系人",
+      "托管时段无效","已有家长签名档案","找不到此 CuS 学员"
+    ];
+    return {ok:false,error:safe.some(x=>message.startsWith(x))?message:
+      "保存失败。请检查必填项、联系方式和签名；如仍失败，请联系教务检查数据库。"};
+  }
+}
+
 export async function createTodayCareVisits() {
   const {db}=await operator();
   const date=getTodayInNZ(),weekday=new Date(date+"T12:00:00Z").getUTCDay();
