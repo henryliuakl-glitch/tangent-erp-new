@@ -5,9 +5,9 @@ import {getTodayInNZ,nzLocalToUtc,utcToNzTimeStr} from "@/lib/timezone";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 function phoneE164(raw:string){
- const digits=raw.replace(/[\\s()-]/g,"");
- if(/^\\+[1-9]\\d{7,14}$/.test(digits))return digits;
- if(/^0\\d{8,10}$/.test(digits))return "+64"+digits.slice(1);
+ const digits=raw.replace(/[\s()-]/g,"");
+ if(/^\+[1-9]\d{7,14}$/.test(digits))return digits;
+ if(/^0\d{8,10}$/.test(digits))return "+64"+digits.slice(1);
  return null;
 }
 type Reminder="before_start"|"after_start"|"before_end"|"late";
