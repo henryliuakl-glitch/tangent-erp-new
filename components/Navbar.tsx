@@ -43,7 +43,7 @@ export function Navbar() {
       ? [{ href: "/family", label: "家庭总览", icon: House }]
       : currentBusinessId === "sine" || currentBusinessId === "tangent"
         ? [...NAV_ITEMS, ...(currentBusinessId === "tangent" ? [{ href: "/teaching", label: "教务", icon: GraduationCap }, { href: "/afterschool", label: "晚托", icon: Baby }] : []), { href: "/vehicles", label: "车辆", icon: CarFront }]
-        : [...NAV_ITEMS, { href: "/teaching", label: "教务", icon: GraduationCap }];
+        : [...NAV_ITEMS, { href: "/teaching", label: "教务", icon: GraduationCap }, { href: "/afterschool", label: "晚托", icon: Baby }];
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
