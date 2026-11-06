@@ -11,9 +11,9 @@ const BOOKINGS_PAGE_SIZE = 1000;
 export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
   const params = await searchParams;
   const today = getTodayInNZ();
-  const defaultFrom = addCalendarMonthsInNZ(today.slice(0, 8) + "01", -3);
-  const defaultTo = addCalendarMonthsInNZ(today.slice(0, 8) + "01", 4);
-  const validDate = (value: string | undefined, fallback: string) => value && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : fallback;
+  const defaultFrom = addCalendarMonthsInNZ(today.slice(0, 8) + "01", -1);
+  const defaultTo = addCalendarMonthsInNZ(today.slice(0, 8) + "01", 2);
+  const validDate = (value: string | undefined, fallback: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : fallback;
   const fromDate = validDate(params.from, defaultFrom);
   const toDate = validDate(params.to, defaultTo);
   const lower = fromDate <= toDate ? fromDate : toDate;
@@ -125,9 +125,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
               <CalendarIcon className="h-4.5 w-4.5 text-indigo-600 sm:h-5 sm:w-5" />
               课程管理 (Schedule)
             </h1>
-            <p className="mt-0.5 hidden pl-7 text-[9px] font-bold uppercase tracking-wider text-slate-400 sm:block sm:text-xs">
-              Manage Bookings & Timesheets
-            </p>
+
           </div>
 
           <BookingsCta />
