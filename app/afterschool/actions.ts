@@ -26,18 +26,6 @@ export async function registerCareChild(form:FormData) {
   const {db,user}=await operator(["owner","admin"]);
   const fullName=must(form,"child_name"), existingId=text(form,"student_id");
   let studentId=existingId, created=false;
-  if(existingId) {
-    const {data:s}=await db.from("students").select("id").eq("id",existingId)
-      .eq("business_unit_id","cus").single();
-    ensure(s,"找不到此 CuS 学员");
-  } else {
-    const {data:s,error}=await db.from("students").insert({
-      name:fullName,business_unit_id:"cus",level:text(form,"year_level")||"Primary",
-      subject:"After School Care",teacher:"",hourly_rate:0,balance:0,
-      payment_type:"single",currency:"NZD"
-    }).select("id").single();
-    check(error);ensure(s,"创建学员失败");studentId=s.id;created=true;
-  }
   const parent1=must(form,"guardian_1_name"),phone1=phoneNumber(must(form,"guardian_1_phone"));
   const parent2=text(form,"guardian_2_name"),phone2=text(form,"guardian_2_phone");
   const missingReason=text(form,"missing_guardian_reason");
@@ -56,6 +44,24 @@ export async function registerCareChild(form:FormData) {
   ensure(!(primary==="2"&&!parent2),"未填写第二家长时不能指定为主要联系人");
   const timeStart=must(form,"start_time"),timeEnd=must(form,"end_time");
   ensure(/^\d{2}:\d{2}$/.test(timeStart)&&/^\d{2}:\d{2}$/.test(timeEnd)&&timeEnd>timeStart,"托管时段无效");
+  // Check for existing signed records before mutating a child's profile.
+  if(existingId) {
+    const {count:guardianCount,error:countError}=await db.from("cus_care_guardians")
+      .select("id",{count:"exact",head:true}).eq("student_id",existingId);
+    check(countError);ensure(!guardianCount,"已有家长签名档案，不能重新报名覆盖");
+  }
+  if(existingId) {
+    const {data:s}=await db.from("students").select("id").eq("id",existingId)
+      .eq("business_unit_id","cus").single();
+    ensure(s,"找不到此 CuS 学员");
+  } else {
+    const {data:s,error}=await db.from("students").insert({
+      name:fullName,business_unit_id:"cus",level:text(form,"year_level")||"Primary",
+      subject:"After School Care",teacher:"",hourly_rate:0,balance:0,
+      payment_type:"single",currency:"NZD"
+    }).select("id").single();
+    check(error);ensure(s,"创建学员失败");studentId=s.id;created=true;
+  }
   const {error:profileError}=await db.from("cus_care_profiles").upsert({
     student_id:studentId,school:text(form,"school")||null,
     year_level:text(form,"year_level")||null,
@@ -71,8 +77,6 @@ export async function registerCareChild(form:FormData) {
   },{onConflict:"student_id"});
   check(profileError);
   // First enrollment only: prevent silent overwriting of recorded guardian signatures.
-  const {count}=await db.from("cus_care_guardians").select("id",{count:"exact",head:true}).eq("student_id",studentId);
-  ensure(!count,"此学员已有家长签名档案，不能通过报名表覆盖；请使用档案维护流程");
   const guardians=[
     {student_id:studentId,full_name:parent1,relationship:must(form,"guardian_1_relation"),
       phone:phone1,email:text(form,"guardian_1_email")||null,primary_contact:primary==="1",
