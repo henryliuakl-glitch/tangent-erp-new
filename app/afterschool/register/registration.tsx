@@ -90,6 +90,7 @@ export function CareRegistration({students}:{students:Student[]}){
   <section className={section}><h2 className="text-lg font-bold">5. 接送、费用与隐私确认</h2>
     <p className="text-sm text-slate-600">正常接送需现场签字并核对身份。第三方接送须获得档案中家长额外确认；未获确认不得放行。迟接初步收费规则：超时不足或等于 60 分钟收 NZ$20，超过 60 分钟后额外每开始一小时收 NZ$10（最终以机构签署条款为准）。</p>
     <p className="text-sm text-slate-600">签名、接送时间、审批、交接影像仅用于安全管理和纠纷处理。录像需单独征得知情同意，并通过受保护渠道分享；具体隐私声明、保存期限和退款条款在正式招生前还须审核。</p>
+    <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="sms_consent" className="mt-1"/>同意向首要联系人发送与孩子托管有关的服务提醒短信（不是营销短信）</label>
     <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="image_consent" className="mt-1"/>同意在必要的第三方接送核验中按隐私告知采集交接视频（不同意时仅允许正常监护人接送，特殊情况须人工另行处理）</label>
     <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="terms_accepted" required className="mt-1"/>确认已阅读上述临时接送、收费及隐私告知，并同意建立孩子的托管档案</label>
   </section>
