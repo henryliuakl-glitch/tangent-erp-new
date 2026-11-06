@@ -6,7 +6,7 @@ import {saveTeachingRecord} from "./actions";
 
 export type LessonTarget = {value:string;label:string};
 export type SavedLesson = {
-  id:string;target:string;teacher:string|null;lesson_content:string;
+  id:string;target:string;updated_at:string;teacher:string|null;lesson_content:string;
   homework:string|null;student_feedback:string|null;next_steps:string|null;
 };
 const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
@@ -35,6 +35,8 @@ export function TeachingRecordEditor({
   return <div className="rounded-xl border border-slate-200 bg-white p-4">
     <h2 className="mb-3 font-semibold">填写教学记录</h2>
     <form key={target} onSubmit={submit} className="space-y-3">
+      <input type="hidden" name="record_id" value={current?.id||""}/>
+      <input type="hidden" name="record_version" value={current?.updated_at||""}/>
       <label className="block space-y-1 text-sm">
         <span className="font-medium">课程</span>
         <select className={input} name="target" value={target} required onChange={e=>{setTarget(e.target.value);setFeedback("");}}>
