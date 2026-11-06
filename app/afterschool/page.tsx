@@ -19,40 +19,48 @@ export default async function AfterSchoolPage(){
   <Link href="/teaching" className="mt-3 inline-block text-indigo-600">返回教务</Link>
  </main>;
  const today=getTodayInNZ();
- const [v,s,p,g,e,a,w]=await Promise.all([
-  db.from("cus_care_visits").select("*").eq("care_date",today).order("scheduled_start"),
-  db.from("students").select("id,name,student_code").eq("business_unit_id","cus"),
-  db.from("cus_care_profiles").select("*").order("created_at",{ascending:false}),
-  db.from("cus_care_guardians").select("id,student_id,full_name,relationship,phone,primary_contact,pickup_authorized,signature_signed_at"),
-  db.from("cus_care_emergency_contacts").select("id,student_id,full_name,relationship,phone,pickup_authorized"),
-  db.from("cus_care_pickup_approvals").select("id,visit_id,contact_id,parent_guardian_id,approved_at,revoked_at,video_path,parent_notified_at,child_response_checked").order("approved_at"),
-  db.from("cus_care_weekdays").select("*")
+ // Read today's visits first, then only the related people and approvals.
+ const [v,p]=await Promise.all([
+  db.from("cus_care_visits").select("id,student_id,care_date,scheduled_start,scheduled_end,status,check_in_at,check_out_at,check_out_name,late_fee_nzd").eq("care_date",today).order("scheduled_start"),
+  db.from("cus_care_profiles").select("student_id,status,missing_guardian_reason").order("created_at",{ascending:false})
  ]);
- const failed=[v,s,p,g,e,a,w].find(q=>q.error);
- if(failed?.error)return <main className="mx-auto max-w-3xl p-8"><h1 className="text-xl font-bold">数据库尚未同步</h1>
-  <p className="mt-2 text-sm text-slate-600">{failed.error.message}</p>
-  <p className="mt-2 text-sm">请执行 20261106_cus_care_safeguarding.sql 和 20261106_cus_care_handover_guards.sql。</p></main>;
+ if(v.error||p.error)return <main className="mx-auto max-w-3xl p-8">晚托名单读取失败，请刷新重试。</main>;
+ const profiles=p.data||[],visits=v.data||[];
+ const studentIds=[...new Set([...profiles.map(x=>x.student_id),...visits.map(x=>x.student_id)])];
+ const visitIds=visits.map(x=>x.id);
+ const empty=Promise.resolve({data:[],error:null});
+ const [s,g,e,a,w]=await Promise.all([
+  studentIds.length?db.from("students").select("id,name,student_code").eq("business_unit_id","cus").in("id",studentIds):empty,
+  studentIds.length?db.from("cus_care_guardians").select("id,student_id,full_name,relationship,phone,primary_contact,pickup_authorized,signature_signed_at").in("student_id",studentIds):empty,
+  studentIds.length?db.from("cus_care_emergency_contacts").select("id,student_id,full_name,relationship,phone,pickup_authorized").in("student_id",studentIds):empty,
+  visitIds.length?db.from("cus_care_pickup_approvals")
+    .select("id,visit_id,contact_id,parent_guardian_id,approved_at,revoked_at,video_path,parent_notified_at,child_response_checked")
+    .in("visit_id",visitIds).order("approved_at"):empty,
+  studentIds.length?db.from("cus_care_weekdays").select("student_id,weekday,starts_at,ends_at")
+    .in("student_id",studentIds):empty
+ ]);
+ if([s,g,e,a,w].some(q=>q.error))return <main className="mx-auto max-w-3xl p-8">接送信息读取失败，请刷新重试。</main>;
  const isAdmin=["owner","admin"].includes(membership.role);
  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
   <div className="hidden md:block"><Navbar/></div>
   <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 md:px-6">
    <header className="flex flex-wrap items-center justify-between gap-3">
-    <div><h1 className="text-2xl font-bold">晚托班 · 接送工作台</h1>
-     <p className="text-sm text-slate-500">{today}（奥克兰） · 托管签到 / 签退 / 家长联系</p></div>
+    <div><h1 className="text-2xl font-bold">晚托</h1>
+     <p className="text-sm text-slate-500">{today} · 接送工作台</p></div>
     <div className="flex flex-wrap gap-2">
-      <Link href="/teaching" className="rounded-lg border bg-white px-3 py-2 text-sm">普通教务</Link>
+      
       {isAdmin&&<Link href="/afterschool/register" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">＋ 新生报名</Link>}
       <form action={createTodayCareVisits}><button type="submit" className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">生成今日班次</button></form>
     </div>
    </header>
    <div className="grid gap-3 sm:grid-cols-4">
-    {[["已报名孩子",(p.data||[]).length],["今日预计",(v.data||[]).length],
-      ["托管中",(v.data||[]).filter(x=>x.status==="in_care").length],
-      ["已交接",(v.data||[]).filter(x=>x.status==="released").length]].map(([label,n])=>
+    {[["已报名孩子",profiles.length],["今日预计",visits.length],
+      ["托管中",visits.filter(x=>x.status==="in_care").length],
+      ["已交接",visits.filter(x=>x.status==="released").length]].map(([label,n])=>
       <div key={String(label)} className="rounded-xl border bg-white p-3"><p className="text-xs text-slate-500">{label}</p>
        <p className="mt-1 text-2xl font-bold">{n}</p></div>)}
    </div>
-   <CareDailyClient visits={v.data||[]} students={s.data||[]} profiles={p.data||[]}
+   <CareDailyClient visits={visits} students={s.data||[]} profiles={profiles}
     guardians={g.data||[]} contacts={e.data||[]} approvals={a.data||[]} weekdays={w.data||[]}
     isAdmin={isAdmin}/>
   </main><MobileDock/>
