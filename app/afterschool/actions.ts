@@ -181,6 +181,9 @@ export async function approveThirdParty(form:FormData){
   const visitId=must(form,"visit_id"),contactId=must(form,"contact_id"),guardianId=must(form,"guardian_id");
   const {data:visit}=await db.from("cus_care_visits").select("student_id,status").eq("id",visitId).single();
   ensure(visit?.status==="in_care","需要孩子已签到且尚未交接");
+  const {data:careProfile}=await db.from("cus_care_profiles")
+    .select("image_consent").eq("student_id",visit.student_id).single();
+  ensure(careProfile?.image_consent,"本家庭未同意交接录像，不能使用此第三方录像流程，请由登记监护人接送或另行依法确认");
   const [{data:contact},{data:guardian}]=await Promise.all([
     db.from("cus_care_emergency_contacts").select("id").eq("student_id",visit.student_id).eq("id",contactId).single(),
     db.from("cus_care_guardians").select("id").eq("student_id",visit.student_id).eq("id",guardianId).single()
