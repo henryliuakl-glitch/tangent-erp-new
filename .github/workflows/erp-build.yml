@@ -1,7 +1,7 @@
 name: ERP build verification
 on:
   push:
-    branches: [main, feature/teaching-ux-20261107]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
