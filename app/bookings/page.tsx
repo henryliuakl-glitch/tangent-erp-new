@@ -4,10 +4,22 @@ import { BookingList, BookingsCta } from "./booking-list";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
 import { cookies } from "next/headers";
+import { addCalendarMonthsInNZ, getTodayInNZ, nzLocalToUtc } from "@/lib/timezone";
 
 const BOOKINGS_PAGE_SIZE = 1000;
 
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const params = await searchParams;
+  const today = getTodayInNZ();
+  const defaultFrom = addCalendarMonthsInNZ(today.slice(0, 8) + "01", -3);
+  const defaultTo = addCalendarMonthsInNZ(today.slice(0, 8) + "01", 4);
+  const validDate = (value: string | undefined, fallback: string) => value && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : fallback;
+  const fromDate = validDate(params.from, defaultFrom);
+  const toDate = validDate(params.to, defaultTo);
+  const lower = fromDate <= toDate ? fromDate : toDate;
+  const upper = fromDate <= toDate ? toDate : fromDate;
+  const fromIso = nzLocalToUtc(lower, "00:00").toISOString();
+  const toIso = nzLocalToUtc(upper, "23:59:59").toISOString();
   const supabase = await createClient();
   const cookieStore = await cookies();
   const businessId = cookieStore.get("businessId")?.value || "cus";
@@ -64,6 +76,8 @@ export default async function BookingsPage() {
     let query = supabase
       .from("bookings")
       .select("id,student_id,start_time,end_time,duration,status,location,notes,subject,teacher,actual_rate,metadata,business_unit_id")
+      .gte("start_time", fromIso)
+      .lte("start_time", toIso)
       .order("start_time", { ascending: true })
       .range(from, from + BOOKINGS_PAGE_SIZE - 1);
 
@@ -119,6 +133,12 @@ export default async function BookingsPage() {
           <BookingsCta />
         </div>
 
+        <form method="get" className="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3">
+          <label className="text-xs font-semibold text-slate-600">开始日期<input type="date" name="from" defaultValue={lower} className="mt-1 block rounded-lg border border-slate-200 px-2 py-1.5 text-sm"/></label>
+          <label className="text-xs font-semibold text-slate-600">结束日期<input type="date" name="to" defaultValue={upper} className="mt-1 block rounded-lg border border-slate-200 px-2 py-1.5 text-sm"/></label>
+          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">查询</button>
+          <span className="text-xs text-slate-500">按日期区间加载，当前 {bookings.length} 条</span>
+        </form>
         <BookingList bookings={bookings} />
 
       </main>
