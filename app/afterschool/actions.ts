@@ -8,7 +8,7 @@ function text(form: FormData, key: string) {return String(form.get(key)||"").tri
 function must(form: FormData, key: string) {const val=text(form,key);if(!val) throw new Error("请填写："+key);return val;}
 function ensure(ok:unknown,message:string): asserts ok {if(!ok) throw new Error(message);}
 function png(value:string) {ensure(value.startsWith("data:image/png;base64,") && value.length<200000 && value.length>250,"必须在签名框内手写签名");return value;}
-function signedName(name:string, typed:string) {ensure(name.trim().replace(/\\s+/g," ").toLowerCase()===typed.trim().replace(/\\s+/g," ").toLowerCase(),"签署姓名必须与档案中姓名一致");}
+function signedName(name:string, typed:string) {ensure(name.trim().replace(/\s+/g," ").toLowerCase()===typed.trim().replace(/\s+/g," ").toLowerCase(),"签署姓名必须与档案中姓名一致");}
 async function operator(roles:string[]=["owner","admin","teacher"]) {
   const db=await createClient();
   const {data:{user}}=await db.auth.getUser();
@@ -19,7 +19,7 @@ async function operator(roles:string[]=["owner","admin","teacher"]) {
   return {db,user};
 }
 function check(error:{message:string}|null){if(error) throw new Error(error.message);}
-function phoneNumber(value:string){ensure(/^\\+?[0-9 ()-]{7,22}$/.test(value),"请输入有效的联系电话");return value;}
+function phoneNumber(value:string){ensure(/^\+?[0-9 ()-]{7,22}$/.test(value),"请输入有效的联系电话");return value;}
 
 /** Parent-assisted enrollment on a supervised device. Missing second guardian remains pending, not waived. */
 export async function registerCareChild(form:FormData) {
@@ -55,7 +55,7 @@ export async function registerCareChild(form:FormData) {
   const primary=text(form,"primary_contact")==="2"?"2":"1";
   ensure(!(primary==="2"&&!parent2),"未填写第二家长时不能指定为主要联系人");
   const timeStart=must(form,"start_time"),timeEnd=must(form,"end_time");
-  ensure(/^\\d{2}:\\d{2}$/.test(timeStart)&&/^\\d{2}:\\d{2}$/.test(timeEnd)&&timeEnd>timeStart,"托管时段无效");
+  ensure(/^\d{2}:\d{2}$/.test(timeStart)&&/^\d{2}:\d{2}$/.test(timeEnd)&&timeEnd>timeStart,"托管时段无效");
   const {error:profileError}=await db.from("cus_care_profiles").upsert({
     student_id:studentId,school:text(form,"school")||null,
     year_level:text(form,"year_level")||null,
@@ -248,7 +248,7 @@ export async function updateCareWeekdays(form:FormData){
   const days=[1,2,3,4,5].filter(d=>form.get("weekday_"+d)==="on");
   ensure(days.length>0,"至少选择一天");
   const starts=must(form,"start_time"),ends=must(form,"end_time");
-  ensure(/^\\d{2}:\\d{2}$/.test(starts)&&/^\\d{2}:\\d{2}$/.test(ends)&&ends>starts,"时间不正确");
+  ensure(/^\d{2}:\d{2}$/.test(starts)&&/^\d{2}:\d{2}$/.test(ends)&&ends>starts,"时间不正确");
   const {error:del}=await db.from("cus_care_weekdays").delete().eq("student_id",studentId);check(del);
   const {error}=await db.from("cus_care_weekdays").insert(days.map(weekday=>({
     student_id:studentId,weekday,starts_at:starts,ends_at:ends
