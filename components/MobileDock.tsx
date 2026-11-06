@@ -12,6 +12,7 @@ import {
   CarFront,
   House,
   GraduationCap,
+  Baby,
 } from "lucide-react";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { isDrivingSchoolBusiness } from "@/lib/business";
@@ -103,6 +104,9 @@ export function MobileDock() {
         />
         {(currentBusinessId === "cus" || currentBusinessId === "tangent") ? (
           <NavItem href="/teaching" icon={GraduationCap} label="教务" active={pathname.startsWith("/teaching")} />
+        ) : null}
+        {(currentBusinessId === "cus" || currentBusinessId === "tangent") ? (
+          <NavItem href="/afterschool" icon={Baby} label="晚托" active={pathname.startsWith("/afterschool")} />
         ) : null}
         {showVehicles ? (
           <NavItem
