@@ -23,9 +23,9 @@ export function CareRegistration({students}:{students:Student[]}){
  };
  return <form onSubmit={onSubmit} className="mx-auto max-w-4xl space-y-4">
   <header className="flex items-center justify-between"><div><h1 className="text-2xl font-bold">晚托班 · 新学生报名</h1>
-  <p className="text-sm text-slate-500">学生资料 → 每周班次 → 两位家长签名 → 紧急联系人</p></div>
+  </div>
   <Link className="text-sm text-indigo-600" href="/afterschool">返回接送工作台</Link></header>
-  <section className={section}><h2 className="text-lg font-bold">1. 孩子信息</h2>
+  <section className={section}><h2 className="text-lg font-bold">学生信息</h2>
     <label className={lbl}>关联已有 CuS 学员（可选）
       <select name="student_id" className={input} value={existing} onChange={e=>setExisting(e.target.value)}>
         <option value="">新学生：创建学员档案</option>
@@ -40,17 +40,17 @@ export function CareRegistration({students}:{students:Student[]}){
       <Field name="medical_notes" label="健康与用药注意事项"/>
     </div>
   </section>
-  <section className={section}><h2 className="text-lg font-bold">2. 每周托管班次</h2>
-    <p className="text-xs text-slate-500">可选多天，每天按同一开始与结束时间安排；之后可由教务调整。</p>
+  <section className={section}><h2 className="text-lg font-bold">托管日期</h2>
+    
     <div className="flex flex-wrap gap-4">{["周一","周二","周三","周四","周五"].map((d,i)=>
       <label key={d} className="flex items-center gap-2 text-sm"><input type="checkbox" name={"weekday_"+(i+1)} defaultChecked={i===0}/>{d}</label>)}</div>
     <div className="grid gap-3 sm:grid-cols-2">
       <Field name="start_time" type="time" label="开始时间" required/>
       <Field name="end_time" type="time" label="结束时间" required/>
-    </div><p className="text-xs text-amber-700">请确保开始/结束时间与晚托实际经营安排一致。</p>
+    </div>
   </section>
-  <section className={section}><h2 className="text-lg font-bold">3. 家长 / 法定监护人档案</h2>
-    <p className="text-sm text-slate-600">两位家长分别签名；有无法联系、监护限制或其他特殊情况时，应先标记待审核，不自动视为放弃安全核验。</p>
+  <section className={section}><h2 className="text-lg font-bold">家长信息</h2>
+    <p className="text-sm text-slate-600">两位家长分别签名；无法提供第二位家长资料时请说明。</p>
     <div className="grid gap-3 sm:grid-cols-2">
       <Field name="guardian_1_name" label="家长 1 全名" required/>
       <label className={lbl}>身份<select name="guardian_1_relation" className={input}>
@@ -79,20 +79,20 @@ export function CareRegistration({students}:{students:Student[]}){
     <label className={lbl}>特别监护或接送限制说明
       <textarea name="parental_arrangement_notes" className={input} rows={2} placeholder="有法院命令或监护权限制时，由管理员核对有关证明后记录"/></label>
   </section>
-  <section className={section}><h2 className="text-lg font-bold">4. 额外紧急联系人</h2>
-    <p className="text-xs text-slate-500">第三人默认为紧急联系人，不会自动获得接走孩子的权限。</p>
+  <section className={section}><h2 className="text-lg font-bold">紧急联系人</h2>
+    <p className="text-xs text-slate-500">紧急联系人不默认拥有接送权限。</p>
     <div className="grid gap-3 sm:grid-cols-3">
       <Field name="emergency_name" label="姓名" required/>
       <Field name="emergency_phone" label="电话" type="tel" required placeholder="请输入有效电话号码"/>
       <Field name="emergency_relation" label="与孩子的关系"/>
     </div>
   </section>
-  <section className={section}><h2 className="text-lg font-bold">5. 接送、费用与隐私确认</h2>
-    <p className="text-sm text-slate-600">正常接送需现场签字并核对身份。第三方接送须获得档案中家长额外确认；未获确认不得放行。迟接初步收费规则：超时不足或等于 60 分钟收 NZ$20，超过 60 分钟后额外每开始一小时收 NZ$10（最终以机构签署条款为准）。</p>
-    <p className="text-sm text-slate-600">签名、接送时间、审批、交接影像仅用于安全管理和纠纷处理。录像需单独征得知情同意，并通过受保护渠道分享；具体隐私声明、保存期限和退款条款在正式招生前还须审核。</p>
+  <section className={section}><h2 className="text-lg font-bold">接送与授权</h2>
+    <p className="text-sm text-slate-600">接送时需核验身份并现场签名；第三方接送必须获得家长授权。迟接暂计：1–60 分钟 NZ$20，之后每开始一小时增加 NZ$10；以正式签署的服务协议为准。</p>
+    <p className="text-sm text-slate-600">签到、签退和授权记录用于安全管理。必要录像需单独同意，按隐私政策限制访问和保存。</p>
     <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="sms_consent" className="mt-1"/>同意向首要联系人发送与孩子托管有关的服务提醒短信（不是营销短信）</label>
     <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="image_consent" className="mt-1"/>同意在必要的第三方接送核验中按隐私告知采集交接视频（不同意时仅允许正常监护人接送，特殊情况须人工另行处理）</label>
-    <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="terms_accepted" required className="mt-1"/>确认已阅读上述临时接送、收费及隐私告知，并同意建立孩子的托管档案</label>
+    <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="terms_accepted" required className="mt-1"/>已阅读上述接送、收费及隐私事项，并同意建立托管档案</label>
   </section>
   {result&&<p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{result}</p>}
   <button type="submit" disabled={pending} className="w-full rounded-xl bg-indigo-600 p-3 font-semibold text-white disabled:opacity-50">{pending?"正在保存…":"确认报名并建立档案"}</button>
