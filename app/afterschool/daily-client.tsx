@@ -59,7 +59,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
         {v.status==="in_care"&&isAdmin&&cs.length>0&&<button onClick={()=>setEditing(editing===v.id?"":v.id)} className="rounded-lg border px-3 py-2 text-xs">第三方接送审批</button>}
       </div>
       {editing===v.id&&isAdmin&&<div className="space-y-3 rounded-lg bg-slate-50 p-3">
-       <p className="font-semibold">第三方接送：先核实家长授权，再上传视频并通知家长</p>
+       <p className="font-semibold">第三方接送审批</p>
        <form onSubmit={doAction(approveThirdParty)} className="space-y-2">
         <input type="hidden" name="visit_id" value={v.id}/>
         <label className="block text-xs">申请接送人<select className={input} name="contact_id" required defaultValue=""><option value="">选择紧急联系人</option>{cs.map(x=><option key={x.id} value={x.id}>{x.full_name} · {x.phone}</option>)}</select></label>
@@ -79,7 +79,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
         </form>}
         {app.video_path&&!app.parent_notified_at&&<form onSubmit={doAction(markParentNotified)} className="space-y-2">
           <input type="hidden" name="approval_id" value={app.id}/>
-          <p className="text-xs text-amber-700">视频仅存储在私有空间；目前尚未接通自动发送，请通过获批准的安全渠道向家长提供交接确认，并记录通知。不要把私有存储链接直接公开。</p>
+          <p className="text-xs text-amber-700">视频不会自动发送，请通过受保护渠道联系已核实的家长，再记录通知。</p>
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="confirmed" required/>我已直接向批准家长确认交接影像及接送安排</label>
           <button disabled={pending} className={button}>记录家长已通知</button>
         </form>}
