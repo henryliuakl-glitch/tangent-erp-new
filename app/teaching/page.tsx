@@ -54,7 +54,7 @@ export default async function TeachingPage() {
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div><h1 className="text-2xl font-bold">CuS 教务管理</h1>
           <p className="text-sm text-slate-500">课程项目 · 班级 · 报名 · 课次 · 出勤</p></div>
-        <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">权限：{membership.data.role}</span>
+        <div className="flex items-center gap-2"><Link href="/afterschool" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">晚托接送管理</Link><span className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">权限：{membership.data.role}</span></div>
       </header>
       <div className="grid gap-3 sm:grid-cols-3">
         {[["课程项目",programmes.length],["班级数量",classes.length],["有效报名",enrolments.filter(x=>x.status==="active").length]].map(([label,value])=>
