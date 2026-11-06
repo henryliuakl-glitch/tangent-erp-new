@@ -152,15 +152,24 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
       if (!programme) return {ok:false,error:"课次不属于 CuS"};
     }
     const {data:existing, error:findError} = await db.from("cus_teaching_records")
-      .select("id").eq(foreignKey,id).maybeSingle();
+      .select("id,updated_at").eq(foreignKey,id).maybeSingle();
     if (findError) throw findError;
     if (existing) {
-      const {error} = await db.from("cus_teaching_records").update(payload).eq("id",existing.id);
+      if (form.get("record_id") !== existing.id ||
+          form.get("record_version") !== existing.updated_at) {
+        return {ok:false,error:"这节课的记录已存在或被更新，请刷新页面后再修改"};
+      }
+      const {data:updated,error} = await db.from("cus_teaching_records")
+        .update(payload).eq("id",existing.id).eq("updated_at",existing.updated_at)
+        .select("id").maybeSingle();
       if (error) throw error;
+      if (!updated) return {ok:false,error:"这节课的记录刚被其他老师更新，请刷新后重试"};
     } else {
+      if (form.get("record_id")) return {ok:false,error:"记录状态已改变，请刷新页面"};
       const {error} = await db.from("cus_teaching_records").insert({
         ...payload,[foreignKey]:id,student_id:studentId
       });
+      if (error?.code==="23505") return {ok:false,error:"这节课已存在教学记录，请刷新页面"};
       if (error) throw error;
     }
     revalidatePath("/teaching");
