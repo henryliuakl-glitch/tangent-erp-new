@@ -11,6 +11,7 @@ import {
   Users,
   CarFront,
   House,
+  GraduationCap,
 } from "lucide-react";
 
 import BusinessSwitcher from "@/components/BusinessSwitcher";
@@ -40,8 +41,8 @@ export function Navbar() {
     currentBusinessId === "family"
       ? [{ href: "/family", label: "家庭总览", icon: House }]
       : currentBusinessId === "sine" || currentBusinessId === "tangent"
-        ? [...NAV_ITEMS, { href: "/vehicles", label: "车辆", icon: CarFront }]
-        : NAV_ITEMS;
+        ? [...NAV_ITEMS, ...(currentBusinessId === "tangent" ? [{ href: "/teaching", label: "教务", icon: GraduationCap }] : []), { href: "/vehicles", label: "车辆", icon: CarFront }]
+        : [...NAV_ITEMS, { href: "/teaching", label: "教务", icon: GraduationCap }];
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
