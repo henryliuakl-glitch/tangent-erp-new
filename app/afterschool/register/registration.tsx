@@ -18,8 +18,8 @@ export function CareRegistration({students}:{students:Student[]}){
  const [existing,setExisting]=useState("");
  const onSubmit=(e:React.FormEvent<HTMLFormElement>)=>{
    e.preventDefault();const data=new FormData(e.currentTarget);setResult("");
-   start(async()=>{try{const r=await registerCareChild(data);router.push("/afterschool?created="+r.status);router.refresh();}
-     catch(err){setResult(err instanceof Error?err.message:"提交失败，请重新核对");}});
+   start(async()=>{try{const r=await registerCareChild(data);if(!r.ok){setResult(r.error);return;}router.push("/afterschool?created="+r.status);router.refresh();}
+     catch(err){setResult("连接失败，请检查网络后重试。已填写的内容不会清空。");}});
  };
  return <form onSubmit={onSubmit} className="mx-auto max-w-4xl space-y-4">
   <header className="flex items-center justify-between"><div><h1 className="text-2xl font-bold">晚托班 · 新学生报名</h1>
@@ -55,7 +55,7 @@ export function CareRegistration({students}:{students:Student[]}){
       <Field name="guardian_1_name" label="家长 1 全名" required/>
       <label className={lbl}>身份<select name="guardian_1_relation" className={input}>
         <option value="mother">母亲</option><option value="father">父亲</option><option value="guardian">其他法定监护人</option><option value="other">其他</option></select></label>
-      <Field name="guardian_1_phone" label="家长 1 电话" type="tel" required/>
+      <Field name="guardian_1_phone" label="家长 1 电话" type="tel" required placeholder="例如 0211234567"/>
       <Field name="guardian_1_email" label="家长 1 Email" type="email"/>
       <Field name="guardian_1_signed_name" label="家长 1 本人签署姓名（须匹配全名）" required/>
       <SignaturePad name="guardian_1_signature" label="家长 1 手写签名"/>
@@ -65,7 +65,7 @@ export function CareRegistration({students}:{students:Student[]}){
       <Field name="guardian_2_name" label="家长 2 全名" required/>
       <label className={lbl}>身份<select name="guardian_2_relation" className={input}>
         <option value="father">父亲</option><option value="mother">母亲</option><option value="guardian">其他法定监护人</option><option value="other">其他</option></select></label>
-      <Field name="guardian_2_phone" label="家长 2 电话" type="tel" required/>
+      <Field name="guardian_2_phone" label="家长 2 电话" type="tel" required placeholder="例如 0211234567"/>
       <Field name="guardian_2_email" label="家长 2 Email" type="email"/>
       <Field name="guardian_2_signed_name" label="家长 2 本人签署姓名（须匹配全名）" required/>
       <SignaturePad name="guardian_2_signature" label="家长 2 手写签名"/>
@@ -83,7 +83,7 @@ export function CareRegistration({students}:{students:Student[]}){
     <p className="text-xs text-slate-500">第三人默认为紧急联系人，不会自动获得接走孩子的权限。</p>
     <div className="grid gap-3 sm:grid-cols-3">
       <Field name="emergency_name" label="姓名" required/>
-      <Field name="emergency_phone" label="电话" type="tel" required/>
+      <Field name="emergency_phone" label="电话" type="tel" required placeholder="请输入有效电话号码"/>
       <Field name="emergency_relation" label="与孩子的关系"/>
     </div>
   </section>
