@@ -1,0 +1,21 @@
+name: Care SMS scheduler (requires explicit opt-in)
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  dispatch:
+    if: ${{ vars.CARE_REMINDERS_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call ERP reminder route
+        env:
+          ERP_URL: ${{ vars.ERP_PRODUCTION_URL }}
+          CRON_KEY: ${{ secrets.CARE_CRON_SECRET }}
+        run: |
+          test -n "$ERP_URL" && test -n "$CRON_KEY" || { echo "Required variables missing"; exit 1; }
+          curl --fail-with-body --show-error --silent \
+            -H "Authorization: Bearer $CRON_KEY" \
+            "${ERP_URL%/}/api/cron/care-reminders"
