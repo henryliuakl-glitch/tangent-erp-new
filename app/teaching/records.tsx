@@ -59,6 +59,7 @@ export async function TeachingRecords({editable}:{editable:boolean}) {
   }
   const saved:SavedLesson[]=records.map(r=>({
     id:r.id,target:r.booking_id?"booking:"+r.booking_id:"session:"+r.class_session_id,
+    updated_at:r.updated_at,
     teacher:r.teacher||null,lesson_content:r.lesson_content,
     homework:r.homework||null,student_feedback:r.student_feedback||null,next_steps:r.next_steps||null
   }));
