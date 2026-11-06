@@ -65,6 +65,7 @@ export async function registerCareChild(form:FormData) {
     parental_arrangement_notes:text(form,"parental_arrangement_notes")||null,
     missing_guardian_reason:missingReason||null,
     image_consent:form.get("image_consent")==="on",
+    sms_consent:form.get("sms_consent")==="on",
     terms_acknowledged_at:new Date().toISOString(),
     status:parent2?"active":"pending",updated_at:new Date().toISOString()
   },{onConflict:"student_id"});
