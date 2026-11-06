@@ -218,3 +218,39 @@ export async function markParentNotified(form:FormData){
   const {error}=await db.from("cus_care_pickup_approvals").update({parent_notified_at:new Date().toISOString()}).eq("id",id);
   check(error);revalidatePath("/afterschool");
 }
+
+/** Admin-assisted supplementary parent signature; never replaces the original record. */
+export async function addSecondGuardian(form:FormData){
+  const {db,user}=await operator(["owner","admin"]);
+  const studentId=must(form,"student_id");
+  const {data:p}=await db.from("cus_care_profiles").select("student_id,status").eq("student_id",studentId).single();
+  ensure(p,"档案不存在");
+  const {data:current}=await db.from("cus_care_guardians").select("id").eq("student_id",studentId);
+  ensure((current||[]).length===1,"此档案并非仅缺一位家长签名");
+  const name=must(form,"full_name");
+  signedName(name,must(form,"signed_name"));
+  const {error}=await db.from("cus_care_guardians").insert({
+    student_id:studentId,full_name:name,relationship:must(form,"relationship"),
+    phone:phoneNumber(must(form,"phone")),email:text(form,"email")||null,
+    primary_contact:false,pickup_authorized:true,
+    signature_data:png(must(form,"signature")),signature_name:name,
+    signature_signed_at:new Date().toISOString(),signature_recorded_by:user.id
+  });check(error);
+  const {error:u}=await db.from("cus_care_profiles").update({
+    status:"active",missing_guardian_reason:null,updated_at:new Date().toISOString()
+  }).eq("student_id",studentId);
+  check(u);revalidatePath("/afterschool");
+}
+export async function updateCareWeekdays(form:FormData){
+  const {db}=await operator(["owner","admin"]);
+  const studentId=must(form,"student_id");
+  const days=[1,2,3,4,5].filter(d=>form.get("weekday_"+d)==="on");
+  ensure(days.length>0,"至少选择一天");
+  const starts=must(form,"start_time"),ends=must(form,"end_time");
+  ensure(/^\\d{2}:\\d{2}$/.test(starts)&&/^\\d{2}:\\d{2}$/.test(ends)&&ends>starts,"时间不正确");
+  const {error:del}=await db.from("cus_care_weekdays").delete().eq("student_id",studentId);check(del);
+  const {error}=await db.from("cus_care_weekdays").insert(days.map(weekday=>({
+    student_id:studentId,weekday,starts_at:starts,ends_at:ends
+  })));check(error);
+  revalidatePath("/afterschool");
+}
