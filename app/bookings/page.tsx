@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
+import { ClassSessionsStrip } from "./class-sessions-strip";
 import { Navbar } from "@/components/Navbar";
 import { BookingList, BookingsCta } from "./booking-list";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -137,6 +139,9 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">查询</button>
           <span className="text-xs text-slate-500">按日期区间加载，当前 {bookings.length} 条</span>
         </form>
+        {(businessId === "cus" || businessId === "tangent") && (
+          <Suspense fallback={null}><ClassSessionsStrip fromIso={fromIso} toIso={toIso} /></Suspense>
+        )}
         <BookingList bookings={bookings} />
 
       </main>
