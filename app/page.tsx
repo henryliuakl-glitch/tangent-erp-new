@@ -47,6 +47,7 @@ import { isBookingUnpaid, isPayAsYouGo } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
   formatDateLabelInNZ,
+  addCalendarDaysInNZ,
   getTodayInNZ,
   isTodayInNZ,
   utcToNzDateStr,
@@ -450,6 +451,17 @@ export default function Home() {
 
   const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
   const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
+  const todayProgress = todayLessons.length ? Math.round(todayDone / todayLessons.length * 100) : 0;
+  const weekStart=getTodayInNZ();
+  const sevenDays=Array.from({length:7},(_,i)=>{
+    const day=addCalendarDaysInNZ(weekStart,i);
+    return {
+      date:day,
+      short:new Intl.DateTimeFormat("zh-CN",{weekday:"short",timeZone:"UTC"}).format(new Date(day+"T12:00:00Z")),
+      count:upcomingBookings.filter((b:any)=>b.status==="confirmed"&&utcToNzDateStr(b.start_time)===day).length
+    };
+  });
+  const maxDayCount=Math.max(1,...sevenDays.map(d=>d.count));
 
   const quickBookHref = driving ? "/bookings/quick" : "/bookings/new";
   const quickBookLabel = driving ? "快速排课" : "新建排课";
@@ -601,6 +613,31 @@ export default function Home() {
               icon={WalletCards}
               href="/finance"
             />
+            <div className="erp-metric-card erp-overview-progress">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-bold text-[#777d9a]">今日课程进度</p>
+                <span className="rounded-full bg-[#edf9f1] px-2 py-1 text-[10px] font-bold text-[#229962]">
+                  {todayDone} / {todayLessons.length}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-4">
+                <div className="erp-progress-ring" style={{
+                  background:"conic-gradient(#5757ef 0% "+todayProgress+"%, #edeef6 "+todayProgress+"% 100%)"
+                }} aria-label={"完成率 "+todayProgress+"%"} role="img">
+                  <div className="erp-progress-ring-inner">
+                    <span>{todayLoading?"—":todayProgress+"%"}</span>
+                  </div>
+                </div>
+                <div className="min-w-0 space-y-2 text-xs">
+                  <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#5757ef]"/>
+                    <span className="text-[#7b8097]">已完成</span><strong className="ml-auto text-[#282a4a]">{todayDone}</strong>
+                  </div>
+                  <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#e6e8f2]"/>
+                    <span className="text-[#7b8097]">待完成</span><strong className="ml-auto text-[#282a4a]">{todayPending}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.85fr)]">
@@ -620,7 +657,26 @@ export default function Home() {
               )}
             </div>
 
-            <div className="grid min-w-0 gap-3 content-start">
+            <div className="grid min-w-0 gap-4 content-start">
+              <section className="erp-surface p-4 sm:p-5">
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-extrabold text-[#242743]">未来七天课程</h2>
+                    <p className="mt-1 text-[11px] text-[#9ba0b5]">已确认课程数量</p>
+                  </div>
+                  <span className="rounded-lg bg-[#f0efff] px-2.5 py-1 text-xs font-bold text-[#5355e7]">
+                    {sevenDays.reduce((sum,d)=>sum+d.count,0)} 节
+                  </span>
+                </div>
+                <div className="flex h-[124px] items-end justify-between gap-2">
+                  {sevenDays.map((d,i)=><div key={d.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                    <span className="text-[10px] font-bold text-[#656b8b]">{d.count||""}</span>
+                    <div className={"w-full max-w-[34px] rounded-t-[9px] "+(i===0?"bg-[#5555ec]":"bg-[#aaaaf7]")}
+                      style={{height:String(Math.max(10,d.count/maxDayCount*78))+"px"}}/>
+                    <span className={"text-[10px] font-semibold "+(i===0?"text-[#5657eb]":"text-[#a1a5bc]")}>{d.short}</span>
+                  </div>)}
+                </div>
+              </section>
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
                   <div>
