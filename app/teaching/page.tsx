@@ -41,14 +41,14 @@ export default async function TeachingPage({
   return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
     <div className="hidden md:block"><Navbar/></div>
     <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 md:px-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="erp-page-heading flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">教务</h1>
         {owner&&<div className="flex items-center gap-2">
           <Link href="/bookings" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">排课</Link>
           <Link href="/students" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">学员</Link>
         </div>}
       </header>
-      <nav aria-label="教务视图" className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-white p-1 text-sm">
+      <nav aria-label="教务视图" className="inline-flex flex-wrap rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-sm">
         {tabs.map(tab=><Link key={tab.id} href={tab.href}
           aria-current={current===tab.id?"page":undefined}
           className={"rounded-md px-4 py-2 font-semibold "+(current===tab.id?
