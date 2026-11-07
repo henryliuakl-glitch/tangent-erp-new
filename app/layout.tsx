@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 
 // ✅ 2. 配置视口和主题色 (Next.js 14+ 推荐写法)
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#f5f6fc",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -53,7 +53,7 @@ export default async function RootLayout({
   const businessId = careOnly?"care":(cookieStore.get("businessId")?.value || "cus");
   return (
     <html lang="en" className="h-full max-w-full overflow-x-hidden overscroll-none">
-      <body className={`${inter.className} bg-slate-50 overflow-x-hidden overscroll-none`}>
+      <body className={`${inter.className} erp-app overflow-x-hidden overscroll-none`}>
         <BusinessProvider initialBusinessId={businessId} careOnly={careOnly} astraOnly={astraOnly}>
           {children}
           <Toaster position="top-center" />
