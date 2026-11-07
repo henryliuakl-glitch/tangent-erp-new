@@ -3,9 +3,9 @@ import {getTodayInNZ,utcToNzDateStr,utcToNzTimeStr} from "@/lib/timezone";
 import {createProgramme,createClass,enrolStudent,withdrawStudent,createSession,setAttendance} from "./actions";
 
 type Row=Record<string,any>;
-const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
+const input="erp-field w-full px-3 py-2.5 text-sm";
 const btn="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700";
-const panel="rounded-xl border border-slate-200 bg-white p-4";
+const panel="erp-surface p-5 md:p-6";
 function SelectField({name,items,placeholder}:{name:string;items:{id:string;label:string}[];placeholder:string}){
   return <select required name={name} defaultValue="" className={input}>
     <option value="" disabled>{placeholder}</option>
@@ -14,7 +14,7 @@ function SelectField({name,items,placeholder}:{name:string;items:{id:string;labe
 }
 function Submit({children}:{children:React.ReactNode}){return <button className={btn} type="submit">{children}</button>;}
 function Editor({title,children}:{title:string;children:React.ReactNode}){
-  return <details className="rounded-xl border border-slate-200 bg-white p-3">
+  return <details className="erp-surface p-4">
     <summary className="cursor-pointer text-sm font-semibold">{title}</summary>
     <div className="mt-3">{children}</div>
   </details>;
@@ -98,7 +98,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
         <span className="text-xs text-slate-500">{classes.length} 个班级</span>
       </div>
       {classes.length===0?<p className="text-sm text-slate-500">尚无班级。</p>:
-      <div className="grid gap-2 md:grid-cols-2">{classes.map(c=><details key={c.id} className="rounded-lg border border-slate-200 p-3">
+      <div className="grid gap-2 md:grid-cols-2">{classes.map(c=><details key={c.id} className="rounded-xl border border-[#e9eaf5] bg-[#fdfdff] p-4 hover:border-[#dcdcff]">
         <summary className="cursor-pointer list-none">
           <div className="flex items-start justify-between gap-2">
             <div><p className="font-semibold">{c.title}</p><p className="mt-1 text-xs text-slate-500">
