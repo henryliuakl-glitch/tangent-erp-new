@@ -3,16 +3,16 @@ import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {SignaturePad} from "./signature-pad";
 import {clockCare,approveThirdParty,uploadThirdPartyVideo,markParentNotified,
-  addSecondGuardian,updateCareWeekdays} from "./actions";
+  addSecondGuardian,createCareSchedule,addCareDayCredits,createTeacher,addCareLessonLog} from "./actions";
 type Data=Record<string,any>;
 type Props={visits:Data[];students:Data[];profiles:Data[];guardians:Data[];
-  contacts:Data[];approvals:Data[];weekdays:Data[];isAdmin:boolean};
+  contacts:Data[];approvals:Data[];teachers:Data[];balances:Data[];upcoming:Data[];lessonLogs:Data[];isAdmin:boolean;selectedDate:string};
 const box="rounded-xl border border-slate-200 bg-white p-4 shadow-sm";
 const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
 const button="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40";
-const days=["一","二","三","四","五"];
+const days=["日","一","二","三","四","五","六"];
 function nzDate(value:string){return new Intl.DateTimeFormat("zh-NZ",{timeZone:"Pacific/Auckland",dateStyle:"medium",timeStyle:"short"}).format(new Date(value));}
-export function CareDailyClient({visits,students,profiles,guardians,contacts,approvals,weekdays,isAdmin}:Props){
+export function CareDailyClient({visits,students,profiles,guardians,contacts,approvals,teachers,balances,upcoming,lessonLogs,isAdmin,selectedDate}:Props){
  const router=useRouter(),[pending,start]=useTransition();
  const [error,setError]=useState(""),[active,setActive]=useState(""),[direction,setDirection]=useState<"in"|"out">("in");
  const [personType,setPersonType]=useState("guardian"),[selectedPerson,setSelectedPerson]=useState("");
@@ -29,14 +29,15 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
    setSelectedPerson(guardians.find(g=>g.student_id===visit.student_id)?.id||"");setError("");
  };
  const pendingProfiles=profiles.filter(p=>p.status!=="active");
+ const balanceByChild=new Map(balances.map(x=>[x.student_id,x]));
  return <div className="space-y-5">
   {error&&<div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-  <section className={box}><h2 className="mb-3 text-lg font-bold">今日托管名单</h2>
+  <section className={box}><h2 className="mb-3 text-lg font-bold">{selectedDate} 托管名单</h2>
    {visits.length===0?<p className="text-sm text-slate-500">暂无今日名单，请点击「生成今日班次」。</p>:
    <div className="grid gap-3 lg:grid-cols-2">{visits.map(v=>{
      const gs=guardians.filter(x=>x.student_id===v.student_id);
      const cs=contacts.filter(x=>x.student_id===v.student_id);
-     const primary=gs.find(x=>x.primary_contact)||gs[0],late=v.status==="in_care"&&new Date()>new Date(v.scheduled_end);
+     const late=v.status==="in_care"&&new Date()>new Date(v.scheduled_end);
      const app=approvals.filter(x=>x.visit_id===v.id && !x.revoked_at).at(-1);
      return <div key={v.id} className="space-y-2 rounded-xl border border-slate-200 p-3">
       <div className="flex items-start justify-between gap-2"><div>
@@ -112,7 +113,11 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
           </select></label>
         <label className="block text-xs font-semibold">签署姓名（必须匹配人员档案）
           <input className={input} name="signed_name" autoComplete="off" required placeholder={selected?.full_name||"请由签字人填写全名"}/></label>
-        <SignaturePad key={active+direction+personType} name="signature" label="本次现场手写签名"/>
+        <SignaturePad key={active+direction+personType} name="signature" label="家长 / 接送人签名"/>
+        <label className="block space-y-1 text-xs font-semibold">现场负责人姓名
+          <input required name="staff_name" className={input} placeholder="工作人员本人姓名"/>
+        </label>
+        <SignaturePad key={active+direction+"staff"} name="staff_signature" label="负责人现场手写签名"/>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="identity_checked" required/>教务已实际核实此人身份、接送权限和孩子反应</label>
         <button disabled={pending} className={button}>{pending?"正在保存…":"确认 "+(direction==="in"?"Clock In":"Clock Out")}</button>
       </form>
@@ -134,17 +139,98 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
       </form>}
     </div>)}
   </section>}
-  {isAdmin&&<section className={box}><h2 className="mb-3 text-lg font-bold">每周班次管理</h2>
-   <div className="grid gap-3 md:grid-cols-2">{profiles.map(p=>{
-     const ds=weekdays.filter(x=>x.student_id===p.student_id);
-     return <form key={p.student_id} onSubmit={doAction(updateCareWeekdays)} className="space-y-2 rounded-lg border p-3">
-      <input type="hidden" name="student_id" value={p.student_id}/>
-      <p className="font-semibold">{studentById.get(p.student_id)?.name}</p>
-      <div className="flex flex-wrap gap-2">{days.map((d,i)=><label key={d} className="flex gap-1 text-xs"><input type="checkbox" name={"weekday_"+(i+1)} defaultChecked={ds.some(x=>x.weekday===i+1)}/>周{d}</label>)}</div>
-      <div className="grid grid-cols-2 gap-2"><input className={input} type="time" name="start_time" defaultValue={ds[0]?.starts_at?.slice(0,5)||"15:30"} required/><input className={input} type="time" name="end_time" defaultValue={ds[0]?.ends_at?.slice(0,5)||"17:30"} required/></div>
-      <button className={button} disabled={pending}>更新固定班次</button>
-     </form>;
-   })}</div>
+
+  <section className={box}>
+    <h2 className="mb-3 text-lg font-bold">学生档案与托管天数</h2>
+    {profiles.length===0?<p className="text-sm text-slate-500">暂无晚托档案，请先创建档案。</p>:
+      <div className="grid gap-2 md:grid-cols-2">{profiles.map(p=>{
+        const child=studentById.get(p.student_id),balance=balanceByChild.get(p.student_id);
+        const next=upcoming.filter(v=>v.student_id===p.student_id);
+        return <details className="rounded-lg border border-slate-200 p-3" key={p.student_id}>
+          <summary className="flex cursor-pointer items-center justify-between gap-2">
+            <span className="font-semibold">{child?.name||"学生"}</span>
+            <span className="text-xs text-slate-600">剩余 {balance?.remaining_days??0} 天 · 已安排 {balance?.reserved_days??0} 天</span>
+          </summary>
+          <div className="mt-3 space-y-3 text-sm">
+            <p className="text-xs text-slate-600">已使用 {balance?.used_days??0} 天 · 累计录入 {balance?.purchased_days??0} 天</p>
+            <div className="flex flex-wrap gap-1">{next.slice(0,20).map(v=><span key={v.id} className="rounded bg-slate-100 px-2 py-1 text-xs">{v.care_date}</span>)}</div>
+            {next.length===0&&<p className="text-xs text-slate-500">暂无未来的具体日期。</p>}
+            {isAdmin&&<form onSubmit={doAction(addCareDayCredits)} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="student_id" value={p.student_id}/>
+              <label className="text-xs">登记天数（可为负）
+                <input className={input} name="days" type="number" min="-365" max="365" required placeholder="例如 10"/>
+              </label>
+              <label className="text-xs">备注<input className={input} name="note" placeholder="套餐 / 调整原因"/></label>
+              <button className={button} disabled={pending}>记录天数</button>
+            </form>}
+          </div>
+        </details>;
+      })}</div>}
+  </section>
+  {isAdmin&&<section className={box}>
+    <details>
+      <summary className="cursor-pointer font-bold">＋ 安排具体日期</summary>
+      <form onSubmit={doAction(createCareSchedule)} className="mt-3 space-y-3">
+        <label className="block text-sm">晚托学生
+          <select name="student_id" className={input} required defaultValue="">
+            <option value="" disabled>选择已建档学生</option>
+            {students.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select></label>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-sm">起始日期<input type="date" name="date_from" className={input} defaultValue={selectedDate} required/></label>
+          <label className="text-sm">结束日期<input type="date" name="date_to" className={input} defaultValue={selectedDate} required/></label>
+        </div>
+        <div className="flex flex-wrap gap-3">{days.map((d,i)=>
+          <label key={i} className="flex items-center gap-1 text-sm"><input type="checkbox" name={"weekday_"+i} defaultChecked/>周{d}</label>)}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-sm">开始时间<input type="time" name="start_time" defaultValue="15:30" required className={input}/></label>
+          <label className="text-sm">结束时间<input type="time" name="end_time" defaultValue="17:30" required className={input}/></label>
+        </div>
+        <button type="submit" disabled={pending} className={button}>保存日期班次</button>
+      </form>
+    </details>
   </section>}
+  <section className={box}>
+    <details>
+      <summary className="cursor-pointer text-lg font-bold">教师与课堂记录</summary>
+      <div className="mt-3 space-y-4">
+        <div className="flex flex-wrap gap-2">{teachers.map(t=><span key={t.id} className="rounded bg-slate-100 px-3 py-1 text-sm">{t.full_name}</span>)}</div>
+        {isAdmin&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-semibold">＋ 登记老师</summary>
+          <form onSubmit={doAction(createTeacher)} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <input type="hidden" name="scope" value="care"/>
+            <input className={input} name="full_name" placeholder="姓名" required/>
+            <input className={input} name="phone" placeholder="联系电话"/>
+            <input className={input} name="email" placeholder="Email" type="email"/>
+            <input className={input} name="subjects" placeholder="负责课程 / 专长"/>
+            <input className={input} name="notes" placeholder="备注"/>
+            <button type="submit" className={button} disabled={pending}>保存教师档案</button>
+          </form>
+        </details>}
+        {visits.map(v=><details key={v.id} className="rounded-lg border p-3">
+          <summary className="cursor-pointer font-semibold">{studentById.get(v.student_id)?.name||"学生"} · {selectedDate}</summary>
+          <div className="mt-3 space-y-2">
+            {lessonLogs.filter(x=>x.visit_id===v.id).map(x=><div key={x.id} className="rounded-lg bg-slate-50 p-2 text-sm">
+              <p><strong>教师：</strong>{teachers.find(t=>t.id===x.teacher_id)?.full_name||"未指定"}</p>
+              <p className="whitespace-pre-wrap"><strong>教师活动：</strong>{x.teacher_actions}</p>
+              <p className="whitespace-pre-wrap"><strong>学生完成：</strong>{x.child_actions}</p>
+              {x.observations&&<p className="whitespace-pre-wrap"><strong>备注：</strong>{x.observations}</p>}
+            </div>)}
+            <form onSubmit={doAction(addCareLessonLog)} className="space-y-2">
+              <input type="hidden" name="visit_id" value={v.id}/>
+              <select className={input} name="teacher_id" defaultValue="">
+                <option value="">选择教师（可选）</option>
+                {teachers.map(t=><option key={t.id} value={t.id}>{t.full_name}</option>)}
+              </select>
+              <textarea className={input} name="teacher_actions" rows={2} required placeholder="本节课教师讲解、组织和指导的内容"/>
+              <textarea className={input} name="child_actions" rows={2} required placeholder="孩子参与、完成或练习的内容"/>
+              <textarea className={input} name="observations" rows={2} placeholder="观察与跟进（选填）"/>
+              <button type="submit" disabled={pending} className={button}>保存课堂记录</button>
+            </form>
+          </div>
+        </details>)}
+        {visits.length===0&&<p className="text-sm text-slate-500">选择有班次的日期后记录课堂情况。</p>}
+      </div>
+    </details>
+  </section>
  </div>;
 }
