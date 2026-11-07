@@ -403,3 +403,29 @@ body.erp-app {
   .erp-app .erp-metric-card{padding:12px;}
   .erp-app .erp-finance-kpi{min-height:110px;}
 }
+
+/* Borderless operations components, consistent with dashboard metrics. */
+.erp-app .erp-student-card,.erp-app .erp-booking-card{
+  border:0!important;background:#fff;
+  box-shadow:0 3px 14px rgba(38,45,103,.045)!important;
+  border-radius:16px;
+}
+.erp-app .erp-student-card:hover,.erp-app .erp-booking-card:hover{
+  box-shadow:0 7px 22px rgba(38,45,103,.09)!important;background:#fdfdff;
+}
+.erp-app .erp-teaching-tabs{align-self:center;}
+.erp-app .erp-teaching-tabs a{white-space:nowrap;}
+.erp-app .erp-period-select{
+  height:30px;border:0!important;box-shadow:none!important;
+  background:#fff;color:#353955;font-size:12px;font-weight:700;
+  border-radius:8px;padding:0 7px;cursor:pointer;
+}
+.erp-app .erp-period-select:focus{outline:2px solid #b6b7f7;outline-offset:1px;}
+.erp-app .erp-period-select:hover{background:#f6f6fd;}
+.erp-app .erp-surface{border:0!important;}
+.erp-app :is(section,article,div).erp-surface{box-shadow:0 3px 14px rgba(38,45,103,.045)!important;}
+.erp-app .erp-upcoming-list>div{min-height:47px;}
+@media(min-width:1280px){
+ .erp-app .erp-dashboard-columns{align-items:stretch;}
+ .erp-app .erp-dashboard-columns>div{min-width:0;}
+}

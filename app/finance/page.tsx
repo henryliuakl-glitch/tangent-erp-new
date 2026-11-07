@@ -266,11 +266,28 @@ export default function FinancePage() {
             <button type="button" onClick={resetToCurrentPeriod} className="min-w-[76px] px-1 text-xs font-bold">{periodLabel}</button>
             <button type="button" onClick={()=>shiftPeriod(1)} aria-label="下个期间" className="rounded-lg p-1 text-slate-500"><ChevronRight className="h-4 w-4"/></button>
           </div>
-          {periodMode==="week"?<Input aria-label="跳转日期" type="date" value={anchorDate} onChange={e=>setAnchorDate(e.target.value)} className="h-9 w-[145px] bg-white text-xs"/>:
-           periodMode==="month"?<Input aria-label="跳转月份" type="month" value={anchorDate.slice(0,7)} onChange={e=>setMonthAnchor(e.target.value)} className="h-9 w-[145px] bg-white text-xs"/>:
-           <Input aria-label="跳转年份" type="number" min="2000" max="2100" value={anchorDate.slice(0,4)} onChange={e=>setYearAnchor(e.target.value)} className="h-9 w-24 bg-white text-xs"/>}
-          <Link href="/finance/add" className="inline-flex h-9 items-center rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">
-            <Plus className="mr-1 h-3.5 w-3.5"/>记一笔
+          <div className="flex h-9 items-center gap-1 rounded-xl bg-white px-1.5 shadow-sm">
+            {periodMode==="week"?
+              <Input aria-label="跳转日期" type="date" value={anchorDate} onChange={e=>setAnchorDate(e.target.value)}
+                className="h-8 w-[145px] border-0 bg-transparent px-1 text-xs shadow-none"/>:
+            periodMode==="month"?<>
+              <select aria-label="跳转年份" value={anchorDate.slice(0,4)}
+                onChange={e=>setMonthAnchor(e.target.value+"-"+anchorDate.slice(5,7))}
+                className="erp-period-select w-[80px]">
+                {Array.from({length:26},(_,i)=>2015+i).map(y=><option key={y} value={y}>{y}年</option>)}
+              </select>
+              <select aria-label="跳转月份" value={Number(anchorDate.slice(5,7))}
+                onChange={e=>setMonthAnchor(anchorDate.slice(0,4)+"-"+String(e.target.value).padStart(2,"0"))}
+                className="erp-period-select w-[65px]">
+                {Array.from({length:12},(_,i)=>i+1).map(m=><option key={m} value={m}>{m}月</option>)}
+              </select>
+            </>:<select aria-label="跳转年份" value={anchorDate.slice(0,4)}
+              onChange={e=>setYearAnchor(e.target.value)} className="erp-period-select w-24">
+              {Array.from({length:26},(_,i)=>2015+i).map(y=><option key={y} value={y}>{y}年</option>)}
+            </select>}
+          </div>
+          <Link href="/finance/add" className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-4 text-xs font-bold text-white">
+            记一笔
           </Link>
         </div>
         {(data.pendingReimburseCount || 0) > 0 && (

@@ -378,10 +378,10 @@ export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booki
                    const rateLabel = b.actual_rate || b.student?.hourly_rate || null;
                    
                    return (
-                     <div key={b.id} className={`relative border-l-2 py-0 pl-1.5 md:pl-2.5 transition-colors group ${lineClass}`}>
-                        <div className={`absolute -left-[4px] top-2.5 h-1.5 w-1.5 md:top-3 md:h-2 md:w-2 rounded-full border-2 border-slate-50 ${dotClass}`}></div>
+                     <div key={b.id} className="relative group py-0 transition-colors">
+                        <div className="hidden"></div>
                         
-                        <div className={`sm:hidden rounded-lg border px-2.5 py-2 shadow-sm ${cardClass}`}>
+                        <div className={`erp-booking-card rounded-xl px-3 py-2 sm:hidden ${cardClass}`}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <div className="flex min-w-0 items-center gap-1.5">
@@ -483,7 +483,7 @@ export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booki
                           </div>
                         </div>
 
-                        <div className={`hidden sm:grid grid-cols-[minmax(0,1fr)_150px_96px] items-center gap-3 rounded-xl border px-3 py-2 shadow-sm transition-transform active:scale-[0.99] ${cardClass}`}>
+                        <div className={`erp-booking-card hidden grid-cols-[minmax(0,1fr)_150px_96px] items-center gap-3 rounded-xl px-3 py-2 transition-transform active:scale-[0.99] sm:grid ${cardClass}`}>
                            <div className="flex min-w-0 items-center gap-2.5">
                               <Avatar name={studentName || studentCode || "?"} />
                               <div className="min-w-0 flex-1">

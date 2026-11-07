@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from "lucide-react";
 import {
   addCalendarDaysInNZ,
@@ -31,7 +32,7 @@ type CalendarBooking = {
 
 const DEFAULT_START_HOUR = 10;
 const DEFAULT_END_HOUR = 20;
-const HOUR_HEIGHT = 54;
+const HOUR_HEIGHT = 43;
 
 function monthTitle(monthKey: string) {
   const [y, m] = monthKey.split("-").map(Number);
@@ -183,11 +184,13 @@ export function DashboardCalendar({
   businessId,
   loading = false,
   onMonthChange,
+  reminders = [],
 }: {
   bookings: CalendarBooking[];
   businessId: string;
   loading?: boolean;
   onMonthChange?: (monthKey: string) => void;
+  reminders?: {id:string;name:string;balance:number}[];
 }) {
   const todayKey = getTodayInNZ();
   const [selectedKey, setSelectedKey] = useState(todayKey);
@@ -267,8 +270,8 @@ export function DashboardCalendar({
         : "CuS Academy 日历";
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-3.5 py-2.5 sm:px-4">
+    <section className="erp-surface overflow-hidden rounded-2xl bg-white">
+      <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 sm:px-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-indigo-600" />
@@ -276,22 +279,19 @@ export function DashboardCalendar({
               {scopeLabel}
             </h3>
           </div>
-          <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-            月历选日期 · 默认显示 10:00–20:00，有早课或晚课时自动扩展
-          </p>
         </div>
 
         <button
           type="button"
           onClick={goToday}
-          className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-indigo-600 shadow-sm active:scale-95"
+          className="shrink-0 rounded-lg bg-[#f1f1ff] px-2.5 py-1 text-[11px] font-bold text-indigo-600 active:scale-95"
         >
           今天
         </button>
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,0.88fr)_minmax(360px,1.12fr)]">
-        <div className="border-b border-slate-100 p-2.5 sm:p-3 lg:border-b-0 lg:border-r">
+      <div className="grid lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <div className="min-w-0 p-2.5 sm:p-3">
           <div className="mb-1.5 flex items-center justify-between">
             <button
               type="button"
@@ -327,7 +327,7 @@ export function DashboardCalendar({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1">
+          <div className="grid grid-cols-7 gap-y-0.5">
             {gridDays.map((dateKey) => {
               const inMonth = dateKey.slice(0, 7) === visibleMonth;
               const isToday = dateKey === todayKey;
@@ -343,7 +343,7 @@ export function DashboardCalendar({
                     setSelectedKey(dateKey);
                     if (!inMonth) setVisibleMonth(dateKey.slice(0, 7));
                   }}
-                  className={`relative mx-auto flex h-9 w-full max-w-[46px] flex-col items-center justify-center rounded-lg transition-all active:scale-95 ${
+                  className={`relative mx-auto flex h-8 w-full max-w-[46px] flex-col items-center justify-center rounded-lg transition-all active:scale-95 ${
                     isSelected
                       ? "bg-slate-900 text-white shadow-md"
                       : isToday
@@ -382,25 +382,36 @@ export function DashboardCalendar({
             })}
           </div>
 
-          <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5">
+          <div className="mt-2 flex items-center justify-between rounded-xl bg-[#f7f8ff] px-3 py-2">
             <div className="text-[10px] font-bold text-slate-400">
               {selectedKey.slice(5, 7)}月{selectedKey.slice(8, 10)}日 · {weekdayLabel(selectedKey)}
             </div>
             <div className="mt-0.5 text-sm font-black text-slate-900">
               {selectedBookings.length} 节课程
             </div>
-            <div className="mt-1 text-[10px] text-slate-400">
-              默认显示 10:00–20:00；当天有更早或更晚课程时自动延伸。
+          </div>
+          <div className="mt-2 rounded-xl bg-[#f7f8ff] p-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <h4 className="text-xs font-bold text-[#282b4a]">课时提醒</h4>
+              {reminders.length>0&&<span className="rounded-full bg-rose-50 px-2 text-[10px] font-bold text-rose-600">{reminders.length}</span>}
             </div>
+            {reminders.length===0?<p className="py-1 text-[11px] text-slate-400">暂无课时提醒</p>:
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                {reminders.slice(0,6).map(student=><Link key={student.id} href={`/students/${student.id}`}
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-[11px] hover:bg-white">
+                  <span className="truncate text-slate-600">{student.name}</span>
+                  <span className="shrink-0 font-bold text-rose-600">{Number(student.balance)}h</span>
+                </Link>)}
+              </div>}
           </div>
         </div>
 
-        <div className="bg-slate-50/40 p-2.5 sm:p-3">
+        <div className="min-w-0 rounded-xl bg-[#fbfbff] p-2.5 sm:p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div>
               <div className="text-xs font-black text-slate-900">当天时段</div>
               <div className="text-[9px] font-medium text-slate-400">
-                {String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00 · 每小时一格
+                {String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00
               </div>
             </div>
             <div className="text-[10px] font-bold text-slate-400">
@@ -408,7 +419,7 @@ export function DashboardCalendar({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl bg-white">
             <div
               className="relative ml-[48px]"
               style={{ height: (gridEndHour - gridStartHour) * HOUR_HEIGHT }}
@@ -463,7 +474,7 @@ export function DashboardCalendar({
                 return (
                   <div
                     key={booking.id}
-                    className={`absolute z-10 overflow-hidden rounded-lg border px-2 py-1.5 shadow-sm ${accent.block}`}
+                    className={`absolute z-10 overflow-hidden rounded-lg px-2 py-1 ${accent.block}`}
                     style={{
                       top,
                       height,
@@ -501,7 +512,7 @@ export function DashboardCalendar({
 
               {positionedBookings.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-white/90 px-4 py-3 text-center">
+                  <div className="rounded-xl bg-white/90 px-4 py-3 text-center">
                     <CalendarDays className="mx-auto mb-1 h-4 w-4 text-slate-300" />
                     <div className="text-[10px] font-semibold text-slate-400">{String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00 全部空闲</div>
                   </div>

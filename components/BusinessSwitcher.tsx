@@ -45,17 +45,17 @@ export default function BusinessSwitcher({compact=false}:{compact?:boolean}) {
         role="combobox"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className={compact?"flex h-10 w-full items-center justify-between rounded-xl border border-[#e6e8f4] bg-white px-2.5 text-[12px] font-semibold shadow-none hover:bg-[#f8f8ff]":"w-60 justify-between bg-white"}
+        className={compact?"flex h-10 w-full min-w-0 items-center justify-start overflow-hidden rounded-xl border border-[#e6e8f4] bg-white px-2.5 text-[12px] font-semibold shadow-none hover:bg-[#f8f8ff]":"w-60 justify-between bg-white"}
       >
         {currentUnit ? (
-          <div className="flex items-center gap-2 text-slate-700">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-slate-700">
             <currentUnit.icon className="h-4 w-4 text-slate-500" />
             <span className="truncate">{currentUnit.name}</span>
           </div>
         ) : (
           <span className="truncate text-slate-700">{currentLabel}</span>
         )}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        {!compact&&<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
       </Button>
 
       {/* 下拉列表 (纯 Tailwind 实现，不依赖 Command 组件) */}

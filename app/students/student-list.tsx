@@ -217,7 +217,7 @@ export function StudentList({ students }: { students: any[] }) {
         : "无待办";
 
       return (
-        <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-[#e8eaf5] rounded-[16px] p-3.5 md:px-4 md:py-3 hover:border-[#c9c8fa] hover:shadow-[0_7px_24px_rgba(71,74,150,.07)] transition-all gap-2 md:gap-3">
+        <div key={student.id} className="erp-student-card group flex flex-col justify-between gap-2 rounded-2xl bg-white p-3.5 transition-all md:flex-row md:items-center md:gap-3 md:px-4 md:py-3">
           <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <Avatar name={student.name} />
             <div className="min-w-0">
@@ -402,7 +402,7 @@ export function StudentList({ students }: { students: any[] }) {
       </div>
 
       {(activeStudents.length === 0 && inactiveStudents.length === 0) ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-200">
+        <div className="erp-surface py-16 text-center">
            <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-300 mb-3"><User className="h-7 w-7"/></div>
            <p className="text-slate-500 font-medium text-sm">未找到匹配的学员</p>
         </div>
