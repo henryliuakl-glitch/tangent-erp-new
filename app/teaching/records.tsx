@@ -2,6 +2,7 @@ import Link from "next/link";
 import {createClient} from "@/lib/supabase/server";
 import {addCalendarDaysInNZ,getTodayInNZ,nzLocalToUtc,utcToNzDateStr,utcToNzTimeStr} from "@/lib/timezone";
 import {TeachingRecordEditor,type LessonTarget,type SavedLesson} from "./record-editor";
+import {readTeacherNotes,readStudentRatings} from "@/lib/teaching-record-format";
 
 type Row=Record<string,any>;
 const panel="erp-surface p-3 md:p-4";
@@ -51,7 +52,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
      const rows=(bookings||[]) as Row[];
      const ids=[...new Set(rows.map(b=>b.student_id).filter(Boolean))];
      const {data:students,error:studentError}=ids.length
-       ?await db.from("students").select("id,name,student_code").eq("business_unit_id","cus").in("id",ids)
+       ?await db.from("students").select("id,name,student_code,teacher").eq("business_unit_id","cus").in("id",ids)
        :{data:[],error:null};
      if(studentError)errorMessage="学员资料读取失败。";
      else {
@@ -61,7 +62,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
          const code=String(student?.student_code||"").trim();
          return student&&code.startsWith("1")?[{
            id:b.id,student_id:b.student_id,starts_at:b.start_time,
-           subject:b.subject,teacher:b.teacher,student_name:student.name,
+           subject:b.subject||student.subject||null,teacher:b.teacher||student.teacher||null,student_name:student.name,
            student_code:code
          }]:[];
        });
@@ -87,7 +88,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
      .select("id,booking_id,class_session_id,student_id,teacher,lesson_content,homework,student_feedback,next_steps,created_at,updated_at,created_by")
      .in("class_session_id",sessionIds).order("created_at",{ascending:false}).limit(100)
      :Promise.resolve({data:[],error:null}),
-   classIds.length?db.from("cus_classes").select("id,title").in("id",classIds)
+   classIds.length?db.from("cus_classes").select("id,title,teacher").in("id",classIds)
      :Promise.resolve({data:[],error:null})
  ]);
  if(bookingRecords.error||sessionRecords.error||classesResult.error)
@@ -95,24 +96,25 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
  const records=[...((bookingRecords.data||[]) as Row[]),...((sessionRecords.data||[]) as Row[])]
    .sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
  const classNames=new Map(((classesResult.data||[]) as Row[]).map(c=>[c.id,c.title]));
+ const classTeachers=new Map(((classesResult.data||[]) as Row[]).map(c=>[c.id,c.teacher||null]));
  const labels=new Map<string,string>();
  const datedTargets:(LessonTarget & {date:string})[]=[];
  for(const b of oneToOne){
    const value="booking:"+b.id;
    const label=[utcToNzDateStr(b.starts_at),utcToNzTimeStr(b.starts_at),
      b.student_name,b.subject||""].filter(Boolean).join(" · ");
-   datedTargets.push({value,label,date:utcToNzDateStr(b.starts_at)});
+   datedTargets.push({value,label,date:utcToNzDateStr(b.starts_at),teacher:b.teacher});
    labels.set(value,label);
  }
  for(const s of classSessions){
    const value="session:"+s.id;
    const label=[utcToNzDateStr(s.starts_at),utcToNzTimeStr(s.starts_at),
      classNames.get(s.class_id)||"班课",s.topic||""].filter(Boolean).join(" · ");
-   datedTargets.push({value,label,date:utcToNzDateStr(s.starts_at)});
+   datedTargets.push({value,label,date:utcToNzDateStr(s.starts_at),teacher:classTeachers.get(s.class_id)||null});
    labels.set(value,label);
  }
  datedTargets.sort((a,b)=>sortClosest(a,b,focus));
- const targets:LessonTarget[]=datedTargets.map(({value,label})=>({value,label}));
+ const targets:LessonTarget[]=datedTargets.map(({value,label,teacher})=>({value,label,teacher}));
  const saved:SavedLesson[]=records.map(r=>({
    id:r.id,target:r.booking_id?"booking:"+r.booking_id:"session:"+r.class_session_id,
    updated_at:r.updated_at,created_by:r.created_by,
@@ -143,6 +145,8 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
        <div className="space-y-2">{displayed.map(r=>{
          const value=r.booking_id?"booking:"+r.booking_id:"session:"+r.class_session_id;
          const title=labels.get(value)||"历史课次";
+         const lesson=readTeacherNotes(r.lesson_content);
+         const ratings=readStudentRatings(r.student_feedback);
          return <details key={r.id} className="group rounded-xl bg-[#f8f9ff] px-3 py-2.5 transition-colors hover:bg-[#f3f4ff]">
            <summary className="cursor-pointer list-none">
              <div className="flex items-center justify-between gap-3">
@@ -152,10 +156,13 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
              </div>
            </summary>
            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-sm">
-             <p className="whitespace-pre-wrap"><strong>教师做了什么：</strong>{r.lesson_content}</p>
-             {r.homework&&<p className="whitespace-pre-wrap"><strong>作业：</strong>{r.homework}</p>}
-             {r.student_feedback&&<p className="whitespace-pre-wrap"><strong>学生做了什么：</strong>{r.student_feedback}</p>}
-             {r.next_steps&&<p className="whitespace-pre-wrap"><strong>下节计划：</strong>{r.next_steps}</p>}
+             <p className="whitespace-pre-wrap"><strong>授课内容：</strong>{lesson.content}</p>
+             <p className="whitespace-pre-wrap"><strong>课程评价：</strong>{lesson.evaluation}</p>
+             <p className="whitespace-pre-wrap"><strong>下节计划：</strong>{r.next_steps||"无"}</p>
+             <p><strong>掌握程度：</strong>{ratings.mastery}　<strong>课堂参与：</strong>{ratings.participation}　<strong>进步情况：</strong>{ratings.progress}</p>
+             {ratings.legacy&&<p className="whitespace-pre-wrap"><strong>旧版学生记录：</strong>{ratings.legacy}</p>}
+             <p><strong>作业：</strong>{r.homework==="未布置"?"未布置":r.homework?"已布置":"未布置"}</p>
+             {r.homework&&r.homework!=="已布置"&&r.homework!=="未布置"&&<p className="whitespace-pre-wrap text-xs text-slate-500">原作业备注：{r.homework}</p>}
            </div>
          </details>;
        })}</div>}

@@ -454,3 +454,23 @@ body.erp-app {
  .erp-app .erp-bookings-toolbar{align-items:stretch;}
  .erp-app .erp-list-toolbar{align-items:stretch;}
 }
+
+/* Neutral, borderless form controls shared by ERP modules. */
+body.erp-app input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+body.erp-app textarea,
+body.erp-app select,
+body.erp-app button[role="combobox"],
+body.erp-app .erp-soft-control {
+  border:0!important;
+  background-color:#f0f1f6!important;
+  box-shadow:none!important;
+  color:#343a54;
+}
+body.erp-app :is(input,textarea)::placeholder{color:#969db0;}
+body.erp-app :is(input,textarea,select,button[role="combobox"]):focus-visible{
+  outline:2px solid #b3bbeb!important;
+  outline-offset:1px!important;
+}
+body.erp-app textarea{line-height:1.55;}
+body.erp-app .erp-care-page :is(h2,summary){font-size:14px;font-weight:700;}
+body.erp-app .erp-care-page h3{font-size:13px;}

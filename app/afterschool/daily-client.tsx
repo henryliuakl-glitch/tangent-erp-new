@@ -32,7 +32,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
  const balanceByChild=new Map(balances.map(x=>[x.student_id,x]));
  return <div className="space-y-2">
   {error&&<div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-  <section className={box}><h2 className="mb-3 text-lg font-bold">{selectedDate} 托管名单</h2>
+  <section className={box}><h2 className="mb-3 text-sm font-bold">{selectedDate} 托管名单</h2>
    {visits.length===0?<p className="text-sm text-slate-500">暂无今日名单，请点击「生成今日班次」。</p>:
    <div className="grid gap-2 lg:grid-cols-2">{visits.map(v=>{
      const gs=guardians.filter(x=>x.student_id===v.student_id);
@@ -97,7 +97,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
     const people=personType==="guardian"?gs:cs;
     const selected=people.find(x=>x.id===selectedPerson);
     return <section className={box}><div className="flex items-center justify-between">
-      <h2 className="text-lg font-bold">{direction==="in"?"到场签到":"离场签退"} · {studentById.get(visit.student_id)?.name}</h2>
+      <h2 className="text-sm font-bold">{direction==="in"?"到场签到":"离场签退"} · {studentById.get(visit.student_id)?.name}</h2>
       <button className="text-sm text-slate-500" onClick={()=>setActive("")}>关闭 ×</button></div>
       <form onSubmit={doAction(clockCare)} className="mt-3 space-y-3">
         <input type="hidden" name="visit_id" value={visit.id}/><input type="hidden" name="direction" value={direction}/>
@@ -123,7 +123,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
       </form>
     </section>;
   })()}
-  {pendingProfiles.length>0&&<section className={box}><h2 className="mb-3 text-lg font-bold">待补家长签名 / 人工审核</h2>
+  {pendingProfiles.length>0&&<section className={box}><h2 className="mb-3 text-sm font-bold">待补家长签名 / 人工审核</h2>
     <p className="mb-3 text-xs text-amber-700">未完成两位家长签字的档案目前不能生成有效的孩子交接记录。</p>
     {pendingProfiles.map(p=><div key={p.student_id} className="mb-3 rounded-lg border border-amber-200 p-3">
       <p className="mb-2 font-semibold">{studentById.get(p.student_id)?.name} · {p.missing_guardian_reason||"待审核"}</p>
@@ -141,7 +141,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
   </section>}
 
   <section className={box}>
-    <h2 className="mb-3 text-lg font-bold">学生档案与托管天数</h2>
+    <h2 className="mb-3 text-sm font-bold">学生档案与托管天数</h2>
     {profiles.length===0?<p className="text-sm text-slate-500">暂无晚托档案，请先创建档案。</p>:
       <div className="grid gap-2 md:grid-cols-2">{profiles.map(p=>{
         const child=studentById.get(p.student_id),balance=balanceByChild.get(p.student_id);
@@ -192,7 +192,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
   </section>}
   <section className={box}>
     <details>
-      <summary className="cursor-pointer text-lg font-bold">教师与课堂记录</summary>
+      <summary className="cursor-pointer text-sm font-bold">教师与课堂记录</summary>
       <div className="mt-3 space-y-4">
         <div className="flex flex-wrap gap-2">{teachers.map(t=><span key={t.id} className="rounded bg-slate-100 px-3 py-1 text-sm">{t.full_name}</span>)}</div>
         {isAdmin&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-semibold">＋ 登记老师</summary>
