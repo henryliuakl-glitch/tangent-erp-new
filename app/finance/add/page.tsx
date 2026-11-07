@@ -269,7 +269,7 @@ export default function AddTransactionPage() {
             
 
             {isTangent && (
-              <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -298,8 +298,7 @@ export default function AddTransactionPage() {
                 >
                   Sine 驾校
                 </button>
-                <button type="button" onClick={()=>{setTargetBusinessId("astra");setSelectedStudent("");setIncomeSource("");}}
-                   className={`h-9 rounded-lg text-xs font-bold transition-all ${targetBusinessId==="astra"?"bg-[#475188] text-white shadow-sm":"text-slate-500 hover:bg-white"}`}>Astra</button>
+                
               </div>
             )}
 
