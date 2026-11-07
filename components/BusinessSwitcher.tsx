@@ -11,8 +11,8 @@ const BUSINESS_UNITS = [
   { id: "family", name: "Family", icon: House },
   { id: "tangent", name: "Tangent Group", icon: LayoutGrid },
   { id: "cus", name: "CuS Academy (教培)", icon: Building2 },
-  { id: "astra", name: "Astra Education", icon: Building2 },
   { id: "sine", name: "Sine Driving (驾校)", icon: Car },
+  { id: "astra", name: "Astra Education", icon: Building2 },
 ];
 
 export default function BusinessSwitcher({compact=false}:{compact?:boolean}) {
