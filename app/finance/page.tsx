@@ -251,11 +251,11 @@ export default function FinancePage() {
       <main className="max-w-7xl mx-auto px-3 py-3 md:px-6 md:py-8">
         
         {/* Header & Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 md:gap-4 md:mb-8 pt-1 md:pt-0">
+        <div className="erp-page-heading flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 md:gap-4 md:mb-8 pt-1 md:pt-0">
           <div>
              <h1 className="text-lg md:text-2xl font-black text-slate-900 flex items-center gap-2">
                <Wallet className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
-               财务驾驶舱 (Finance)
+               财务总览
              </h1>
              <p className="text-[9px] md:text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
                Revenue & Expense Overview
