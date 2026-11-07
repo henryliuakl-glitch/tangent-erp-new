@@ -54,7 +54,7 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
   <div className="hidden md:block"><Navbar/></div>
   <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 md:px-6">
-   <header className="flex flex-wrap items-center justify-between gap-3">
+   <header className="erp-page-heading flex flex-wrap items-center justify-between gap-3">
     <div><h1 className="text-2xl font-bold">晚托</h1>
      <p className="text-sm text-slate-500">接送工作台</p></div>
     <div className="flex flex-wrap gap-2">
@@ -71,7 +71,7 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
     {[["已报名孩子",profiles.length],["今日预计",visits.length],
       ["托管中",visits.filter(x=>x.status==="in_care").length],
       ["已交接",visits.filter(x=>x.status==="released").length]].map(([label,n])=>
-      <div key={String(label)} className="rounded-xl border bg-white p-3"><p className="text-xs text-slate-500">{label}</p>
+      <div key={String(label)} className="erp-care-metric rounded-xl border bg-white p-4"><p className="text-xs text-slate-500">{label}</p>
        <p className="mt-1 text-2xl font-bold">{n}</p></div>)}
    </div>
    <CareDailyClient visits={visits} students={children} profiles={profiles}
