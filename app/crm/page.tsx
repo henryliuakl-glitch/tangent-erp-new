@@ -32,7 +32,7 @@ export default async function CrmPage({searchParams}:{
  }
 
  const cutoff=new Date(Date.now()-180*86400000).toISOString();
- const [l,a,t,f,s,b]=await Promise.all([
+ const [l,a,t,f,s,b,sa]=await Promise.all([
   db.from("edu_leads").select("*").eq("business_unit_id",unit).order("created_at",{ascending:false}).limit(600),
   db.from("edu_lead_activities").select("*").eq("business_unit_id",unit).order("created_at",{ascending:false}).limit(1200),
   db.from("edu_trials").select("*").eq("business_unit_id",unit).order("starts_at",{ascending:false}).limit(500),
@@ -41,9 +41,11 @@ export default async function CrmPage({searchParams}:{
     .eq("business_unit_id",unit).order("name").limit(1200),
   db.from("bookings").select("student_id,start_time,status")
     .eq("business_unit_id",unit).gte("start_time",cutoff)
-    .order("start_time",{ascending:false}).limit(2000)
+    .order("start_time",{ascending:false}).limit(2000),
+  db.from("edu_student_activities").select("*").eq("business_unit_id",unit)
+    .order("created_at",{ascending:false}).limit(1200)
  ]);
- const problems=[l,a,t,f,s,b].filter(x=>x.error).map(x=>x.error?.message);
+ const problems=[l,a,t,f,s,b,sa].filter(x=>x.error).map(x=>x.error?.message);
  if(problems.length){
   console.error("[education-crm] data fetch failed:",problems);
   return <div className="min-h-screen bg-slate-50 pb-24 md:pb-10">
@@ -86,6 +88,7 @@ export default async function CrmPage({searchParams}:{
   <main className="mx-auto max-w-[1500px] px-3 py-3 md:px-5 md:py-5">
    <CrmClient unit={unit} leads={l.data||[]} activities={a.data||[]}
      trials={t.data||[]} followups={f.data||[]} students={students}
+     studentActivities={sa.data||[]}
      renewalCandidates={renewalCandidates}
      focusLeadId={params.lead||null} focusStudentId={params.student||null}/>
   </main><MobileDock/>
