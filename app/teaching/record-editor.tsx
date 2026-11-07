@@ -9,7 +9,7 @@ export type SavedLesson = {
   id:string;target:string;updated_at:string;created_by:string;teacher:string|null;lesson_content:string;
   homework:string|null;student_feedback:string|null;next_steps:string|null;
 };
-const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
+const input="erp-field w-full px-3 py-2.5 text-sm";
 export function TeachingRecordEditor({
   targets,records,scope,currentUserId,owner
 }: {targets:LessonTarget[];records:SavedLesson[];scope:"cus"|"astra";currentUserId:string;owner:boolean}) {
@@ -33,8 +33,8 @@ export function TeachingRecordEditor({
     });
   }
   if(targets.length===0) return <p className="text-sm text-slate-500">暂无可记录的课程，请先到「排课」或「班级」安排课程。</p>;
-  return <div className="rounded-xl border border-slate-200 bg-white p-4">
-    <h2 className="mb-3 font-semibold">填写教学记录</h2>
+  return <div className="erp-surface p-5 md:p-6">
+    <h2 className="mb-5 text-[15px] font-extrabold text-[#282b4a]">填写教学记录</h2>
     <form key={target} onSubmit={submit} className="space-y-3">
       <input type="hidden" name="scope" value={scope}/>
       <input type="hidden" name="record_id" value={current?.id||""}/>
