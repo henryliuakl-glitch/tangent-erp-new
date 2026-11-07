@@ -3,7 +3,7 @@ import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {SignaturePad} from "./signature-pad";
 import {clockCare,approveThirdParty,uploadThirdPartyVideo,markParentNotified,
-  addSecondGuardian,createCareSchedule,addCareDayCredits,createTeacher,addCareLessonLog} from "./actions";
+  addSecondGuardian,createCareSchedule,cancelCareDate,addCareDayCredits,createTeacher,addCareLessonLog} from "./actions";
 type Data=Record<string,any>;
 type Props={visits:Data[];students:Data[];profiles:Data[];guardians:Data[];
   contacts:Data[];approvals:Data[];teachers:Data[];balances:Data[];upcoming:Data[];lessonLogs:Data[];isAdmin:boolean;selectedDate:string};
@@ -153,7 +153,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
           </summary>
           <div className="mt-3 space-y-3 text-sm">
             <p className="text-xs text-slate-600">已使用 {balance?.used_days??0} 天 · 累计录入 {balance?.purchased_days??0} 天</p>
-            <div className="flex flex-wrap gap-1">{next.slice(0,20).map(v=><span key={v.id} className="rounded bg-slate-100 px-2 py-1 text-xs">{v.care_date}</span>)}</div>
+            <div className="flex flex-wrap gap-1">{next.slice(0,20).map(v=><form key={v.id} onSubmit={doAction(cancelCareDate)} className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs"><input type="hidden" name="visit_id" value={v.id}/><span>{v.care_date}</span>{isAdmin&&<button type="submit" disabled={pending} title="取消该日班次" className="text-rose-600">×</button>}</form>)}</div>
             {next.length===0&&<p className="text-xs text-slate-500">暂无未来的具体日期。</p>}
             {isAdmin&&<form onSubmit={doAction(addCareDayCredits)} className="flex flex-wrap items-end gap-2">
               <input type="hidden" name="student_id" value={p.student_id}/>
