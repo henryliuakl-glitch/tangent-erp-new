@@ -6,7 +6,7 @@ import {useState} from "react";
 import type {ComponentType} from "react";
 import {
   CalendarDays, CirclePlus, House, LayoutDashboard, ReceiptText, Users,
-  CarFront, GraduationCap, Baby, Grid2X2, LogOut, X, ArrowUpRight
+  CarFront, GraduationCap, Baby, Grid2X2, LogOut, X, ArrowUpRight, UserRoundSearch
 } from "lucide-react";
 import {useBusiness} from "@/contexts/BusinessContext";
 import {isDrivingSchoolBusiness} from "@/lib/business";
@@ -46,6 +46,7 @@ export function MobileDock(){
     router.replace("/login");router.refresh();
   }
   const extra=careOnly?[{href:"/afterschool",label:"晚托",icon:Baby}]:family?[]:[
+    ...(["cus","astra"].includes(currentBusinessId)?[{href:"/crm",label:"招生",icon:UserRoundSearch}]:[]),
     {href:"/finance",label:"财务",icon:ReceiptText},
     ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap}]:[]),
     ...(currentBusinessId==="astra"?[{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
