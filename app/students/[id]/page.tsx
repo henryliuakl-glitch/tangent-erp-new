@@ -63,6 +63,18 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
+        {(student.business_unit_id==="cus"||student.business_unit_id==="astra")&&
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-indigo-900">招生与家长跟进</p>
+              <p className="text-xs text-indigo-600">查看咨询历史、试听记录及续费待办</p>
+            </div>
+            <Link href={"/crm?student="+encodeURIComponent(id)}
+              className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm">
+              打开 CRM
+            </Link>
+          </div>}
+        
         {/* Profile Card */}
         <div className="bg-white rounded-xl md:rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative mb-3 md:mb-6">
           <div className="h-14 md:h-24 bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-100 relative">
