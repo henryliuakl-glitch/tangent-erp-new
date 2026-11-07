@@ -451,9 +451,6 @@ export default function Home() {
   const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
   const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
   const todayProgress = todayLessons.length ? Math.round(todayDone / todayLessons.length * 100) : 0;
-  const quickBookHref = driving ? "/bookings/quick" : "/bookings/new";
-  const quickBookLabel = driving ? "快速排课" : "新建排课";
-
   return (
     <>
       <div className="hidden md:block">
@@ -587,7 +584,7 @@ export default function Home() {
           <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.85fr)]">
             <div className="min-w-0">
               {calendarLoading ? (
-                <div className="flex h-[410px] items-center justify-center rounded-xl border border-slate-200 bg-white">
+                <div className="erp-surface flex h-[420px] items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
                 </div>
               ) : (
@@ -597,16 +594,16 @@ export default function Home() {
                   businessId={currentBusinessId}
                   loading={calendarLoading}
                   onMonthChange={handleCalendarMonthChange}
+                  reminders={loading?[]:(stats.lowBalanceStudents||[])}
                 />
               )}
             </div>
 
             <div className="grid min-w-0 gap-3 content-start">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
+              <div className="erp-surface overflow-hidden">
+                <div className="flex items-center justify-between px-3.5 py-2.5">
                   <div>
                     <h2 className="text-sm font-bold text-slate-950">接下来</h2>
-                    <p className="text-[10px] text-slate-400">最近 8 节待办课程</p>
                   </div>
                   <Link
                     href="/bookings"
@@ -626,7 +623,7 @@ export default function Home() {
                     暂无待办课程
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="erp-upcoming-list divide-y divide-slate-100">
                     {nextBookings.map((b: any) => {
                       const student = b.student || {};
                       const isToday = isTodayInNZ(b.start_time);
@@ -637,8 +634,8 @@ export default function Home() {
                         (isDrivingSchoolBusiness(b.business_unit_id) ? "练车" : "课程");
 
                       return (
-                        <div key={b.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
-                          <div className="w-13 shrink-0">
+                        <div key={b.id} className="flex min-h-[48px] items-center gap-2.5 px-3 py-1.5">
+                          <div className="w-[91px] shrink-0">
                             <div className="text-[12px] font-bold tabular-nums text-slate-950">
                               {utcToNzTimeStr(b.start_time)}–{bookingEndLabel(b)}
                             </div>
@@ -669,7 +666,7 @@ export default function Home() {
                             <button
                               type="button"
                               onClick={() => openBookingEdit(b)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-indigo-600"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f4f5fc] text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
                               aria-label="编辑排课"
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -678,7 +675,7 @@ export default function Home() {
                               type="button"
                               disabled={completingId === b.id}
                               onClick={() => handleComplete(b)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f4f5fc] text-slate-600 hover:bg-indigo-50 disabled:opacity-50"
                               aria-label="完成课程"
                             >
                               {completingId === b.id ? (
@@ -695,47 +692,10 @@ export default function Home() {
                 )}
               </div>
 
-              <div>
-                <Link
-                  href={quickBookHref}
-                  className="flex h-10 w-full items-center justify-between rounded-xl bg-slate-950 px-3 text-xs font-semibold text-white hover:bg-slate-800"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Plus className="h-3.5 w-3.5" />
-                    {quickBookLabel}
-                  </span>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                </Link>
-              </div>
-
-              {!loading && stats.lowBalanceStudents?.length > 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-3.5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-slate-950">课时提醒</h2>
-                    <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold text-rose-600">
-                      {stats.lowBalanceStudents.length}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                    {stats.lowBalanceStudents.slice(0, 6).map((s: any) => (
-                      <Link
-                        key={s.id}
-                        href={`/students/${s.id}`}
-                        className="flex items-center justify-between rounded-lg px-1.5 py-1.5 hover:bg-slate-50"
-                      >
-                        <span className="truncate text-[11px] font-medium text-slate-700">{s.name}</span>
-                        <span className="ml-2 shrink-0 text-[10px] font-semibold text-rose-600">
-                          {Number(s.balance)}h
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </section>
 
-          <div className="mt-4 pb-2 text-center text-[10px] text-slate-300">
+          <div className="mt-2 pb-2 text-center text-[10px] text-slate-300">
             {today} · Tangent ERP
           </div>
         </div>

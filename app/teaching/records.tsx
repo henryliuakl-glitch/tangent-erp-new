@@ -123,13 +123,13 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
  const currentUserId=user?.id||"";
  const displayed=records.filter(r=>r.created_at).slice(0,80);
  return <div className="space-y-2">
-   <form action="/teaching" method="get" className="erp-surface flex flex-wrap items-center gap-2 p-3">
+   <form action="/teaching" method="get" className="erp-surface flex w-fit flex-wrap items-center gap-2 px-3 py-2">
      <input type="hidden" name="view" value={scope}/>
-     <label className="space-y-1 text-sm font-medium">定位日期
+     <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">日期
        <input type="date" name="date" defaultValue={focus}
-        className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"/>
+        className="h-8 rounded-lg bg-[#f7f8fc] px-2 text-xs"/>
      </label>
-     <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm">查看</button>
+     <button className="rounded-lg bg-[#eeeefe] px-3 py-1.5 text-xs font-bold text-indigo-600">查看</button>
      <Link href={scope==="astra"?"/teaching?view=astra":"/teaching"}
        className="rounded-lg px-3 py-2 text-sm text-indigo-600">今天</Link>
    </form>

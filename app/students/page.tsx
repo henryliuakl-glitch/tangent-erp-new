@@ -77,9 +77,6 @@ export default async function StudentsPage() {
               <Users className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
               学员管理
             </h1>
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
-              Directory & Balance
-            </p>
           </div>
           <Link href="/students/new">
             <Button className="rounded-xl bg-indigo-600 font-bold h-9 w-9 md:h-10 md:w-10 p-0 active:scale-95 transition-transform">

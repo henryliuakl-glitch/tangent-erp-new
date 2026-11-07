@@ -118,7 +118,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
     </section>
     <section className={panel}><h2 className="mb-3 font-semibold">近期课次与出勤</h2>
       {sessions.length===0?<p className="text-sm text-slate-500">暂无班课课次。</p>:
-       <div className="space-y-2">{sessions.map(s=><details key={s.id} className="rounded-lg border border-slate-200 p-3">
+       <div className="space-y-2">{sessions.map(s=><details key={s.id} className="rounded-xl bg-[#f8f9ff] p-3">
          <summary className="cursor-pointer text-sm font-semibold">
            {utcToNzDateStr(s.starts_at)} {utcToNzTimeStr(s.starts_at)} · {classNames.get(s.class_id)||"班课"}
          </summary>

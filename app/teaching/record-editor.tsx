@@ -34,7 +34,7 @@ export function TeachingRecordEditor({
   }
   if(targets.length===0) return <p className="text-sm text-slate-500">暂无可记录的课程，请先到「排课」或「班级」安排课程。</p>;
   return <div className="erp-surface p-3 md:p-4">
-    <h2 className="mb-5 text-[15px] font-extrabold text-[#282b4a]">填写教学记录</h2>
+    <h2 className="mb-3 text-sm font-extrabold text-[#282b4a]">填写教学记录</h2>
     <form key={target} onSubmit={submit} className="space-y-3">
       <input type="hidden" name="scope" value={scope}/>
       <input type="hidden" name="record_id" value={current?.id||""}/>
@@ -45,13 +45,13 @@ export function TeachingRecordEditor({
           {targets.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </label>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-12">
         <label className="block space-y-1 text-sm"><span className="font-medium">授课教师</span>
           <input name="teacher" className={input} defaultValue={current?.teacher||""} placeholder="教师姓名"/>
         </label>
         <label className="block space-y-1 text-sm sm:col-span-2">
           <span className="font-medium">教师做了什么 *</span>
-          <textarea name="lesson_content" className={input} required rows={3} maxLength={8000}
+          <textarea name="lesson_content" className={input} required rows={2} maxLength={8000}
             defaultValue={current?.lesson_content||""} placeholder="授课内容、讲解、指导与课堂安排"/>
         </label>
         <label className="block space-y-1 text-sm"><span className="font-medium">作业</span>

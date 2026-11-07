@@ -42,17 +42,16 @@ export default async function TeachingPage({
     <div className="hidden md:block"><Navbar/></div>
     <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-3 md:px-5">
       <header className="erp-page-heading flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">教务</h1>
-
-      </header>
-      <nav aria-label="教务视图" className="inline-flex flex-wrap rounded-xl bg-white p-1 text-sm shadow-sm">
+        <h1 className="shrink-0 text-2xl font-bold">教务</h1>
+        <nav aria-label="教务视图" className="erp-teaching-tabs flex min-w-0 flex-wrap items-center gap-1 rounded-xl bg-white p-1 text-sm shadow-sm">
         {tabs.map(tab=><Link key={tab.id} href={tab.href}
           aria-current={current===tab.id?"page":undefined}
           className={"rounded-lg px-3 py-1.5 font-semibold "+(current===tab.id?
             "bg-indigo-600 text-white":"text-slate-600 hover:bg-slate-50")}>
           {tab.label}
         </Link>)}
-      </nav>
+        </nav>
+      </header>
       {current==="care"?<CareTeachingOverview/>:
         current==="cus"?<TeachingRecords scope="cus" editable={owner} owner={owner} selectedDate={selectedDate}/>:
         current==="astra"?<TeachingRecords scope="astra" editable={astraStaff} owner={owner} selectedDate={selectedDate}/>:
