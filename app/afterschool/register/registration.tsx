@@ -5,8 +5,8 @@ import {useRouter} from "next/navigation";
 import {SignaturePad} from "../signature-pad";
 import {registerCareChild} from "../actions";
 
-const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
-const section="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3";
+const input="erp-field w-full px-3 py-2.5 text-sm";
+const section="erp-surface p-5 md:p-6 space-y-4";
 const lbl="block space-y-1 text-xs font-semibold text-slate-700";
 function Field({name,label,type="text",required=false,placeholder}:{name:string;label:string;type?:string;required?:boolean;placeholder?:string}) {
   return <label className={lbl}>{label}<input type={type} name={name} required={required} placeholder={placeholder} className={input}/></label>;
@@ -20,7 +20,7 @@ export function CareRegistration(){
      catch(err){setResult("连接失败，请检查网络后重试。已填写的内容不会清空。");}});
  };
  return <form onSubmit={onSubmit} className="mx-auto max-w-4xl space-y-4">
-  <header className="flex items-center justify-between"><div><h1 className="text-2xl font-bold">新建晚托档案</h1>
+  <header className="flex items-center justify-between"><div><h1 className="text-2xl font-extrabold tracking-tight text-[#252743]">新建晚托档案</h1>
   </div>
   <Link className="text-sm text-indigo-600" href="/afterschool">返回接送工作台</Link></header>
   <section className={section}><h2 className="text-lg font-bold">学生信息</h2>
