@@ -351,7 +351,7 @@ export default function VehiclesPage() {
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
       <div className="hidden md:block"><Navbar /></div>
       <main className="mx-auto max-w-6xl px-3 py-3 md:px-6 md:py-8">
-        <div className="mb-3 flex items-center justify-between gap-3 md:mb-6">
+        <div className="erp-page-heading mb-3 flex items-center justify-between gap-3 md:mb-6">
           <div>
             <div className="flex items-center gap-2">
               <Car className="h-5 w-5 text-indigo-600" />
@@ -373,7 +373,7 @@ export default function VehiclesPage() {
           </div>
         ) : null}
 
-        <div className="mb-3 grid grid-cols-3 gap-2">
+        <div className="erp-secondary-metrics mb-5 grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">车辆</div>
             <div className="mt-1 text-xl font-black">{vehicles.length}</div>
