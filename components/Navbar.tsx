@@ -37,10 +37,10 @@ const NAV_ITEMS = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentBusinessId, careOnly } = useBusiness();
+  const { currentBusinessId, careOnly, astraOnly } = useBusiness();
   const navItems = careOnly
     ? [{ href:"/teaching",label:"教务",icon:GraduationCap },
-       { href:"/afterschool",label:"晚托",icon:Baby }]
+       ...(!astraOnly?[{ href:"/afterschool",label:"晚托",icon:Baby }]:[]) ]
     : currentBusinessId === "family"
       ? [{ href: "/family", label: "家庭总览", icon: House }]
       : currentBusinessId === "sine" || currentBusinessId === "tangent"
