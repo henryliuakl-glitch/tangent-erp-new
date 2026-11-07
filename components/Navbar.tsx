@@ -37,9 +37,11 @@ const NAV_ITEMS = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentBusinessId } = useBusiness();
-  const navItems =
-    currentBusinessId === "family"
+  const { currentBusinessId, careOnly } = useBusiness();
+  const navItems = careOnly
+    ? [{ href:"/teaching",label:"教务",icon:GraduationCap },
+       { href:"/afterschool",label:"晚托",icon:Baby }]
+    : currentBusinessId === "family"
       ? [{ href: "/family", label: "家庭总览", icon: House }]
       : currentBusinessId === "sine" || currentBusinessId === "tangent"
         ? [...NAV_ITEMS, ...(currentBusinessId === "tangent" ? [{ href: "/teaching", label: "教务", icon: GraduationCap }, { href: "/afterschool", label: "晚托", icon: Baby }] : []), { href: "/vehicles", label: "车辆", icon: CarFront }]
@@ -87,9 +89,9 @@ export function Navbar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <BusinessSwitcher />
+          {!careOnly && <BusinessSwitcher />}
 
-          <DropdownMenu>
+          {!careOnly && <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
@@ -137,7 +139,7 @@ export function Navbar() {
                 退出登录
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu>}
         </div>
       </div>
     </nav>
