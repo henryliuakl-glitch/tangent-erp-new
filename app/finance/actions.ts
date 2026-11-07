@@ -93,7 +93,7 @@ export async function createTransaction(prevState: any, formData: FormData) {
   const hoursToAdd = Number(formData.get("hoursToAdd"));
 
   if (!isOperationalBusinessId(String(businessId || ""))) {
-    return { error: "请选择 CuS 或 Sine 业务实体" };
+    return { error: "请选择有效的业务实体" };
   }
 
   if (hoursToAdd < 0 || !Number.isFinite(hoursToAdd)) {
@@ -229,6 +229,7 @@ export async function getFinanceStats(
   const endExclusiveDate = nzStartOfDayUtc(endExclusiveDay);
   const endDate = new Date(endExclusiveDate.getTime() - 1);
 
+  const queryUnits=businessId==="astra"?["astra"]:["cus","sine"];
   const startStr = startDay;
   const endStr = endExclusiveDay;
 
@@ -240,7 +241,7 @@ export async function getFinanceStats(
     .order("transaction_date", { ascending: false });
 
   txQuery = txQuery
-    .in("business_unit_id", ["cus", "sine"])
+    .in("business_unit_id", queryUnits)
     .gte("transaction_date", startStr)
     .lt("transaction_date", endStr);
 
@@ -261,8 +262,8 @@ export async function getFinanceStats(
 
   // Finance 永远走同一条数据库查询路径：一次取 CuS + Sine，
   // 再在服务端按实体切分。避免 Tangent 与子实体出现不同查询性能/行为。
-  bookingQuery = bookingQuery.in("business_unit_id", ["cus", "sine"]);
-  pendingQuery = pendingQuery.in("business_unit_id", ["cus", "sine"]);
+  bookingQuery = bookingQuery.in("business_unit_id", queryUnits);
+  pendingQuery = pendingQuery.in("business_unit_id", queryUnits);
 
   // Same month/period aggregation as the dashboard: never let an optional
   // detail column make the finance headline falsely show zero cash.
@@ -294,7 +295,7 @@ export async function getFinanceStats(
       "id,type,amount,transaction_date,business_unit_id"
     ]) {
       const fallback = await supabase.from("transactions").select(columns)
-        .in("business_unit_id", ["cus", "sine"])
+        .in("business_unit_id", queryUnits)
         .gte("transaction_date", startStr).lt("transaction_date", endStr)
         .order("transaction_date", { ascending: false });
       if (!fallback.error) {
@@ -323,7 +324,7 @@ export async function getFinanceStats(
       .gte("start_time", bookingStartIso)
       .lt("start_time", bookingEndIso);
 
-    fallbackQuery = fallbackQuery.in("business_unit_id", ["cus", "sine"]);
+    fallbackQuery = fallbackQuery.in("business_unit_id", queryUnits);
 
     const bookingsFallback = await fallbackQuery;
     bookings = bookingsFallback.data || [];

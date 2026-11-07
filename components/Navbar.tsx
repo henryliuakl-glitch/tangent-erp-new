@@ -17,10 +17,11 @@ const family:Item={href:"/family",label:"家庭",icon:House};
 export function Navbar(){
   const pathname=usePathname(),router=useRouter();
   const {currentBusinessId,careOnly,astraOnly}=useBusiness();
-  const nav:Item[]=careOnly?(astraOnly?[teaching]:[teaching,care]):
+  const nav:Item[]=careOnly?[teaching,care]:
     currentBusinessId==="family"?[family]:
       [home,students,booking,finance,
-        ...(["cus","tangent"].includes(currentBusinessId)?[teaching,care]:[]),
+        ...(["cus","astra","tangent"].includes(currentBusinessId)?[teaching]:[]),
+        ...(currentBusinessId==="astra"?[care]:[]),
         ...(["sine","tangent"].includes(currentBusinessId)?[car]:[])];
   const active=(href:string)=>href==="/"?pathname==="/":pathname===href||pathname.startsWith(href+"/");
   const quickHref=currentBusinessId==="sine"?"/bookings/quick":"/bookings/new";
@@ -33,7 +34,7 @@ export function Navbar(){
         <div className="erp-brand-subtitle">OPERATIONS</div></div>
     </Link>
     <div className="erp-sidebar-switch">
-      {careOnly?<div className="erp-fixed-entity">{astraOnly?"Astra 教务":"晚托管理"}</div>:<BusinessSwitcher compact/>}
+      {careOnly||astraOnly?<div className="erp-fixed-entity">{astraOnly?"Astra Education":"晚托管理"}</div>:<BusinessSwitcher compact/>}
     </div>
     <nav className="erp-sidebar-nav" aria-label="功能模块">
       {nav.map(({href,label,icon:Icon})=><Link key={href} href={href}

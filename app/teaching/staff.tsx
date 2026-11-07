@@ -3,15 +3,15 @@ import {createClient} from "@/lib/supabase/server";
 import {createTeacher} from "@/app/afterschool/actions";
 type Staff={id:string;full_name:string;phone:string|null;email:string|null;subjects:string|null;scope:string;active:boolean};
 const input="erp-field w-full px-3 py-2.5 text-sm";
-export async function TeachingStaff({owner}:{owner:boolean}){
+export async function TeachingStaff({owner,businessId="cus"}:{owner:boolean;businessId?:"cus"|"astra"}){
  const db=await createClient();
  const {data:staff,error}=await db.from("cus_staff")
-  .select("id,full_name,phone,email,subjects,scope,active").order("full_name").limit(120);
+  .select("id,full_name,phone,email,subjects,scope,active").in("scope",businessId==="astra"?["astra","care"]:["general"]).order("full_name").limit(120);
  if(error)return <section className="erp-surface p-3 md:p-4">教师档案尚未启用，请执行晚托数据库升级。</section>;
  const rows=(staff||[]) as Staff[];
  return <div className="space-y-2">
   <section className="erp-surface p-3 md:p-4">
-   <h2 className="mb-3 font-semibold">教师档案</h2>
+   <h2 className="mb-3 text-sm font-semibold">教师档案</h2>
    {rows.length===0?<p className="text-sm text-slate-500">尚未登记教师。</p>:
     <div className="grid gap-2 sm:grid-cols-2">{rows.map(t=><div key={t.id} className="rounded-xl bg-[#f8f9ff] p-3">
       <div className="flex justify-between gap-2"><strong>{t.full_name}</strong><span className="text-xs text-slate-500">{t.scope==="care"?"晚托":"教学"} · {t.active?"在职":"暂停"}</span></div>
@@ -21,12 +21,14 @@ export async function TeachingStaff({owner}:{owner:boolean}){
     </div>)}</div>}
   </section>
   <section className="erp-surface p-3 md:p-4">
-    <details><summary className="cursor-pointer font-semibold">＋ 登记教师</summary>
+    <details><summary className="cursor-pointer font-semibold">登记教师</summary>
       <form action={createTeacher} className="mt-3 grid gap-2 sm:grid-cols-2">
         <input name="full_name" className={input} placeholder="姓名" required/>
-        <select name="scope" className={input} defaultValue="general">
-          {owner&&<option value="general">普通教务</option>}
-          <option value="care">晚托班</option>
+        <select name="scope" className={input} defaultValue={businessId==="astra"?"astra":"general"}>
+          {businessId==="cus"?<option value="general">教务教师</option>:<>
+            <option value="astra">Astra 教师</option>
+            <option value="care">晚托教师</option>
+          </>}
         </select>
         <input name="phone" className={input} placeholder="联系电话"/>
         <input name="email" type="email" className={input} placeholder="Email"/>

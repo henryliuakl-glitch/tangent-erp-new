@@ -121,6 +121,9 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
    teacher:r.teacher||null,lesson_content:r.lesson_content,
    homework:r.homework||null,student_feedback:r.student_feedback||null,next_steps:r.next_steps||null
  }));
+ const {data:staffList}=await db.from("cus_staff").select("full_name")
+   .in("scope",scope==="astra"?["astra","care"]:["general"]).eq("active",true).limit(120);
+ const teacherOptions=[...new Set(["Henry","Yvetta",...(staffList||[]).map(s=>s.full_name)])];
  const {data:{user}}=await db.auth.getUser();
  const currentUserId=user?.id||"";
  const displayed=records.filter(r=>r.created_at).slice(0,80);
@@ -137,7 +140,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
    </form>
    {editable&&<TeachingRecordEditor
      key={scope+":"+focus} scope={scope} currentUserId={currentUserId}
-     owner={owner}
+     owner={owner} teacherOptions={teacherOptions}
      targets={targets} records={saved}/>}
    <section className={panel}>
      <h2 className="mb-3 font-semibold">已保存的教学记录</h2>

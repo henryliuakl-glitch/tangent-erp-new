@@ -35,7 +35,7 @@ export function MobileDock(){
   const [more,setMore]=useState(false);
   const driving=isDrivingSchoolBusiness(currentBusinessId);
   const family=currentBusinessId==="family";
-  const education=currentBusinessId==="cus"||currentBusinessId==="tangent";
+  const education=["cus","astra","tangent"].includes(currentBusinessId);
   const showVehicles=driving||currentBusinessId==="tangent";
   const newHref=driving?"/bookings/quick":"/bookings/new";
   const close=()=>setMore(false);
@@ -45,11 +45,10 @@ export function MobileDock(){
     const db=createClient();await db.auth.signOut();
     router.replace("/login");router.refresh();
   }
-  const extra=careOnly?[
-    ...(astraOnly?[]:[{href:"/afterschool",label:"晚托",icon:Baby}])
-  ]:family?[]:[
+  const extra=careOnly?[{href:"/afterschool",label:"晚托",icon:Baby}]:family?[]:[
     {href:"/finance",label:"财务",icon:ReceiptText},
-    ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap},{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
+    ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap}]:[]),
+    ...(currentBusinessId==="astra"?[{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
     ...(showVehicles?[{href:"/vehicles",label:"车辆",icon:CarFront}]:[])
   ];
 
@@ -76,7 +75,7 @@ export function MobileDock(){
       <div className="mx-auto flex h-[66px] max-w-lg items-stretch gap-1 px-2.5">
         {family?<DockLink href="/family" icon={House} label="家庭" active={active("/family")}/>:careOnly?<>
           <DockLink href="/teaching" icon={GraduationCap} label="教务" active={active("/teaching")}/>
-          {!astraOnly&&<DockLink href="/afterschool" icon={Baby} label="晚托" active={active("/afterschool")}/>}
+          <DockLink href="/afterschool" icon={Baby} label="晚托" active={active("/afterschool")}/>
         </>:<>
           <DockLink href="/" icon={LayoutDashboard} label="工作台" active={pathname==="/"}/>
           <DockLink href="/students" icon={Users} label="学员" active={active("/students")}/>

@@ -11,6 +11,7 @@ const BUSINESS_UNITS = [
   { id: "family", name: "Family", icon: House },
   { id: "tangent", name: "Tangent Group", icon: LayoutGrid },
   { id: "cus", name: "CuS Academy (教培)", icon: Building2 },
+  { id: "astra", name: "Astra Education", icon: Building2 },
   { id: "sine", name: "Sine Driving (驾校)", icon: Car },
 ];
 
@@ -20,7 +21,7 @@ export default function BusinessSwitcher({compact=false}:{compact?:boolean}) {
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   
   // ✅ 获取全局状态
-  const { currentBusinessId, setBusinessId, currentLabel, careOnly } = useBusiness();
+  const { currentBusinessId, setBusinessId, currentLabel, careOnly, astraOnly } = useBusiness();
 
   // 找到当前选中的对象
   const currentUnit = BUSINESS_UNITS.find((unit) => unit.id === currentBusinessId);
@@ -36,7 +37,7 @@ export default function BusinessSwitcher({compact=false}:{compact?:boolean}) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if(careOnly)return null;
+  if(careOnly||astraOnly)return null;
   return (
     <div className={"relative "+(compact?"w-full":"")} ref={dropdownRef}>
       {/* 触发按钮 */}

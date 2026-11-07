@@ -229,7 +229,7 @@ export async function createBooking(prevState: any, formData: FormData) {
   const teacher = formData.get("teacher") as string;
   const notes = formData.get("notes") as string;
 
-  if (!isOperationalBusinessId(businessId)) return { error: "请选择 CuS 或 Sine 业务实体" };
+  if (!isOperationalBusinessId(businessId)) return { error: "请选择有效的业务实体" };
 
   const repeatMode = (formData.get("repeatMode") as string) || "none";
   const endMode = (formData.get("endMode") as string) || "count";
@@ -251,6 +251,11 @@ export async function createBooking(prevState: any, formData: FormData) {
     duration,
   });
 
+  // Never attach a student from another company to this company's booking.
+  const {data:matchedStudent,error:studentScopeError}=await supabase.from("students")
+    .select("id").eq("id",studentId).eq("business_unit_id",businessId).maybeSingle();
+  if(studentScopeError||!matchedStudent)return {error:"学员不属于当前业务实体"};
+  
   // 驾校/教培均不因课时或余额不足阻断排课
   const bookingsToInsert = sessionSlots.map((slot) => ({
     ...slot,

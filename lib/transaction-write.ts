@@ -244,7 +244,7 @@ export async function insertTransaction(
   const explicitFamilyAccountId = typeof row.family_account_id === "string" ? row.family_account_id : null;
 
   let familyAccount: FamilyAccount | null = null;
-  if (((row.type === "income" || row.type === "expense") && incomeSource) || explicitFamilyAccountId) {
+  if (row.business_unit_id!=="astra" && (((row.type === "income" || row.type === "expense") && incomeSource) || explicitFamilyAccountId)) {
     const resolved = await resolveFamilyAccount(supabase, explicitFamilyAccountId, incomeSource);
     if (resolved.error) return { error: resolved.error };
     familyAccount = resolved.account;
@@ -388,7 +388,7 @@ export async function updateTransactionRow(
   const nextCurrency = normalizeCurrency(nextTx.currency as string | undefined);
   let nextAccountId: string | null = null;
 
-  if (nextType === "income" || nextType === "expense") {
+  if (nextTx.business_unit_id!=="astra" && (nextType === "income" || nextType === "expense")) {
     const source = typeof nextTx.income_source === "string" ? nextTx.income_source.trim() : "";
     if (source) {
       const resolved = await resolveFamilyAccount(supabase, null, source);

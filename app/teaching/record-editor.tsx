@@ -19,15 +19,15 @@ const label="block min-w-0 space-y-1.5 text-xs font-semibold text-[#4a516e]";
 const selectChoices=(items:readonly string[])=>
  items.map(value=><option key={value} value={value}>{value}</option>);
 export function TeachingRecordEditor({
- targets,records,scope,currentUserId,owner
-}:{targets:LessonTarget[];records:SavedLesson[];scope:"cus"|"astra";currentUserId:string;owner:boolean}){
+ targets,records,scope,currentUserId,owner,teacherOptions=["Henry","Yvetta"]
+}:{targets:LessonTarget[];records:SavedLesson[];scope:"cus"|"astra";currentUserId:string;owner:boolean;teacherOptions?:string[]}){
  const router=useRouter();
  const [target,setTarget]=useState(targets[0]?.value||"");
  const [pending,start]=useTransition();
  const [feedback,setFeedback]=useState("");
  const current=records.find(r=>r.target===target);
  const chosen=targets.find(t=>t.value===target);
- const teacher=normalizeTutor(current?.teacher)||normalizeTutor(chosen?.teacher);
+ const teacher=normalizeTutor(current?.teacher)||normalizeTutor(chosen?.teacher)||current?.teacher||chosen?.teacher||"";
  const notes=readTeacherNotes(current?.lesson_content);
  const ratings=readStudentRatings(current?.student_feedback);
  const homework=current?.homework==="未布置"?"未布置":current?.homework?"已布置":"未布置";

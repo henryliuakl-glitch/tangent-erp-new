@@ -69,7 +69,7 @@ export async function createStudent(prevState: any, formData: FormData) {
 
 
   if (!name || !businessId) return { error: "姓名必填" };
-  if (!isOperationalBusinessId(businessId)) return { error: "请选择 CuS 或 Sine 业务实体" };
+  if (!isOperationalBusinessId(businessId)) return { error: "请选择有效的业务实体" };
 
 
 

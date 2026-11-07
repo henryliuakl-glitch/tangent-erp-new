@@ -12,9 +12,9 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
  const {data:{user}}=await db.auth.getUser();
  if(!user)return <main className="p-8"><Link href="/login">请先登录</Link></main>;
  const {data:members,error:memberError}=await db.from("erp_memberships").select("business_unit_id,role")
-  .eq("user_id",user.id).in("business_unit_id",["cus","care"]);
+  .eq("user_id",user.id).in("business_unit_id",["cus","astra"]);
  const globalOwner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
- const care=members?.find(m=>m.business_unit_id==="care");
+ const care=members?.find(m=>m.business_unit_id==="astra");
  if(memberError||(!globalOwner&&!care))return <main className="p-8">没有晚托访问权限。</main>;
  const isAdmin=!!globalOwner||["owner","admin"].includes(care?.role||"");
  const requested=(await searchParams).date;
@@ -58,7 +58,7 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
     <h1 className="text-xl font-bold">晚托</h1>
     <div className="flex flex-wrap gap-2">
       
-      {isAdmin&&<Link href="/afterschool/register" className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white">＋ 建立档案</Link>}
+      {isAdmin&&<Link href="/afterschool/register" className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white">建立档案</Link>}
       <form method="get" className="flex items-center gap-2">
         <input aria-label="查看日期" type="date" name="date" defaultValue={today}
           className="h-9 rounded-xl border-0 bg-white px-2 text-xs"/>

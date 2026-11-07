@@ -5,8 +5,8 @@ import {utcToNzDateStr,utcToNzTimeStr} from "@/lib/timezone";
 type Row=Record<string,any>;
 
 /** Read-only class schedule on the existing Booking screen; no duplicate bookings. */
-export async function ClassSessionsStrip({fromIso,toIso}:{
-  fromIso:string;toIso:string
+export async function ClassSessionsStrip({fromIso,toIso,businessId="cus"}:{
+  fromIso:string;toIso:string;businessId?:"cus"|"astra"
 }){
   const db=await createClient();
   const {data,error}=await db.from("cus_class_sessions")
@@ -14,11 +14,17 @@ export async function ClassSessionsStrip({fromIso,toIso}:{
     .gte("starts_at",fromIso).lte("starts_at",toIso).neq("status","cancelled")
     .order("starts_at",{ascending:true}).limit(80);
   if(error||!data?.length)return null;
-  const sessions=data as Row[];
-  const ids=[...new Set(sessions.map(s=>s.class_id))];
-  const {data:classes,error:classError}=await db.from("cus_classes").select("id,title").in("id",ids);
+  const {data:programmes,error:progError}=await db.from("cus_programmes")
+    .select("id").eq("business_unit_id",businessId);
+  if(progError)return null;
+  const programmeIds=(programmes||[]).map(p=>p.id);
+  if(!programmeIds.length)return null;
+  const {data:classes,error:classError}=await db.from("cus_classes")
+    .select("id,title").in("programme_id",programmeIds);
   if(classError)return null;
   const names=new Map(((classes||[]) as Row[]).map(c=>[c.id,c.title]));
+  const sessions=(data as Row[]).filter(s=>names.has(s.class_id));
+  if(!sessions.length)return null;
   return <section className="mb-3 rounded-xl border border-slate-200 bg-white p-3">
     <div className="mb-2 flex items-center justify-between gap-2">
       <h2 className="text-sm font-bold">班课日程</h2>

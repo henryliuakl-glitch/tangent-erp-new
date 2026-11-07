@@ -28,7 +28,7 @@ export default function AddTransactionPage() {
   const router = useRouter();
   const { currentBusinessId, currentLabel } = useBusiness();
   const isTangent = currentBusinessId === "tangent";
-  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine" | "astra">("cus");
   const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const supabase = createClient();
   
@@ -258,7 +258,7 @@ export default function AddTransactionPage() {
           ) : (
           <div className="hidden md:block">
              <Badge variant="outline" className="bg-white text-indigo-600 border-indigo-200">
-               {isTangent ? (effectiveBusinessId === "cus" ? "Tangent · CuS" : "Tangent · Sine") : currentLabel}
+               {isTangent ? (effectiveBusinessId === "cus" ? "Tangent · CuS" : effectiveBusinessId==="astra"?"Tangent · Astra":"Tangent · Sine") : currentLabel}
              </Badge>
           </div>
           )}
@@ -298,6 +298,7 @@ export default function AddTransactionPage() {
                 >
                   Sine 驾校
                 </button>
+                
               </div>
             )}
 
@@ -437,6 +438,7 @@ export default function AddTransactionPage() {
             {(mode === "income" || mode === "expense") && (
               <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 md:p-4">
                 <IncomeSourceSelect
+                  businessId={effectiveBusinessId}
                   value={incomeSource}
                   onChange={setIncomeSource}
                   label={mode === "income" ? "实际收款账户" : "实际付款账户"}

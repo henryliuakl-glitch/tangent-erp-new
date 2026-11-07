@@ -39,7 +39,7 @@ export async function createReimbursement(formData: FormData) {
     return { error: "请填写垫付人、金额、分类和日期" };
   }
   if (!isOperationalBusinessId(businessId)) {
-    return { error: "请选择 CuS 或 Sine 业务实体" };
+    return { error: "请选择有效的业务实体" };
   }
 
   const { error } = await insertTransaction(supabase, {

@@ -20,21 +20,25 @@ function Editor({title,children}:{title:string;children:React.ReactNode}){
   </details>;
 }
 
-export async function TeachingClasses({editable}:{editable:boolean}){
+export async function TeachingClasses({editable,businessId="cus"}:{editable:boolean;businessId?:"cus"|"astra"}){
   const db=await createClient();
   const [pr,cl,st,se]=await Promise.all([
-    db.from("cus_programmes").select("id,title,category").order("created_at",{ascending:false}).limit(100),
+    db.from("cus_programmes").select("id,title,category").eq("business_unit_id",businessId).order("created_at",{ascending:false}).limit(100),
     db.from("cus_classes").select("id,title,programme_id,teacher,room,capacity,status")
       .order("created_at",{ascending:false}).limit(120),
-    db.from("students").select("id,name,student_code").eq("business_unit_id","cus")
+    db.from("students").select("id,name,student_code").eq("business_unit_id",businessId)
       .order("name").limit(500),
     db.from("cus_class_sessions").select("id,class_id,starts_at,ends_at,topic,room,status")
       .order("starts_at",{ascending:false}).limit(35)
   ]);
   const err=[pr,cl,st,se].find(x=>x.error);
   if(err?.error) return <section className={panel}>班级信息读取失败，请刷新页面。</section>;
-  const programmes=(pr.data||[]) as Row[],classes=(cl.data||[]) as Row[];
-  const students=(st.data||[]) as Row[],sessions=(se.data||[]) as Row[];
+  const programmes=(pr.data||[]) as Row[];
+  const scopedIds=new Set(programmes.map(p=>p.id));
+  const classes=((cl.data||[]) as Row[]).filter(c=>scopedIds.has(c.programme_id));
+  const students=(st.data||[]) as Row[];
+  const scopedClassIds=new Set(classes.map(c=>c.id));
+  const sessions=((se.data||[]) as Row[]).filter(s=>scopedClassIds.has(s.class_id));
   const classIds=classes.map(x=>x.id),sessionIds=sessions.map(x=>x.id);
   const [en,att]=await Promise.all([
     classIds.length?db.from("cus_enrolments").select("id,class_id,student_id,status")
@@ -52,7 +56,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
   const attendanceByKey=new Map(attendance.map(a=>[a.session_id+":"+a.student_id,a]));
   return <div className="space-y-2">
     {editable&&<div className="grid gap-2 sm:grid-cols-2">
-      <Editor title="＋ 课程项目"><form action={createProgramme} className="space-y-2">
+      <Editor title="课程项目"><form action={createProgramme} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <input required name="title" className={input} placeholder="课程名称"/>
         <select name="category" className={input} defaultValue="weekend">
           <option value="weekend">周末班</option><option value="tutoring">学科辅导</option>
@@ -60,7 +64,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
         <input name="description" className={input} placeholder="备注（选填）"/>
         <Submit>创建课程</Submit>
       </form></Editor>
-      <Editor title="＋ 开设班级"><form action={createClass} className="space-y-2">
+      <Editor title="开设班级"><form action={createClass} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <SelectField name="programme_id" placeholder="选择课程项目" items={programmes.map(p=>({id:p.id,label:p.title}))}/>
         <input required name="title" className={input} placeholder="班级名称"/>
         <div className="grid grid-cols-3 gap-2">
@@ -73,14 +77,14 @@ export async function TeachingClasses({editable}:{editable:boolean}){
           <label className="text-xs">结束日期<input name="end_date" type="date" className={input}/></label>
         </div><Submit>创建班级</Submit>
       </form></Editor>
-      <Editor title="＋ 学员入班"><form action={enrolStudent} className="space-y-2">
+      <Editor title="学员入班"><form action={enrolStudent} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <SelectField name="class_id" placeholder="选择班级" items={classes.filter(c=>c.status==="active").map(c=>({
           id:c.id,label:c.title+" ("+(byClass.get(c.id)||[]).length+"/"+c.capacity+")"
         }))}/>
-        <SelectField name="student_id" placeholder="选择 CuS 学员" items={students.map(s=>({id:s.id,label:s.name+" "+(s.student_code||"")}))}/>
+        <SelectField name="student_id" placeholder="选择学员" items={students.map(s=>({id:s.id,label:s.name+" "+(s.student_code||"")}))}/>
         <Submit>确认入班</Submit>
       </form></Editor>
-      <Editor title="＋ 添加课次"><form action={createSession} className="space-y-2">
+      <Editor title="添加课次"><form action={createSession} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <SelectField name="class_id" placeholder="选择班级" items={classes.map(c=>({id:c.id,label:c.title}))}/>
         <div className="grid grid-cols-3 gap-2">
           <input name="date" aria-label="日期" type="date" className={input} defaultValue={getTodayInNZ()} required/>
@@ -109,7 +113,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
         <div className="mt-3 flex flex-wrap gap-2">{(byClass.get(c.id)||[]).map(e=><div key={e.id}
           className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs">
           {studentNames.get(e.student_id)||"学员"}
-          {editable&&<form action={withdrawStudent}><input type="hidden" name="enrolment_id" value={e.id}/>
+          {editable&&<form action={withdrawStudent}><input type="hidden" name="businessId" value={businessId}/><input type="hidden" name="enrolment_id" value={e.id}/>
             <button type="submit" aria-label="移出班级" title="移出班级" className="text-rose-600">×</button></form>}
         </div>)}
         {(byClass.get(c.id)||[]).length===0&&<p className="text-xs text-slate-500">暂无学员。</p>}
@@ -128,7 +132,7 @@ export async function TeachingClasses({editable}:{editable:boolean}){
              return <form action={setAttendance} key={e.id}
                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-2 text-sm">
                <span>{studentNames.get(e.student_id)||"学员"}</span>
-               <input type="hidden" name="session_id" value={s.id}/>
+               <input type="hidden" name="businessId" value={businessId}/><input type="hidden" name="session_id" value={s.id}/>
                <input type="hidden" name="student_id" value={e.student_id}/>
                {editable?<div className="flex gap-2"><select name="status" defaultValue={marked?.status||"present"}
                  className="rounded border border-slate-200 bg-white p-1 text-xs">

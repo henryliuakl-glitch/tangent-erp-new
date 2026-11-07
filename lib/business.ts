@@ -6,15 +6,16 @@ export function isDrivingSchoolBusiness(businessId?: string | null): boolean {
 
 export const TANGENT_CHILD_BUSINESS_IDS = ["cus", "sine"] as const;
 
-export type OperationalBusinessId = (typeof TANGENT_CHILD_BUSINESS_IDS)[number];
+export type OperationalBusinessId = (typeof TANGENT_CHILD_BUSINESS_IDS)[number] | "astra";
 
 export function isOperationalBusinessId(value?: string | null): value is OperationalBusinessId {
-  return value === "cus" || value === "sine";
+  return value === "cus" || value === "sine" || value === "astra";
 }
 
 export function businessUnitLabel(value?: string | null): string {
   if (value === "sine") return "Sine";
   if (value === "cus") return "CuS";
+  if (value === "astra") return "Astra";
   if (value === "tangent") return "Tangent";
   return value || "Unknown";
 }

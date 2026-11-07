@@ -412,8 +412,8 @@ export function DashboardCalendar({
             <span className="text-xs font-black text-slate-900">当天时段</span>
             <span className="text-[10px] font-semibold text-slate-400">{selectedBookings.length} 节</span>
           </div>
-          <div className="mb-1 ml-[39px] grid grid-cols-[78px_minmax(0,1fr)_minmax(0,1.15fr)] gap-1.5 px-2 text-[9px] font-medium text-slate-400">
-            <span>时间</span><span>学员</span><span>科目 / 教师</span>
+          <div className="mb-1 ml-[39px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-1.5 px-2 text-[9px] font-medium text-slate-400">
+            <span>学员</span><span>科目 / 教师</span>
           </div>
           <div className="overflow-hidden rounded-xl bg-white px-2">
             <div className="relative ml-[37px]" style={{height:(gridEndHour-gridStartHour)*HOUR_HEIGHT}}>
@@ -445,7 +445,6 @@ export function DashboardCalendar({
                   }}
                   title={`${timeRangeLabel(booking)} · ${student.student_code||""} ${student.name||"未知学员"} · ${subject}${teacher?" · "+teacher:""}`}>
                   <div className="grid w-full min-w-0 grid-cols-[78px_minmax(0,1fr)_minmax(0,1.15fr)] items-center gap-1.5">
-                    <span className="truncate text-[9px] font-extrabold tabular-nums">{timeRangeLabel(booking)}</span>
                     <span className="truncate text-[10px] font-bold">
                       {student.student_code?student.student_code+" · ":""}{student.name||"未知学员"}
                     </span>

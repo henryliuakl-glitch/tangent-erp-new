@@ -25,7 +25,7 @@ import { MobileDock } from "@/components/MobileDock";
 export default function NewStudentPage() {
   const { currentBusinessId } = useBusiness();
   const isTangent = currentBusinessId === "tangent";
-  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine" | "astra">("cus");
   const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const router = useRouter();
   const supabase = createClient();
@@ -153,6 +153,7 @@ export default function NewStudentPage() {
             >
               Sine 驾校学员
             </button>
+            
           </div>
         )}
 
@@ -254,6 +255,7 @@ export default function NewStudentPage() {
                   </div>
                   <div className="col-span-2">
                     <IncomeSourceSelect
+                      businessId={effectiveBusinessId}
                       value={incomeSource}
                       onChange={setIncomeSource}
                       label="默认收款账户"
