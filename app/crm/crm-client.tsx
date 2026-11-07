@@ -5,7 +5,7 @@ import {useRouter} from "next/navigation";
 import {useMemo,useState,type FormEvent} from "react";
 import {toast} from "sonner";
 import {UserPlus,ClipboardList,CalendarClock,Users,ArrowRight,Check,Plus,RefreshCw} from "lucide-react";
-import {saveLead,addActivity,scheduleTrial,finishTrial,addFollowup,completeFollowup,convertLead,createRenewalTask} from "./actions";
+import {saveLead,addActivity,scheduleTrial,finishTrial,addFollowup,completeFollowup,convertLead,createRenewalTask,addStudentActivity} from "./actions";
 
 type Unit="cus"|"astra";
 type Lead={
@@ -20,13 +20,14 @@ type Trial={id:string;lead_id:string;starts_at:string;duration_minutes:number;fe
  booking_id:string|null};
 type Followup={id:string;lead_id:string|null;student_id:string|null;kind:string;title:string;
  notes:string|null;due_at:string;status:string};
+type StudentActivity={id:string;student_id:string;kind:string;content:string;created_at:string};
 type Student={id:string;name:string;student_code:string|null;balance:number;payment_type:string;
  subject:string|null;level:string|null;hourly_rate:number|null};
 type Renewal={id:string;name:string;payment_type:string;balance:number;reason:string;lastLesson:string|null;nextLesson:string|null};
 type ActionResult={ok:true;studentId?:string}|{ok:false;error:string};
 type Action=(form:FormData)=>Promise<ActionResult>;
 type Props={unit:Unit;leads:Lead[];activities:Activity[];trials:Trial[];followups:Followup[];
- students:Student[];renewalCandidates:Renewal[];focusLeadId:string|null;focusStudentId:string|null};
+ students:Student[];studentActivities:StudentActivity[];renewalCandidates:Renewal[];focusLeadId:string|null;focusStudentId:string|null};
 const statuses=[
  ["new","新咨询"],["contacted","跟进中"],["trial_booked","已约试听"],
  ["trial_done","已试听"],["considering","待决定"],["enrolled","已报名"],["lost","未成交"]
@@ -64,9 +65,10 @@ function Field({label,children}:{label:string;children:React.ReactNode}){
 function Empty({children}:{children:React.ReactNode}){
  return <div className="rounded-lg bg-slate-50 px-4 py-7 text-center text-sm text-slate-400">{children}</div>;
 }
-export function CrmClient({unit,leads,activities,trials,followups,students,renewalCandidates,focusLeadId,focusStudentId}:Props){
+export function CrmClient({unit,leads,activities,trials,followups,students,studentActivities,renewalCandidates,focusLeadId,focusStudentId}:Props){
  const router=useRouter();
- const [tab,setTab]=useState<"leads"|"trials"|"followups"|"renewals">(focusStudentId?"renewals":"leads");
+ const [tab,setTab]=useState<"leads"|"trials"|"followups"|"parents"|"renewals">(focusStudentId?"parents":"leads");
+ const [selectedStudentId,setSelectedStudentId]=useState<string|null>(focusStudentId||students[0]?.id||null);
  const [selectedId,setSelectedId]=useState<string|null>(focusLeadId||leads[0]?.id||null);
  const [query,setQuery]=useState("");
  const [statusFilter,setStatusFilter]=useState("all");
@@ -79,6 +81,12 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
  const selectedActivities=activities.filter(x=>x.lead_id===selectedId);
  const selectedTrials=trials.filter(x=>x.lead_id===selectedId);
  const openTasks=followups.filter(x=>x.status==="open");
+ const dueLeads=leads.filter(x=>x.next_followup_at&&!["enrolled","lost"].includes(x.status)
+    &&Date.parse(x.next_followup_at)<=Date.now());
+ const selectedStudent=students.find(x=>x.id===selectedStudentId);
+ const selectedStudentActivities=studentActivities.filter(x=>x.student_id===selectedStudentId);
+ const relatedLeadIds=new Set(leads.filter(x=>x.student_id===selectedStudentId).map(x=>x.id));
+ const linkedLeadActivities=activities.filter(x=>relatedLeadIds.has(x.lead_id));
  const filtered=useMemo(()=>leads.filter(l=>{
   const match=statusFilter==="all"||l.status===statusFilter;
   const q=query.trim().toLowerCase();
@@ -112,7 +120,8 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
  const tabItems=[
   {id:"leads" as const,label:"咨询线索",icon:UserPlus,count:leads.filter(l=>l.status!=="enrolled"&&l.status!=="lost").length},
   {id:"trials" as const,label:"试听管理",icon:CalendarClock,count:trials.filter(t=>t.status==="scheduled").length},
-  {id:"followups" as const,label:"跟进任务",icon:ClipboardList,count:openTasks.length},
+  {id:"followups" as const,label:"跟进任务",icon:ClipboardList,count:openTasks.length+dueLeads.length},
+  {id:"parents" as const,label:"家长服务",icon:Users,count:students.length},
   {id:"renewals" as const,label:"续费与留存",icon:RefreshCw,count:renewalCandidates.length}
  ];
  return <div className="space-y-3">
@@ -123,7 +132,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
   </header>
   <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
    {[
-    ["累计咨询",leads.length],["待跟进",openTasks.length],
+    ["累计咨询",leads.length],["待跟进",openTasks.length+dueLeads.length],
     ["已约试听",trials.filter(t=>t.status==="scheduled").length],
     ["已转学员",leads.filter(l=>l.status==="enrolled").length]
    ].map(([name,count])=><div key={String(name)} className={card}>
@@ -158,6 +167,8 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
       </div>
       <p className="mt-1 truncate text-xs text-slate-500">{l.year_level||"年级未填"} · {l.subject||l.course_interest||"课程未定"}</p>
       <p className="mt-1 truncate text-[11px] text-slate-400">{l.source} · {l.contact||"未留联系方式"}</p>
+      {l.next_followup_at&&<p className={"mt-1 text-[11px] "+(Date.parse(l.next_followup_at)<Date.now()&&l.status!=="enrolled"?"font-semibold text-rose-600":"text-indigo-500")}>
+       下次联系 {dateLabel(l.next_followup_at)}</p>}
      </button>)}
     </div>
    </section>
@@ -280,7 +291,12 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
      <h2 className="font-bold">待办和家长跟进</h2>
      <button className={subtle} onClick={()=>setNewTask(!newTask)}><Plus className="h-3.5 w-3.5"/>新增任务</button>
     </div>
-    {followups.length===0&&<Empty>暂无跟进任务</Empty>}
+    {dueLeads.map(l=><div key={"lead-due-"+l.id} className="flex items-center justify-between gap-3 rounded-lg border border-amber-100 bg-amber-50 p-3">
+      <div><p className="text-sm font-semibold">{l.student_name} · 预约跟进已到期</p>
+       <p className="mt-1 text-xs text-slate-600">计划联系 {dateLabel(l.next_followup_at)}</p></div>
+      <button className={subtle} onClick={()=>chooseLead(l.id)}>查看咨询</button>
+     </div>)}
+    {followups.length===0&&dueLeads.length===0&&<Empty>暂无跟进任务</Empty>}
     {followups.map(task=><div key={task.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 p-3">
      <div className="min-w-0 flex-1">
       <p className={"text-sm font-semibold "+(task.status==="done"?"text-slate-400 line-through":"")}>{task.title}</p>
@@ -307,7 +323,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
        <option value="">请选择</option>{leads.map(l=><option key={l.id} value={l.id}>{l.student_name} · {statusLabel(l.status)}</option>)}
       </select>
      </Field>:<Field label="学员">
-      <select className={field} name="student_id" required defaultValue={focusStudentId||""}>
+      <select className={field} name="student_id" required defaultValue={selectedStudentId||""} key={selectedStudentId}>
        <option value="">请选择</option>{students.map(s=><option key={s.id} value={s.id}>{s.name} · {s.level||""}</option>)}
       </select>
      </Field>}
@@ -320,6 +336,47 @@ export function CrmClient({unit,leads,activities,trials,followups,students,renew
      <Field label="备注"><textarea name="notes" rows={2} className={area}/></Field>
      <button disabled={busy} className={btn+" w-full"}>保存跟进任务</button>
     </form>
+   </section>
+  </div>}
+
+
+  {tab==="parents"&&<div className="grid items-start gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+   <section className={card+" space-y-2"}>
+    <h2 className="font-bold">已报名学员</h2>
+    <select className={field} value={selectedStudentId||""} onChange={e=>setSelectedStudentId(e.target.value)}>
+     <option value="">请选择学员</option>
+     {students.map(s=><option key={s.id} value={s.id}>{s.name} · {s.level||""}</option>)}
+    </select>
+    <p className="text-xs text-slate-500">这里直接使用 ERP 原有学生档案，不会建立重复学生。</p>
+   </section>
+   <section className={card+" space-y-3"}>
+    {!selectedStudent?<Empty>选择学员，查看家长沟通记录</Empty>:<>
+     <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-base font-bold">{selectedStudent.name} · 家长沟通</h2>
+      <Link href={"/students/"+selectedStudent.id} className={subtle}>查看学员档案</Link>
+     </div>
+     <form className="flex flex-col gap-2 sm:flex-row" onSubmit={e=>submit(e,addStudentActivity)}>
+      <input type="hidden" name="student_id" value={selectedStudent.id}/>
+      <select name="kind" className={field+" sm:w-32"}>
+       <option value="wechat">微信</option><option value="call">电话</option><option value="message">短信</option>
+       <option value="meeting">面谈</option><option value="feedback">家长反馈</option><option value="note">备注</option>
+      </select>
+      <input className={field+" flex-1"} name="content" required placeholder="记录家长沟通、学习目标或反馈"/>
+      <button className={btn} disabled={busy}>保存</button>
+     </form>
+     {selectedStudentActivities.length+linkedLeadActivities.length===0&&<Empty>尚无沟通记录</Empty>}
+     <div className="max-h-[440px] space-y-2 overflow-y-auto">
+      {[...selectedStudentActivities.map(x=>({...x,origin:"学生"})),...linkedLeadActivities.map(x=>({...x,origin:"咨询"}))]
+       .sort((a,b)=>b.created_at.localeCompare(a.created_at))
+       .map(x=><div key={x.origin+x.id} className="border-l-2 border-indigo-100 py-1 pl-3">
+        <p className="text-xs font-semibold text-slate-500">{x.origin} · {x.kind} · {dateLabel(x.created_at)}</p>
+        <p className="mt-1 whitespace-pre-wrap text-sm">{x.content}</p>
+       </div>)}
+     </div>
+     <button className={subtle} onClick={()=>{setTab("followups");setTaskTarget("student");setNewTask(true);}}>
+      <Plus className="h-3.5 w-3.5"/>为该学员建立跟进或续费任务
+     </button>
+    </>}
    </section>
   </div>}
 
