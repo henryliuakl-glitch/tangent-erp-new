@@ -48,17 +48,17 @@ export function TeachingRecordEditor({
           <input name="teacher" className={input} defaultValue={current?.teacher||""} placeholder="教师姓名"/>
         </label>
         <label className="block space-y-1 text-sm sm:col-span-2">
-          <span className="font-medium">本节内容 *</span>
+          <span className="font-medium">教师做了什么 *</span>
           <textarea name="lesson_content" className={input} required rows={3} maxLength={8000}
-            defaultValue={current?.lesson_content||""} placeholder="讲解的知识点、完成的教学内容"/>
+            defaultValue={current?.lesson_content||""} placeholder="授课内容、讲解、指导与课堂安排"/>
         </label>
         <label className="block space-y-1 text-sm"><span className="font-medium">作业</span>
           <textarea name="homework" className={input} rows={2}
             defaultValue={current?.homework||""} placeholder="题目、练习与提交要求"/>
         </label>
-        <label className="block space-y-1 text-sm"><span className="font-medium">学生表现</span>
-          <textarea name="student_feedback" className={input} rows={2}
-            defaultValue={current?.student_feedback||""} placeholder="掌握程度、需要关注的地方"/>
+        <label className="block space-y-1 text-sm"><span className="font-medium">学生做了什么 *</span>
+          <textarea name="student_feedback" className={input} rows={2} required
+            defaultValue={current?.student_feedback||""} placeholder="学生完成的练习、参与情况、掌握程度"/>
         </label>
         <label className="block space-y-1 text-sm sm:col-span-2"><span className="font-medium">下节计划</span>
           <input name="next_steps" className={input} defaultValue={current?.next_steps||""}
