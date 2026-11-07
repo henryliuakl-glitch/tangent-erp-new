@@ -292,7 +292,7 @@ export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booki
         <div className="relative min-w-[190px] flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
-          placeholder="搜索学员、编号、地点、教练…"
+          placeholder="搜索"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="h-10 w-full rounded-xl border-0 bg-white pl-9 text-[13px] shadow-sm md:text-sm"

@@ -3,7 +3,7 @@ import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {SignaturePad} from "./signature-pad";
 import {clockCare,approveThirdParty,uploadThirdPartyVideo,markParentNotified,
-  addSecondGuardian,createCareSchedule,cancelCareDate,addCareDayCredits,createTeacher,addCareLessonLog} from "./actions";
+  addSecondGuardian,createCareSchedule,cancelCareDate,addCareDayCredits,addCareLessonLog} from "./actions";
 type Data=Record<string,any>;
 type Props={visits:Data[];students:Data[];profiles:Data[];guardians:Data[];
   contacts:Data[];approvals:Data[];teachers:Data[];balances:Data[];upcoming:Data[];lessonLogs:Data[];isAdmin:boolean;selectedDate:string};
@@ -195,17 +195,6 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
       <summary className="cursor-pointer text-sm font-bold">教师与课堂记录</summary>
       <div className="mt-3 space-y-4">
         <div className="flex flex-wrap gap-2">{teachers.map(t=><span key={t.id} className="rounded bg-slate-100 px-3 py-1 text-sm">{t.full_name}</span>)}</div>
-        {isAdmin&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-semibold">登记老师</summary>
-          <form onSubmit={doAction(createTeacher)} className="mt-3 grid gap-2 sm:grid-cols-2">
-            <input type="hidden" name="scope" value="care"/>
-            <input className={input} name="full_name" placeholder="姓名" required/>
-            <input className={input} name="phone" placeholder="联系电话"/>
-            <input className={input} name="email" placeholder="Email" type="email"/>
-            <input className={input} name="subjects" placeholder="负责课程 / 专长"/>
-            <input className={input} name="notes" placeholder="备注"/>
-            <button type="submit" className={button} disabled={pending}>保存教师档案</button>
-          </form>
-        </details>}
         {visits.map(v=><details key={v.id} className="rounded-lg border p-3">
           <summary className="cursor-pointer font-semibold">{studentById.get(v.student_id)?.name||"学生"} · {selectedDate}</summary>
           <div className="mt-3 space-y-2">
