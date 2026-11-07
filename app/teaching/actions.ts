@@ -162,7 +162,7 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
         if(error||!data?.student_id)return {ok:false,error:"找不到这节 CuS 课程"};
         const {data:student}=await db.from("students").select("id,student_code")
           .eq("id",data.student_id).eq("business_unit_id","cus").single();
-        if(!String(student?.student_code||"").trim().startsWith("1"))
+        if(!student||!String(student.student_code||"").trim().startsWith("1"))
           return {ok:false,error:"此学员不属于 CuS 教学记录"};
         studentId=student.id;
       }
