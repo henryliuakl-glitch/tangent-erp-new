@@ -196,7 +196,7 @@ begin
    execute format('alter table public.%I enable row level security',r.t);
    execute format('drop policy if exists erp_care_isolation on public.%I',r.t);
    execute format(
-     'create policy erp_care_isolation on public.%I as restrictive for all to authenticated using (not (select public.erp_is_care_only())) with check (not (select public.erp_is_care_only()))',r.t);
+     'create policy erp_care_isolation on public.%I as restrictive for all to authenticated using ((select public.erp_is_owner())) with check ((select public.erp_is_owner()))',r.t);
    if not had_rls then
      execute format('drop policy if exists erp_legacy_non_care on public.%I',r.t);
      execute format('create policy erp_legacy_non_care on public.%I for all to authenticated using (true) with check (true)',r.t);
@@ -207,8 +207,8 @@ end $$;
 -- Protect non-care storage buckets from care-only accounts, too.
 drop policy if exists erp_care_storage_isolation on storage.objects;
 create policy erp_care_storage_isolation on storage.objects as restrictive for all to authenticated
- using (bucket_id='cus-care-evidence' or not (select public.erp_is_care_only()))
- with check (bucket_id='cus-care-evidence' or not (select public.erp_is_care_only()));
+ using (bucket_id='cus-care-evidence' or (select public.erp_is_owner()))
+ with check (bucket_id='cus-care-evidence' or (select public.erp_is_owner()));
 drop policy if exists cus_care_evidence_read on storage.objects;
 create policy cus_care_evidence_read on storage.objects for select to authenticated
  using (bucket_id='cus-care-evidence' and (select public.erp_can_care_read()));
