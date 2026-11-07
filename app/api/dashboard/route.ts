@@ -19,6 +19,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
+  const {data:owner}=await supabase.from("erp_memberships").select("role")
+    .eq("user_id",user.id).eq("business_unit_id","cus").eq("role","owner").maybeSingle();
+  if(!owner)return NextResponse.json({error:"Forbidden"},{status:403,headers});
   try {
     const result = widget === "stats" ? await getDashboardStats(businessId)
       : widget === "today" ? await getDashboardToday(businessId)
