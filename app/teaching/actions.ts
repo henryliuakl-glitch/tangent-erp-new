@@ -15,6 +15,22 @@ async function staff() {
   }
   return db;
 }
+async function teachingRecordStaff(scope:"cus"|"astra"){
+  const db=await createClient();
+  const {data:{user},error}=await db.auth.getUser();
+  if(error||!user)throw new Error("请先登录");
+  const {data:members,error:memberError}=await db.from("erp_memberships")
+    .select("business_unit_id,role").eq("user_id",user.id)
+    .in("business_unit_id",["cus","care","astra"]);
+  if(memberError)throw new Error("无法读取教师权限");
+  const owner=!!members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
+  const canAstra=owner||!!members?.some(m=>
+    ["cus","care","astra"].includes(m.business_unit_id)&&
+    ["owner","admin","teacher"].includes(m.role));
+  if(scope==="cus"&&!owner)throw new Error("只有 CuS Owner 可以管理 CuS 教学记录");
+  if(scope==="astra"&&!canAstra)throw new Error("没有 Astra 教学权限");
+  return {db,user,owner};
+}
 function required(form: FormData, name: string): string {
   const value = String(form.get(name) || "").trim();
   if (!value) throw new Error("缺少必填字段：" + name);
@@ -115,7 +131,9 @@ export async function setAttendance(form: FormData) {
 /** Classroom notes and 1:1 notes share a single teaching ledger; scheduling remains in Booking. */
 export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:false;error:string}> {
   try {
-    const db = await staff();
+    const scope=String(form.get("scope")||"");
+    if(scope!=="cus"&&scope!=="astra")return {ok:false,error:"请选择教学记录类别"};
+    const {db,owner}=await teachingRecordStaff(scope);
     const target = required(form, "target");
     const divider = target.indexOf(":");
     const type = target.slice(0, divider);
@@ -134,13 +152,20 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
     const foreignKey = type === "booking" ? "booking_id" : "class_session_id";
     let studentId: string | null = null;
     if (type === "booking") {
-      const {data, error} = await db.from("bookings").select("id,student_id")
-        .eq("id",id).eq("business_unit_id","cus").single();
-      if (error || !data?.student_id) return {ok:false,error:"找不到这节 CuS 一对一课程"};
-      const {data:student} = await db.from("students").select("id").eq("id",data.student_id)
-        .eq("business_unit_id","cus").single();
-      if (!student) return {ok:false,error:"学员不属于 CuS"};
-      studentId = student.id;
+      if(scope==="astra"){
+        const {data,error}=await db.rpc("astra_lesson_identity",{p_booking_id:id});
+        if(error||!data?.[0]?.student_id)return {ok:false,error:"此课程不属于 Astra，或当前账号没有权限"};
+        studentId=data[0].student_id;
+      } else {
+        const {data,error}=await db.from("bookings").select("id,student_id")
+          .eq("id",id).eq("business_unit_id","cus").single();
+        if(error||!data?.student_id)return {ok:false,error:"找不到这节 CuS 课程"};
+        const {data:student}=await db.from("students").select("id,student_code")
+          .eq("id",data.student_id).eq("business_unit_id","cus").single();
+        if(!String(student?.student_code||"").trim().startsWith("1"))
+          return {ok:false,error:"此学员不属于 CuS 教学记录"};
+        studentId=student.id;
+      }
     } else {
       const {data:session} = await db.from("cus_class_sessions")
         .select("id,class_id").eq("id",id).single();
