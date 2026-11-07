@@ -415,7 +415,7 @@ export function DashboardCalendar({
           <div className="mb-1 ml-[39px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-1.5 px-2 text-[9px] font-medium text-slate-400">
             <span>学员</span><span>科目 / 教师</span>
           </div>
-          <div className="overflow-hidden rounded-xl bg-white px-2">
+          <div className="overflow-hidden rounded-xl bg-white px-2 py-3">
             <div className="relative ml-[37px]" style={{height:(gridEndHour-gridStartHour)*HOUR_HEIGHT}}>
               {Array.from({length:gridEndHour-gridStartHour+1},(_,i)=>{
                 const hour=gridStartHour+i;
@@ -444,7 +444,7 @@ export function DashboardCalendar({
                     width:`calc(${pct}% - 4px)`
                   }}
                   title={`${timeRangeLabel(booking)} · ${student.student_code||""} ${student.name||"未知学员"} · ${subject}${teacher?" · "+teacher:""}`}>
-                  <div className="grid w-full min-w-0 grid-cols-[78px_minmax(0,1fr)_minmax(0,1.15fr)] items-center gap-1.5">
+                  <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] items-center gap-1.5">
                     <span className="truncate text-[10px] font-bold">
                       {student.student_code?student.student_code+" · ":""}{student.name||"未知学员"}
                     </span>

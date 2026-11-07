@@ -55,8 +55,9 @@ export async function TeachingClasses({editable,businessId="cus"}:{editable:bool
   for(const e of enrolments)byClass.set(e.class_id,[...(byClass.get(e.class_id)||[]),e]);
   const attendanceByKey=new Map(attendance.map(a=>[a.session_id+":"+a.student_id,a]));
   return <div className="space-y-2">
-    {editable&&<div className="grid gap-2 sm:grid-cols-2">
-      <Editor title="课程项目"><form action={createProgramme} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
+    {editable&&<div className="grid items-start gap-2 sm:grid-cols-2">
+      <div className="min-w-0 space-y-2">
+        <Editor title="课程项目"><form action={createProgramme} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <input required name="title" className={input} placeholder="课程名称"/>
         <select name="category" className={input} defaultValue="weekend">
           <option value="weekend">周末班</option><option value="tutoring">学科辅导</option>
@@ -64,7 +65,16 @@ export async function TeachingClasses({editable,businessId="cus"}:{editable:bool
         <input name="description" className={input} placeholder="备注（选填）"/>
         <Submit>创建课程</Submit>
       </form></Editor>
-      <Editor title="开设班级"><form action={createClass} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
+        <Editor title="学员入班"><form action={enrolStudent} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
+        <SelectField name="class_id" placeholder="选择班级" items={classes.filter(c=>c.status==="active").map(c=>({
+          id:c.id,label:c.title+" ("+(byClass.get(c.id)||[]).length+"/"+c.capacity+")"
+        }))}/>
+        <SelectField name="student_id" placeholder="选择学员" items={students.map(s=>({id:s.id,label:s.name+" "+(s.student_code||"")}))}/>
+        <Submit>确认入班</Submit>
+      </form></Editor>
+      </div>
+      <div className="min-w-0 space-y-2">
+        <Editor title="开设班级"><form action={createClass} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <SelectField name="programme_id" placeholder="选择课程项目" items={programmes.map(p=>({id:p.id,label:p.title}))}/>
         <input required name="title" className={input} placeholder="班级名称"/>
         <div className="grid grid-cols-3 gap-2">
@@ -77,14 +87,7 @@ export async function TeachingClasses({editable,businessId="cus"}:{editable:bool
           <label className="text-xs">结束日期<input name="end_date" type="date" className={input}/></label>
         </div><Submit>创建班级</Submit>
       </form></Editor>
-      <Editor title="学员入班"><form action={enrolStudent} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
-        <SelectField name="class_id" placeholder="选择班级" items={classes.filter(c=>c.status==="active").map(c=>({
-          id:c.id,label:c.title+" ("+(byClass.get(c.id)||[]).length+"/"+c.capacity+")"
-        }))}/>
-        <SelectField name="student_id" placeholder="选择学员" items={students.map(s=>({id:s.id,label:s.name+" "+(s.student_code||"")}))}/>
-        <Submit>确认入班</Submit>
-      </form></Editor>
-      <Editor title="添加课次"><form action={createSession} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
+        <Editor title="添加课次"><form action={createSession} className="space-y-2"><input type="hidden" name="businessId" value={businessId}/>
         <SelectField name="class_id" placeholder="选择班级" items={classes.map(c=>({id:c.id,label:c.title}))}/>
         <div className="grid grid-cols-3 gap-2">
           <input name="date" aria-label="日期" type="date" className={input} defaultValue={getTodayInNZ()} required/>
@@ -95,6 +98,7 @@ export async function TeachingClasses({editable,businessId="cus"}:{editable:bool
           <input name="topic" className={input} placeholder="课次主题"/></div>
         <Submit>添加课次</Submit>
       </form></Editor>
+      </div>
     </div>}
     <section className={panel}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

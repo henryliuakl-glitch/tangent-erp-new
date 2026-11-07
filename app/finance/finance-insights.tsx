@@ -107,7 +107,7 @@ export function FinanceInsights({data,loading,periodMode}:{
       <span className="text-right text-xs font-bold tabular-nums">{money(r.value,currency)}</span>
      </div>)}
     </div>
-    <p className="mt-6 text-[10px] text-[#c9d0e9]">收款是现金流水；销课是已完成课程价值，两者不重复合计。</p>
+    
    </article>
    <article className={panel+" xl:col-span-3"}>
     <h4 className={title}>现金状况</h4><p className={desc}>本期净变化，并非银行账户余额</p>
@@ -116,7 +116,7 @@ export function FinanceInsights({data,loading,periodMode}:{
      <p className="text-[11px] text-[#697194]">现金结余率</p>
      <p className="text-xl font-extrabold text-[#454e8b]">{savingRate===null?"—":savingRate.toFixed(1)+"%"}</p>
     </div>
-    <p className="mt-4 text-[10px] leading-relaxed text-slate-400">预算尚未配置，不把本期净现金流误标为实际账户余额。</p>
+    
    </article>
    <article className={panel+" xl:col-span-4"}>
     <h4 className={title}>支出分布</h4><p className={desc}>各费用类别的实际占比</p>
@@ -129,7 +129,7 @@ export function FinanceInsights({data,loading,periodMode}:{
      <span className="text-[11px] text-[#68728c]">已登记账单支出 </span>
      <strong className="float-right text-xs text-[#424b77]">{paidBills.length} 笔</strong>
     </div>
-    <p className="mt-2 text-[10px] text-slate-400">未付账单尚未接入，不作为零笔显示。</p>
+    
    </article>
    <article className={panel+" xl:col-span-4"}>
     <h4 className={title}>预算与实际</h4><p className={desc}>预算未设置时仅显示真实数据</p>
