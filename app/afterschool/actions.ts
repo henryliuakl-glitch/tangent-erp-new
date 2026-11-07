@@ -23,8 +23,8 @@ async function operator(roles:string[]=["owner","admin","teacher"]) {
 }
 function check(error:{message:string}|null){if(error) throw new Error(error.message);}
 function phoneNumber(value:string,label="联系人"){
- const formatted=value.normalize("NFKC").replace(/[\\s（）()－—–-]/g,"").trim();
- ensure(/^\\+?\\d{6,16}$/.test(formatted),"请输入有效的"+label+"电话（至少 6 位数字）");
+ const formatted=value.normalize("NFKC").replace(/[\s（）()－—–-]/g,"").trim();
+ ensure(/^\+?\d{6,16}$/.test(formatted),"请输入有效的"+label+"电话（至少 6 位数字）");
  return formatted;
 }
 
