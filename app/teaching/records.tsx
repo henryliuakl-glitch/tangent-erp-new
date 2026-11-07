@@ -59,7 +59,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
        oneToOne=rows.flatMap(b=>{
          const student=names.get(b.student_id);
          const code=String(student?.student_code||"").trim();
-         return code.startsWith("1")?[{
+         return student&&code.startsWith("1")?[{
            id:b.id,student_id:b.student_id,starts_at:b.start_time,
            subject:b.subject,teacher:b.teacher,student_name:student.name,
            student_code:code
