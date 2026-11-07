@@ -53,10 +53,9 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
  const children=(c.data||[]).map(x=>({id:x.id,name:x.full_name}));
  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
   <div className="hidden md:block"><Navbar/></div>
-  <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 md:px-6">
+  <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-3 md:px-5">
    <header className="erp-page-heading flex flex-wrap items-center justify-between gap-3">
-    <div><h1 className="text-2xl font-bold">晚托</h1>
-     <p className="text-sm text-slate-500">接送工作台</p></div>
+    <h1 className="text-2xl font-bold">晚托</h1>
     <div className="flex flex-wrap gap-2">
       
       {isAdmin&&<Link href="/afterschool/register" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">＋ 建立档案</Link>}
@@ -67,7 +66,7 @@ export default async function AfterSchoolPage({searchParams}:{searchParams:Promi
       </form>
     </div>
    </header>
-   <div className="grid gap-3 sm:grid-cols-4">
+   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
     {[["已报名孩子",profiles.length],["今日预计",visits.length],
       ["托管中",visits.filter(x=>x.status==="in_care").length],
       ["已交接",visits.filter(x=>x.status==="released").length]].map(([label,n])=>

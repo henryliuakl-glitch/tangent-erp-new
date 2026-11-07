@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { ClassSessionsStrip } from "./class-sessions-strip";
 import { Navbar } from "@/components/Navbar";
 import { BookingList, BookingsCta } from "./booking-list";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { MobileDock } from "@/components/MobileDock";
 import { cookies } from "next/headers";
 import { addCalendarMonthsInNZ, getTodayInNZ, nzLocalToUtc } from "@/lib/timezone";
@@ -121,28 +120,21 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       <div className="hidden md:block"><Navbar /></div>
 
       <main className="mx-auto max-w-6xl px-2.5 py-2 md:px-5 md:py-5">
-        <div className="erp-page-heading mb-2 flex flex-row items-center justify-between gap-2 sm:mb-3 sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="flex items-center gap-1.5 text-[17px] font-black tracking-tight text-slate-900 sm:gap-2 sm:text-2xl">
-              <CalendarIcon className="h-4.5 w-4.5 text-indigo-600 sm:h-5 sm:w-5" />
-              排课管理
-            </h1>
+        <BookingList bookings={bookings} toolbar={<div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h1 className="mr-1 shrink-0 text-[18px] font-extrabold tracking-tight text-[#232643]">排课</h1>
+          <form method="get" className="flex min-w-0 flex-wrap items-center gap-1.5" aria-label="日期范围">
+            <input aria-label="开始日期" type="date" name="from" defaultValue={lower}
+              className="h-9 max-w-[155px] rounded-lg border border-slate-200 bg-white px-2 text-xs"/>
+            <span className="text-xs text-slate-400">至</span>
+            <input aria-label="结束日期" type="date" name="to" defaultValue={upper}
+              className="h-9 max-w-[155px] rounded-lg border border-slate-200 bg-white px-2 text-xs"/>
+            <button type="submit" className="h-9 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">查询</button>
+          </form>
+          <BookingsCta/>
+        </div>}
+        afterToolbar={(businessId==="cus"||businessId==="tangent")&&
+          <Suspense fallback={null}><ClassSessionsStrip fromIso={fromIso} toIso={toIso}/></Suspense>}/>
 
-          </div>
-
-          <BookingsCta />
-        </div>
-
-        <form method="get" className="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3">
-          <label className="text-xs font-semibold text-slate-600">开始日期<input type="date" name="from" defaultValue={lower} className="mt-1 block rounded-lg border border-slate-200 px-2 py-1.5 text-sm"/></label>
-          <label className="text-xs font-semibold text-slate-600">结束日期<input type="date" name="to" defaultValue={upper} className="mt-1 block rounded-lg border border-slate-200 px-2 py-1.5 text-sm"/></label>
-          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">查询</button>
-          <span className="text-xs text-slate-500">按日期区间加载，当前 {bookings.length} 条</span>
-        </form>
-        {(businessId === "cus" || businessId === "tangent") && (
-          <Suspense fallback={null}><ClassSessionsStrip fromIso={fromIso} toIso={toIso} /></Suspense>
-        )}
-        <BookingList bookings={bookings} />
 
       </main>
 

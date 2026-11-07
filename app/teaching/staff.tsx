@@ -7,9 +7,9 @@ export async function TeachingStaff({owner}:{owner:boolean}){
  const db=await createClient();
  const {data:staff,error}=await db.from("cus_staff")
   .select("id,full_name,phone,email,subjects,scope,active").order("full_name").limit(120);
- if(error)return <section className="erp-surface p-5 md:p-6">教师档案尚未启用，请执行晚托数据库升级。</section>;
+ if(error)return <section className="erp-surface p-3 md:p-4">教师档案尚未启用，请执行晚托数据库升级。</section>;
  const rows=(staff||[]) as Staff[];
- return <div className="space-y-4">
+ return <div className="space-y-2">
   <section className="rounded-xl border bg-white p-4">
    <h2 className="mb-3 font-semibold">教师档案</h2>
    {rows.length===0?<p className="text-sm text-slate-500">尚未登记教师。</p>:
@@ -53,7 +53,7 @@ export async function CareTeachingOverview(){
  const names=new Map((teachers.data||[]).map(t=>[t.id,t.full_name]));
  const childNames=new Map((children||[]).map(t=>[t.id,t.full_name]));
  const visitMap=new Map((visits||[]).map(v=>[v.id,v]));
- return <div className="space-y-4">
+ return <div className="space-y-2">
    <section className="rounded-xl border bg-white p-4">
      <div className="flex items-center justify-between"><h2 className="font-semibold">晚托教师</h2><Link href="/afterschool" className="text-sm text-indigo-600">进入晚托</Link></div>
      <div className="mt-3 flex flex-wrap gap-2">{(teachers.data||[]).map(t=><span key={t.id} className="rounded-lg bg-slate-100 px-3 py-2 text-sm">{t.full_name}</span>)}</div>

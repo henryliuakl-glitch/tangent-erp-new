@@ -108,7 +108,7 @@ export function BookingsCta() {
   );
 }
 
-export function BookingList({ bookings }: { bookings: Booking[] }) {
+export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booking[]; toolbar?:React.ReactNode; afterToolbar?:React.ReactNode }) {
   const { currentBusinessId } = useBusiness();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
@@ -286,16 +286,20 @@ export function BookingList({ bookings }: { bookings: Booking[] }) {
   };
 
   return (
-    <div className="space-y-1 md:space-y-3">
-      <div className="relative">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {toolbar}
+        <div className="relative min-w-[180px] flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           placeholder="搜索学员、编号、地点、教练…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 rounded-lg border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
+          className="h-9 w-full rounded-lg border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
         />
+        </div>
       </div>
+      {afterToolbar}
       <div className="mx-auto w-full max-w-sm bg-slate-100 p-0.5 rounded-lg grid grid-cols-2">
         <button 
           onClick={() => setActiveTab('upcoming')}

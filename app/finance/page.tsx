@@ -248,102 +248,31 @@ export default function FinancePage() {
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-10 font-sans text-slate-900">
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="max-w-7xl mx-auto px-3 py-3 md:px-6 md:py-8">
+      <main className="max-w-[1600px] mx-auto px-3 py-3 md:px-5 md:py-4">
         
-        {/* Header & Controls */}
-        <div className="erp-page-heading flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 md:gap-4 md:mb-8 pt-1 md:pt-0">
-          <div>
-             <h1 className="text-lg md:text-2xl font-black text-slate-900 flex items-center gap-2">
-               <Wallet className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
-               财务总览
-             </h1>
-             <p className="text-[9px] md:text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider pl-7 md:pl-8">
-               Revenue & Expense Overview
-             </p>
+        <div className="erp-page-heading flex flex-wrap items-center gap-2.5">
+          <h1 className="mr-auto flex items-center gap-2 text-xl font-extrabold tracking-tight">
+            <Wallet className="h-5 w-5 text-indigo-600"/>财务
+          </h1>
+          <div className="flex items-center gap-1 rounded-xl bg-white p-1 shadow-sm">
+            {([{id:"week" as const,label:"周"},{id:"month" as const,label:"月"},{id:"year" as const,label:"年"}]).map(item=>
+              <button key={item.id} type="button" onClick={()=>setPeriodMode(item.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold ${periodMode===item.id?"bg-slate-900 text-white":"text-slate-500 hover:bg-slate-50"}`}>
+                {item.label}
+              </button>)}
           </div>
-          
-          <div className="w-full md:w-auto">
-            <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-              {([
-                { id: "week" as const, label: "按周" },
-                { id: "month" as const, label: "按月" },
-                { id: "year" as const, label: "按年" },
-              ]).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setPeriodMode(item.id)}
-                  className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all sm:text-xs ${
-                    periodMode === item.id
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-1.5 py-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => shiftPeriod(-1)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                aria-label="上一个期间"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={resetToCurrentPeriod}
-                className="min-w-0 flex-1 px-2 text-center"
-                title="点击返回当前期间"
-              >
-                <div className="truncate text-xs font-black text-slate-900">{periodLabel}</div>
-                <div className="mt-0.5 text-[9px] font-semibold text-slate-400">
-                  {periodMode === "week" ? "每周单独查看" : periodMode === "month" ? "每月单独查看" : "每年单独查看"}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => shiftPeriod(1)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                aria-label="下一个期间"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span className="shrink-0 text-[10px] font-semibold text-slate-400">跳转到</span>
-              {periodMode === "week" ? (
-                <Input
-                  type="date"
-                  value={anchorDate}
-                  onChange={(e) => setAnchorDate(e.target.value)}
-                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
-                />
-              ) : periodMode === "month" ? (
-                <Input
-                  type="month"
-                  value={anchorDate.slice(0, 7)}
-                  onChange={(e) => setMonthAnchor(e.target.value)}
-                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
-                />
-              ) : (
-                <Input
-                  type="number"
-                  min="2000"
-                  max="2100"
-                  value={anchorDate.slice(0, 4)}
-                  onChange={(e) => setYearAnchor(e.target.value)}
-                  className="h-8 rounded-lg border-slate-200 bg-white text-[11px]"
-                />
-              )}
-            </div>
+          <div className="flex h-9 items-center gap-1 rounded-xl bg-white px-1.5 shadow-sm">
+            <button type="button" onClick={()=>shiftPeriod(-1)} aria-label="上个期间" className="rounded-lg p-1 text-slate-500"><ChevronLeft className="h-4 w-4"/></button>
+            <button type="button" onClick={resetToCurrentPeriod} className="min-w-[76px] px-1 text-xs font-bold">{periodLabel}</button>
+            <button type="button" onClick={()=>shiftPeriod(1)} aria-label="下个期间" className="rounded-lg p-1 text-slate-500"><ChevronRight className="h-4 w-4"/></button>
           </div>
+          {periodMode==="week"?<Input aria-label="跳转日期" type="date" value={anchorDate} onChange={e=>setAnchorDate(e.target.value)} className="h-9 w-[145px] bg-white text-xs"/>:
+           periodMode==="month"?<Input aria-label="跳转月份" type="month" value={anchorDate.slice(0,7)} onChange={e=>setMonthAnchor(e.target.value)} className="h-9 w-[145px] bg-white text-xs"/>:
+           <Input aria-label="跳转年份" type="number" min="2000" max="2100" value={anchorDate.slice(0,4)} onChange={e=>setYearAnchor(e.target.value)} className="h-9 w-24 bg-white text-xs"/>}
+          <Link href="/finance/add" className="inline-flex h-9 items-center rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">
+            <Plus className="mr-1 h-3.5 w-3.5"/>记一笔
+          </Link>
         </div>
-
         {(data.pendingReimburseCount || 0) > 0 && (
           <Link href="/finance/reimburse" className="mb-5 flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
             <div>
@@ -359,31 +288,31 @@ export default function FinancePage() {
         )}
 
         {/* Stats Cards — NZD / RMB 独立轨道 */}
-        <div className="flex overflow-x-auto gap-2 pb-2 -mx-3 px-3 md:gap-4 md:pb-4 md:-mx-0 md:px-0 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-6 no-scrollbar snap-x snap-mandatory">
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-emerald-100 bg-emerald-50/50 shadow-sm flex flex-col justify-between h-auto">
+        <div className="grid grid-cols-2 gap-2 pb-1 lg:grid-cols-4">
+          <Card className="erp-finance-kpi p-3 md:p-4 border-emerald-100 bg-emerald-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
-                 <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">现金收入 (In)</p>
-                 <h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.income ?? data.income).toLocaleString()}</h2>
+                 <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">实际收款</p>
+                 <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.income ?? data.income).toLocaleString()}</h2>
                  <p className="text-sm font-bold text-emerald-700/80 mt-1 tabular-nums">¥{(data.byCurrency?.RMB?.income ?? 0).toLocaleString()} <span className="text-[10px] font-medium text-emerald-600/70">RMB</span></p>
                </div>
                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><ArrowDownRight className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-rose-100 bg-rose-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="erp-finance-kpi p-3 md:p-4 border-rose-100 bg-rose-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
-                 <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">现金支出 (Out)</p>
-                 <h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.expense ?? data.expense).toLocaleString()}</h2>
+                 <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">现金支出</p>
+                 <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-2">${(data.byCurrency?.NZD?.expense ?? data.expense).toLocaleString()}</h2>
                  <p className="text-sm font-bold text-rose-700/80 mt-1 tabular-nums">¥{(data.byCurrency?.RMB?.expense ?? 0).toLocaleString()} <span className="text-[10px] font-medium text-rose-600/70">RMB</span></p>
                </div>
                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-rose-100 flex items-center justify-center text-rose-600"><ArrowUpRight className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-indigo-100 bg-indigo-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="erp-finance-kpi p-3 md:p-4 border-indigo-100 bg-indigo-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
                <div>
-                 <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">净现金流 (Net)</p>
+                 <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">净现金流</p>
                  <h2 className={`text-xl md:text-3xl font-black mt-2 ${(data.byCurrency?.NZD?.net ?? data.net) >= 0 ? 'text-indigo-700' : 'text-rose-600'}`}>
                    {(data.byCurrency?.NZD?.net ?? data.net) >= 0 ? '+' : ''}${(data.byCurrency?.NZD?.net ?? data.net).toLocaleString()}
                  </h2>
@@ -394,9 +323,9 @@ export default function FinancePage() {
                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Wallet className="h-5 w-5" /></div>
              </div>
           </Card>
-          <Card className="snap-center min-w-[85vw] md:min-w-0 p-3 md:p-5 border-amber-100 bg-amber-50/50 shadow-sm flex flex-col justify-between h-auto">
+          <Card className="erp-finance-kpi p-3 md:p-4 border-amber-100 bg-amber-50/50 shadow-sm flex flex-col justify-between h-auto">
              <div className="flex justify-between items-start">
-               <div><p className="text-xs font-bold text-amber-600 uppercase tracking-wider">消课产值 (Realized)</p><h2 className="text-xl md:text-3xl font-black text-slate-900 mt-2">${Number(data.realized).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
+               <div><p className="text-xs font-bold text-amber-600 uppercase tracking-wider">销课确认收入</p><h2 className="text-xl md:text-2xl font-black text-slate-900 mt-2">${Number(data.realized).toLocaleString(undefined, { maximumFractionDigits: 2 })}</h2>
                <p className="text-sm font-bold text-amber-700/80 mt-1 tabular-nums">¥{Number(data.realizedRmb ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] font-medium text-amber-600/70">RMB</span></p>
                </div>
                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-amber-100 flex items-center justify-center text-amber-600"><TrendingUp className="h-5 w-5" /></div>
@@ -405,7 +334,7 @@ export default function FinancePage() {
         </div>
 
         {data.incomeBySource?.length > 0 && (
-          <div className="mt-3 md:mt-6 rounded-xl md:rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-5">
+          <div className="erp-plain-card mt-2 p-3 md:p-4">
             <div className="mb-3">
               <h3 className="text-sm font-bold text-slate-900">收入来源</h3>
               <p className="mt-0.5 text-[11px] text-slate-400">当前筛选时段内，实际收到各账户/方式的收入</p>
@@ -429,13 +358,13 @@ export default function FinancePage() {
           </div>
         )}
         {/* Chart */}
-        <div className="mt-3 md:mt-4 md:mt-8">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 md:mb-4 flex items-center gap-2">
-            <FileBarChart className="h-4 w-4 text-slate-400" /> 趋势分析 (Trend)
+        <div className="erp-finance-content mt-3">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-900">
+            <FileBarChart className="h-4 w-4 text-slate-400" /> 收支与销课趋势
           </h3>
-          <Card className="p-3 md:p-6 border-slate-200 shadow-sm overflow-hidden bg-white">
+          <Card className="erp-plain-card overflow-hidden p-3 md:p-4">
             <div className="overflow-x-auto no-scrollbar w-full pb-2">
-               <div className="h-[190px] md:h-[300px] min-w-[600px] md:min-w-full">
+               <div className="h-[180px] md:h-[205px] min-w-[500px] md:min-w-full">
                  {loading ? (
                    <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-300"/></div>
                  ) : (
@@ -458,10 +387,10 @@ export default function FinancePage() {
         </div>
 
         {/* Transactions List */}
-        <div className="mt-4 md:mt-8">
-           <div className="flex items-center justify-between mb-2 md:mb-4">
+        <div className="mt-3">
+           <div className="mb-2 flex items-center justify-between">
              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-               <DollarSign className="h-4 w-4 text-slate-400" /> 近期流水 (Recent)
+               <DollarSign className="h-4 w-4 text-slate-400" /> 近期流水
              </h3>
              <div className="flex items-center gap-2">
                <Link href="/finance/reimburse">
@@ -508,7 +437,7 @@ export default function FinancePage() {
                data.transactions
                  .filter((t: { type?: string }) => txFilter === "all" || t.type === txFilter)
                  .map((t: any) => (
-                 <div key={t.id} className="bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform">
+                 <div key={t.id} className="erp-plain-card p-2.5 md:p-3 flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform">
                     <div className="flex items-center gap-4">
                        <div className={`h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full flex items-center justify-center shrink-0 ${
                          t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
