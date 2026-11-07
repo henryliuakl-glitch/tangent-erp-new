@@ -77,15 +77,15 @@ function MetricCard({
   return (
     <Link
       href={href}
-      className="group rounded-xl border border-slate-200 bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:border-slate-300 hover:shadow-sm"
+      className="erp-metric-card group relative flex flex-col justify-between transition-all"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <p className="mt-1 text-xl font-bold tracking-tight text-slate-950">{value}</p>
-          <p className="mt-0.5 text-[10px] font-medium text-slate-400">{meta}</p>
+          <p className="erp-metric-value font-bold tracking-tight">{value}</p>
+          <p className="erp-metric-meta mt-1 text-[10px] font-medium text-slate-400">{meta}</p>
         </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
+        <div className="erp-metric-icon flex items-center justify-center transition-colors">
           <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
@@ -469,7 +469,7 @@ export default function Home() {
 
       <main className="min-h-[100dvh] bg-slate-50 pb-24 text-slate-900 md:pb-10">
         <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
-          <header className="flex items-start justify-between gap-4 pb-3 pt-4 md:pb-4 md:pt-5">
+          <header className="erp-page-heading flex items-start justify-between gap-4 pb-3 pt-4 md:pb-4 md:pt-5">
             <div className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold text-slate-400">
@@ -511,7 +511,7 @@ export default function Home() {
             </div>
           </header>
 
-          <section className="grid grid-cols-2 gap-2 lg:grid-cols-7">
+          <section className="erp-metrics grid grid-cols-2 gap-3 xl:grid-cols-4 2xl:grid-cols-4">
             <MetricCard
               label="今日课程"
               value={todayLoading ? "—" : String(todayLessons.length)}
@@ -603,7 +603,7 @@ export default function Home() {
             />
           </section>
 
-          <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
+          <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.85fr)]">
             <div className="min-w-0">
               {calendarLoading ? (
                 <div className="flex h-[410px] items-center justify-center rounded-xl border border-slate-200 bg-white">
