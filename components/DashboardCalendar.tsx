@@ -241,10 +241,6 @@ export function DashboardCalendar({
     };
   }, [selectedBookings]);
 
-  const positionedBookings = useMemo(
-    () => layoutBookings(selectedBookings, gridStartHour, gridEndHour),
-    [selectedBookings, gridStartHour, gridEndHour]
-  );
 
   const moveMonth = (delta: number) => {
     const next = addCalendarMonthsInNZ(`${visibleMonth}-01`, delta).slice(0, 7);
@@ -406,119 +402,38 @@ export function DashboardCalendar({
           </div>
         </div>
 
-        <div className="min-w-0 rounded-xl bg-[#fbfbff] p-2.5 sm:p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-black text-slate-900">当天时段</div>
-              <div className="text-[9px] font-medium text-slate-400">
-                {String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00
-              </div>
-            </div>
-            <div className="text-[10px] font-bold text-slate-400">
-              {loading ? "加载中…" : selectedBookings.length ? `${selectedBookings.length} booked` : "全部空闲"}
-            </div>
+        <div className="flex h-full min-w-0 flex-col rounded-xl bg-[#fbfbff] p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="text-xs font-bold text-slate-900">当天时段</h4>
+            <span className="text-[11px] font-semibold text-slate-400">{loading?"加载中…":selectedBookings.length+" 节"}</span>
           </div>
-
-          <div className="overflow-hidden rounded-xl bg-white">
-            <div
-              className="relative ml-[48px]"
-              style={{ height: (gridEndHour - gridStartHour) * HOUR_HEIGHT }}
-            >
-              {Array.from({ length: gridEndHour - gridStartHour + 1 }, (_, i) => {
-                const hour = gridStartHour + i;
-                const top = i * HOUR_HEIGHT;
-                return (
-                  <div
-                    key={hour}
-                    className="absolute left-0 right-0 border-t border-slate-100"
-                    style={{ top }}
-                  >
-                    <span className="absolute right-full top-0 w-[44px] -translate-y-1/2 pr-2 text-right text-[9px] font-semibold tabular-nums text-slate-400">
-                      {String(hour).padStart(2, "0")}:00
-                    </span>
-                  </div>
-                );
-              })}
-
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 grid"
-                style={{
-                  height: (gridEndHour - gridStartHour) * HOUR_HEIGHT,
-                  gridTemplateRows: `repeat(${gridEndHour - gridStartHour}, ${HOUR_HEIGHT}px)`,
-                }}
-              >
-                {Array.from({ length: gridEndHour - gridStartHour }, (_, i) => (
-                  <div key={i} className={i % 2 ? "bg-slate-50/25" : ""} />
-                ))}
-              </div>
-
-              {positionedBookings.map(({ booking, start, end, column, columns }) => {
-                const clippedStart = Math.max(start, gridStartHour * 60);
-                const clippedEnd = Math.min(end, gridEndHour * 60);
-                const top = ((clippedStart - gridStartHour * 60) / 60) * HOUR_HEIGHT;
-                const height = Math.max(
-                  30,
-                  ((clippedEnd - clippedStart) / 60) * HOUR_HEIGHT - 3
-                );
-                const widthPct = 100 / columns;
-                const leftPct = column * widthPct;
-                const student = booking.student || {};
-                const teacher = staffLabel(booking);
-                const subject =
-                  booking.subject ||
-                  student.subject ||
-                  (booking.business_unit_id === "sine" ? "练车" : "课程");
-                const accent = accentFor(booking);
-                const unitLabel = booking.business_unit_id === "sine" ? "Sine" : "CuS";
-
-                return (
-                  <div
-                    key={booking.id}
-                    className={`absolute z-10 overflow-hidden rounded-lg px-2 py-1 ${accent.block}`}
-                    style={{
-                      top,
-                      height,
-                      left: `calc(${leftPct}% + 2px)`,
-                      width: `calc(${widthPct}% - 4px)`,
-                    }}
-                    title={`${timeRangeLabel(booking)} · ${student.name || "未知学员"} · ${subject}`}
-                  >
-                    <div className="flex min-w-0 items-center gap-1">
-                      <span className="shrink-0 text-[10px] font-black tabular-nums">
-                        {timeRangeLabel(booking)}
-                      </span>
-                      {businessId === "tangent" ? (
-                        <span className="shrink-0 rounded bg-white/70 px-1 py-px text-[8px] font-black text-slate-500">
-                          {unitLabel}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-0.5 truncate text-[10px] font-bold leading-tight">
-                      {student.student_code ? `${student.student_code} · ` : ""}
-                      {student.name || "未知学员"}
-                    </div>
-                    <div className="mt-0.5 truncate text-[9px] font-semibold leading-tight opacity-75">
-                      {subject}{teacher ? ` · ${teacher}` : ""}
-                    </div>
-                    {height >= 84 && booking.location ? (
-                      <div className="mt-1 flex min-w-0 items-center gap-1 truncate text-[8px] leading-tight opacity-60">
-                        <MapPin className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{booking.location}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-
-              {positionedBookings.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-xl bg-white/90 px-4 py-3 text-center">
-                    <CalendarDays className="mx-auto mb-1 h-4 w-4 text-slate-300" />
-                    <div className="text-[10px] font-semibold text-slate-400">{String(gridStartHour).padStart(2, "0")}:00–{String(gridEndHour).padStart(2, "0")}:00 全部空闲</div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+          <div className="mb-1 grid grid-cols-[98px_minmax(0,1fr)_minmax(0,1.2fr)] gap-2 px-2 pb-2 text-[10px] font-medium text-slate-400">
+            <span>时间</span><span>学员</span><span>科目 / 教师</span>
+          </div>
+          <div className="max-h-[410px] flex-1 space-y-1.5 overflow-y-auto pr-1">
+            {selectedBookings.length===0?(
+              <div className="flex min-h-32 items-center justify-center rounded-xl bg-white text-xs text-slate-400">当天暂无课程</div>
+            ):selectedBookings.map(booking=>{
+              const student=booking.student||{};
+              const subject=booking.subject||student.subject||(booking.business_unit_id==="sine"?"练车":"课程");
+              const teacher=staffLabel(booking);
+              const accent=accentFor(booking);
+              return <div key={booking.id}
+                className="grid min-h-[47px] grid-cols-[98px_minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2 rounded-xl bg-white px-2.5 py-2"
+                title={`${timeRangeLabel(booking)} · ${student.student_code||""} ${student.name||"未知学员"} · ${subject}`}>
+                <span className="whitespace-nowrap text-[11px] font-bold tabular-nums text-slate-800">{timeRangeLabel(booking)}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${accent.dot}`}/>
+                  <span className="min-w-0 truncate text-[11px] font-bold text-slate-800">
+                    {student.student_code?student.student_code+" · ":""}{student.name||"未知学员"}
+                  </span>
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[11px] font-semibold text-slate-700">{subject}</span>
+                  {teacher&&<span className="block truncate text-[10px] text-slate-400">{teacher}</span>}
+                </span>
+              </div>;
+            })}
           </div>
         </div>
       </div>

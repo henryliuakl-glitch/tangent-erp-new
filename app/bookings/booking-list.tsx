@@ -100,7 +100,7 @@ export function BookingsCta() {
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   return (
     <Link href={driving ? "/bookings/quick" : "/bookings/new"} className="self-end sm:self-auto">
-      <Button className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[11px] font-bold shadow-md shadow-indigo-100 transition-transform active:scale-95 hover:bg-indigo-700 sm:h-10 sm:w-auto sm:rounded-xl sm:px-4 sm:text-sm">
+      <Button className="h-10 rounded-xl border-0 bg-indigo-600 px-3 text-xs font-bold shadow-sm transition-transform active:scale-95 hover:bg-indigo-700">
         <Plus className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-5 sm:w-5" />
         {driving ? "极速排课" : "新建排课"}
       </Button>
@@ -287,15 +287,15 @@ export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booki
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="erp-bookings-toolbar flex flex-wrap items-center gap-2 xl:flex-nowrap">
         {toolbar}
-        <div className="relative min-w-[180px] flex-1">
+        <div className="relative min-w-[190px] flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           placeholder="搜索学员、编号、地点、教练…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9 w-full rounded-lg border-slate-200 bg-white pl-9 text-[13px] md:text-sm"
+          className="h-10 w-full rounded-xl border-0 bg-white pl-9 text-[13px] shadow-sm md:text-sm"
         />
         </div>
       </div>
