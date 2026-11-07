@@ -301,3 +301,17 @@ body.erp-app {
 @media(prefers-reduced-motion:reduce){
   .erp-app :is(button,a,input,textarea,select){transition:none!important;}
 }
+
+/* Schedule progress and recurring operational cards. */
+.erp-overview-progress{display:flex;flex-direction:column;justify-content:space-between;}
+.erp-progress-ring{display:flex;align-items:center;justify-content:center;width:94px;height:94px;flex-shrink:0;border-radius:50%;padding:11px;}
+.erp-progress-ring-inner{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:white;box-shadow:0 1px 2px rgba(0,0,0,.035);}
+.erp-progress-ring-inner span{font-size:19px;font-weight:850;letter-spacing:-.045em;color:#282a4a;}
+.erp-app .erp-care-metric{position:relative;overflow:hidden;padding:20px!important;border:1px solid #e9ebf5;border-radius:18px!important;}
+.erp-app .erp-care-metric p:first-child{font-size:11px;font-weight:650;color:#9298af;}
+.erp-app .erp-care-metric p:last-child{font-weight:850;font-size:30px;letter-spacing:-.05em;color:#252747;}
+.erp-app .erp-care-metric:first-child{background:linear-gradient(137deg,#5555ef,#7370f4)!important;border-color:transparent;color:#fff;box-shadow:0 11px 24px rgba(77,78,223,.18)!important;}
+.erp-app .erp-care-metric:first-child p{color:#fff!important;}
+.erp-app .erp-care-metric:first-child p:first-child{opacity:.78;}
+.erp-app .erp-surface h2,.erp-app .erp-surface h3{color:#242743;}
+.erp-app [data-radix-popper-content-wrapper]{z-index:99!important;}
