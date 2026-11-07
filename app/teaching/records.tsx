@@ -83,9 +83,9 @@ export async function TeachingRecords({editable}:{editable:boolean}) {
              </div>
            </summary>
            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-sm">
-             <p className="whitespace-pre-wrap"><strong>教学内容：</strong>{r.lesson_content}</p>
+             <p className="whitespace-pre-wrap"><strong>教师做了什么：</strong>{r.lesson_content}</p>
              {r.homework&&<p className="whitespace-pre-wrap"><strong>作业：</strong>{r.homework}</p>}
-             {r.student_feedback&&<p className="whitespace-pre-wrap"><strong>学生表现：</strong>{r.student_feedback}</p>}
+             {r.student_feedback&&<p className="whitespace-pre-wrap"><strong>学生做了什么：</strong>{r.student_feedback}</p>}
              {r.next_steps&&<p className="whitespace-pre-wrap"><strong>下节计划：</strong>{r.next_steps}</p>}
            </div>
          </details>;
