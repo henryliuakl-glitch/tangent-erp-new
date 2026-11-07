@@ -61,7 +61,7 @@ function NavItem({
 
 export function MobileDock() {
   const pathname = usePathname();
-  const { currentBusinessId,careOnly } = useBusiness();
+  const { currentBusinessId,careOnly,astraOnly } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   const family = currentBusinessId === "family";
   const showVehicles = driving || currentBusinessId === "tangent";
@@ -69,7 +69,7 @@ export function MobileDock() {
   const createHref = driving ? "/bookings/quick" : "/bookings/new";
   const createLabel = driving ? "排课" : "新建";
 
-  if (careOnly) return <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"><div className="mx-auto flex h-[58px] max-w-lg items-stretch px-2"><NavItem href="/teaching" icon={GraduationCap} label="教务" active={pathname.startsWith("/teaching")}/><NavItem href="/afterschool" icon={Baby} label="晚托" active={pathname.startsWith("/afterschool")}/></div></div>;
+  if (careOnly) return <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"><div className="mx-auto flex h-[58px] max-w-lg items-stretch px-2"><NavItem href="/teaching" icon={GraduationCap} label="教务" active={pathname.startsWith("/teaching")}/>{!astraOnly&&<NavItem href="/afterschool" icon={Baby} label="晚托" active={pathname.startsWith("/afterschool")}/>}</div></div>;
   if (family) {
     return (
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
