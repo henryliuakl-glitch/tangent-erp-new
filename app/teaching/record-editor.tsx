@@ -33,7 +33,7 @@ export function TeachingRecordEditor({
     });
   }
   if(targets.length===0) return <p className="text-sm text-slate-500">暂无可记录的课程，请先到「排课」或「班级」安排课程。</p>;
-  return <div className="erp-surface p-5 md:p-6">
+  return <div className="erp-surface p-3 md:p-4">
     <h2 className="mb-5 text-[15px] font-extrabold text-[#282b4a]">填写教学记录</h2>
     <form key={target} onSubmit={submit} className="space-y-3">
       <input type="hidden" name="scope" value={scope}/>

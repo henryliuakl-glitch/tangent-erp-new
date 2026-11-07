@@ -47,7 +47,6 @@ import { isBookingUnpaid, isPayAsYouGo } from "@/lib/student-payment";
 import { isDrivingSchoolBusiness } from "@/lib/business";
 import {
   formatDateLabelInNZ,
-  addCalendarDaysInNZ,
   getTodayInNZ,
   isTodayInNZ,
   utcToNzDateStr,
@@ -452,26 +451,8 @@ export default function Home() {
   const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
   const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
   const todayProgress = todayLessons.length ? Math.round(todayDone / todayLessons.length * 100) : 0;
-  const weekStart=getTodayInNZ();
-  const sevenDays=Array.from({length:7},(_,i)=>{
-    const day=addCalendarDaysInNZ(weekStart,i);
-    return {
-      date:day,
-      short:new Intl.DateTimeFormat("zh-CN",{weekday:"short",timeZone:"UTC"}).format(new Date(day+"T12:00:00Z")),
-      count:upcomingBookings.filter((b:any)=>b.status==="confirmed"&&utcToNzDateStr(b.start_time)===day).length
-    };
-  });
-  const maxDayCount=Math.max(1,...sevenDays.map(d=>d.count));
-
   const quickBookHref = driving ? "/bookings/quick" : "/bookings/new";
   const quickBookLabel = driving ? "快速排课" : "新建排课";
-
-  const scopeName =
-    currentBusinessId === "tangent"
-      ? "集团工作台"
-      : currentBusinessId === "sine"
-        ? "驾校工作台"
-        : "教培工作台";
 
   return (
     <>
@@ -480,50 +461,13 @@ export default function Home() {
       </div>
 
       <main className="min-h-[100dvh] bg-slate-50 pb-24 text-slate-900 md:pb-10">
-        <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
-          <header className="erp-page-heading flex items-start justify-between gap-4 pb-3 pt-4 md:pb-4 md:pt-5">
-            <div className="min-w-0">
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-slate-400">
-                  {format(new Date(), "M月d日 EEEE", { locale: zhCN })}
-                </span>
-                <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">
-                  {currentLabel}
-                </span>
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-950 md:text-2xl">
-                {scopeName}
-              </h1>
-              <p className="mt-0.5 text-xs text-slate-500">
-                课程、收入与待办
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              <Link
-                href={quickBookHref}
-                className="hidden h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 sm:flex"
-              >
-                <Plus className="h-4 w-4" />
-                {quickBookLabel}
-              </Link>
-
-              <div className="md:hidden">
-                <MobileAccountMenu
-                  user={userProfile}
-                  currentBusinessId={currentBusinessId}
-                  businesses={businessList}
-                  onSwitch={(id: string) => {
-                    setBusinessId(id);
-                    if (id === "family") router.push("/family");
-                  }}
-                  onSignOut={handleSignOut}
-                />
-              </div>
-            </div>
-          </header>
-
-          <section className="erp-metrics grid grid-cols-2 gap-3 xl:grid-cols-4 2xl:grid-cols-4">
+        <div className="mx-auto w-full max-w-[1600px] px-3 sm:px-5">
+          <div className="mb-2 flex justify-end md:hidden"><MobileAccountMenu
+            user={userProfile} currentBusinessId={currentBusinessId}
+            businesses={businessList}
+            onSwitch={(id:string)=>{setBusinessId(id);if(id==="family")router.push("/family");}}
+            onSignOut={handleSignOut}/></div>
+          <section className="erp-metrics grid grid-cols-2 gap-2 xl:grid-cols-4">
             <MetricCard
               label="今日课程"
               value={todayLoading ? "—" : String(todayLessons.length)}
@@ -640,7 +584,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.85fr)]">
+          <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.85fr)]">
             <div className="min-w-0">
               {calendarLoading ? (
                 <div className="flex h-[410px] items-center justify-center rounded-xl border border-slate-200 bg-white">
@@ -657,26 +601,7 @@ export default function Home() {
               )}
             </div>
 
-            <div className="grid min-w-0 gap-4 content-start">
-              <section className="erp-surface p-4 sm:p-5">
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-sm font-extrabold text-[#242743]">未来七天课程</h2>
-                    <p className="mt-1 text-[11px] text-[#9ba0b5]">已确认课程数量</p>
-                  </div>
-                  <span className="rounded-lg bg-[#f0efff] px-2.5 py-1 text-xs font-bold text-[#5355e7]">
-                    {sevenDays.reduce((sum,d)=>sum+d.count,0)} 节
-                  </span>
-                </div>
-                <div className="flex h-[124px] items-end justify-between gap-2">
-                  {sevenDays.map((d,i)=><div key={d.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
-                    <span className="text-[10px] font-bold text-[#656b8b]">{d.count||""}</span>
-                    <div className={"w-full max-w-[34px] rounded-t-[9px] "+(i===0?"bg-[#5555ec]":"bg-[#aaaaf7]")}
-                      style={{height:String(Math.max(10,d.count/maxDayCount*78))+"px"}}/>
-                    <span className={"text-[10px] font-semibold "+(i===0?"text-[#5657eb]":"text-[#a1a5bc]")}>{d.short}</span>
-                  </div>)}
-                </div>
-              </section>
+            <div className="grid min-w-0 gap-3 content-start">
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
                   <div>

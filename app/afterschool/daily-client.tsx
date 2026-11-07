@@ -7,7 +7,7 @@ import {clockCare,approveThirdParty,uploadThirdPartyVideo,markParentNotified,
 type Data=Record<string,any>;
 type Props={visits:Data[];students:Data[];profiles:Data[];guardians:Data[];
   contacts:Data[];approvals:Data[];teachers:Data[];balances:Data[];upcoming:Data[];lessonLogs:Data[];isAdmin:boolean;selectedDate:string};
-const box="erp-surface p-5 md:p-6";
+const box="erp-surface p-3 md:p-4";
 const input="erp-field w-full px-3 py-2.5 text-sm";
 const button="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40";
 const days=["日","一","二","三","四","五","六"];
@@ -30,16 +30,16 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
  };
  const pendingProfiles=profiles.filter(p=>p.status!=="active");
  const balanceByChild=new Map(balances.map(x=>[x.student_id,x]));
- return <div className="space-y-5">
+ return <div className="space-y-2">
   {error&&<div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
   <section className={box}><h2 className="mb-3 text-lg font-bold">{selectedDate} 托管名单</h2>
    {visits.length===0?<p className="text-sm text-slate-500">暂无今日名单，请点击「生成今日班次」。</p>:
-   <div className="grid gap-3 lg:grid-cols-2">{visits.map(v=>{
+   <div className="grid gap-2 lg:grid-cols-2">{visits.map(v=>{
      const gs=guardians.filter(x=>x.student_id===v.student_id);
      const cs=contacts.filter(x=>x.student_id===v.student_id);
      const late=v.status==="in_care"&&new Date()>new Date(v.scheduled_end);
      const app=approvals.filter(x=>x.visit_id===v.id && !x.revoked_at).at(-1);
-     return <div key={v.id} className="space-y-3 rounded-xl border border-[#e9ebf7] bg-[#fcfcff] p-4 transition-all hover:border-[#d4d7f6]">
+     return <div key={v.id} className="space-y-2 rounded-xl bg-[#f8f9ff] p-3 transition-all hover:bg-[#f3f4ff]">
       <div className="flex items-start justify-between gap-2"><div>
         <h3 className="font-bold">{studentById.get(v.student_id)?.name||"未知学员"}</h3>
         <p className="text-xs text-slate-500">{nzDate(v.scheduled_start)} — {nzDate(v.scheduled_end).split(" ").at(-1)}</p>

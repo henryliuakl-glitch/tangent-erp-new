@@ -334,3 +334,72 @@ body.erp-app {
   .erp-app .erp-secondary-metrics>div{padding:13px!important;}
   .erp-app .erp-care-metric{padding:14px!important;}
 }
+
+/* Dense ERP: one visible sidebar, no duplicate top bar, compact dashboard. */
+.erp-topbar,.erp-tabletbar{display:none!important;}
+@media(min-width:768px){
+  .erp-sidebar{
+    position:fixed!important;inset:0 auto 0 0;z-index:45;
+    display:flex!important;flex-direction:column;gap:0;
+    width:204px;height:100dvh;min-height:0;overflow:visible;
+    border-right:1px solid #e9ebf4;background:#fafaff;padding:15px 12px 13px;
+  }
+  body.erp-app:has(.erp-sidebar) main{
+    width:calc(100% - 204px)!important;
+    max-width:none!important;margin-left:204px!important;
+    padding-top:16px!important;padding-bottom:20px!important;
+  }
+  body.erp-app:has(.erp-sidebar) main>div[class*="mx-auto"]{
+    padding-left:20px!important;padding-right:20px!important;
+  }
+  .erp-sidebar-brand{padding:3px 8px 15px;gap:8px;}
+  .erp-sidebar-switch{padding:0 1px 15px;}
+  .erp-sidebar-nav{min-height:0;flex:1;gap:3px;}
+  .erp-nav-link{min-height:40px;height:40px;border-radius:11px;padding:0 12px;gap:11px;font-size:13px;}
+  .erp-sidebar-footer{margin-top:auto;padding-top:9px;border-color:#eceefa;}
+  .erp-quick-link{color:#5355e8;background:#efefff;margin-bottom:3px;}
+  .erp-quick-link:hover{background:#e5e4ff!important;}
+}
+.erp-sidebar-switch [role="combobox"]{width:100%!important;min-width:0!important;max-width:100%!important;}
+.erp-sidebar-switch [role="combobox"] .truncate{max-width:120px;}
+.erp-fixed-entity{display:flex;align-items:center;height:40px;padding:0 10px;border-radius:12px;background:#fff;color:#303456;font-size:12px;font-weight:700;}
+.erp-app .erp-page-heading{margin-bottom:10px!important;padding-top:0!important;}
+.erp-app .erp-page-heading h1{font-size:22px!important;line-height:1.22!important;}
+.erp-app .erp-metrics{grid-auto-rows:minmax(92px,auto);gap:10px;}
+.erp-app .erp-metric-card{
+  min-height:92px;padding:13px 15px 11px;border:0;border-radius:16px;
+  box-shadow:0 3px 14px rgba(38,45,103,.045);
+}
+.erp-app .erp-metric-card .erp-metric-value{font-size:23px;margin-top:7px;line-height:1.12;}
+.erp-app .erp-metric-card .erp-metric-icon{width:33px;height:33px;border-radius:10px;}
+.erp-app .erp-metric-card .erp-metric-value + .erp-metric-meta{margin-top:3px;}
+.erp-app .erp-metric-card p:first-child{font-size:11px;}
+.erp-app .erp-overview-progress{padding:12px 15px;}
+.erp-progress-ring{width:64px;height:64px;padding:8px;}
+.erp-progress-ring-inner span{font-size:15px;}
+.erp-app .erp-metric-card .erp-metric-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.erp-app .erp-surface{
+  border:0!important;background:#fff;border-radius:16px;
+  box-shadow:0 3px 14px rgba(38,45,103,.045)!important;
+}
+.erp-app .erp-care-metric{
+  padding:13px 15px!important;border:0!important;border-radius:16px!important;
+  box-shadow:0 3px 14px rgba(38,45,103,.045)!important;
+}
+.erp-app .erp-care-metric p:last-child{font-size:23px;margin-top:5px;}
+.erp-app .erp-plain-card{
+  border:0!important;border-radius:16px!important;
+  box-shadow:0 3px 14px rgba(38,45,103,.045)!important;background:#fff!important;
+}
+.erp-app .erp-finance-kpi{
+  border:0!important;border-radius:16px!important;min-height:105px;
+  box-shadow:0 3px 14px rgba(38,45,103,.045)!important;
+}
+.erp-app .erp-finance-kpi h2{margin-top:7px;font-size:25px;line-height:1.1;letter-spacing:-.04em;}
+.erp-app .erp-finance-kpi p{margin-top:3px;}
+.erp-app .erp-finance-content{margin-top:10px!important;}
+@media(max-width:767px){
+  .erp-app .erp-metrics{grid-auto-rows:minmax(100px,auto);}
+  .erp-app .erp-metric-card{padding:12px;}
+  .erp-app .erp-finance-kpi{min-height:110px;}
+}

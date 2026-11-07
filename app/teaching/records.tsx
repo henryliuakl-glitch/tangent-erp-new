@@ -4,7 +4,7 @@ import {addCalendarDaysInNZ,getTodayInNZ,nzLocalToUtc,utcToNzDateStr,utcToNzTime
 import {TeachingRecordEditor,type LessonTarget,type SavedLesson} from "./record-editor";
 
 type Row=Record<string,any>;
-const panel="erp-surface p-5 md:p-6";
+const panel="erp-surface p-3 md:p-4";
 type Scope="cus"|"astra";
 type Props={scope:Scope;editable:boolean;owner:boolean;selectedDate?:string};
 type LessonRow={id:string;student_id:string;starts_at:string;subject:string|null;teacher:string|null;student_name:string;student_code:string|null};
@@ -122,8 +122,8 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
  const {data:{user}}=await db.auth.getUser();
  const currentUserId=user?.id||"";
  const displayed=records.filter(r=>r.created_at).slice(0,80);
- return <div className="space-y-4">
-   <form action="/teaching" method="get" className="erp-surface flex flex-wrap items-end gap-3 p-4 md:p-5">
+ return <div className="space-y-2">
+   <form action="/teaching" method="get" className="erp-surface flex flex-wrap items-center gap-2 p-3">
      <input type="hidden" name="view" value={scope}/>
      <label className="space-y-1 text-sm font-medium">定位日期
        <input type="date" name="date" defaultValue={focus}
@@ -143,7 +143,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
        <div className="space-y-2">{displayed.map(r=>{
          const value=r.booking_id?"booking:"+r.booking_id:"session:"+r.class_session_id;
          const title=labels.get(value)||"历史课次";
-         return <details key={r.id} className="group rounded-xl border border-[#edeefa] bg-[#fcfcff] px-4 py-3 transition-colors hover:border-[#d8d8ff]">
+         return <details key={r.id} className="group rounded-xl bg-[#f8f9ff] px-3 py-2.5 transition-colors hover:bg-[#f3f4ff]">
            <summary className="cursor-pointer list-none">
              <div className="flex items-center justify-between gap-3">
                <div className="min-w-0"><p className="truncate text-sm font-semibold">{title}</p>

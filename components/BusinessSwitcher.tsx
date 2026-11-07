@@ -14,7 +14,7 @@ const BUSINESS_UNITS = [
   { id: "sine", name: "Sine Driving (驾校)", icon: Car },
 ];
 
-export default function BusinessSwitcher() {
+export default function BusinessSwitcher({compact=false}:{compact?:boolean}) {
   const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -38,14 +38,14 @@ export default function BusinessSwitcher() {
 
   if(careOnly)return null;
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={"relative "+(compact?"w-full":"")} ref={dropdownRef}>
       {/* 触发按钮 */}
       <Button
         variant="outline"
         role="combobox"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-60 justify-between bg-white" // ✅ 修复：w-[240px] -> w-60
+        className={compact?"flex h-10 w-full items-center justify-between rounded-xl border border-[#e6e8f4] bg-white px-2.5 text-[12px] font-semibold shadow-none hover:bg-[#f8f8ff]":"w-60 justify-between bg-white"}
       >
         {currentUnit ? (
           <div className="flex items-center gap-2 text-slate-700">
@@ -60,7 +60,7 @@ export default function BusinessSwitcher() {
 
       {/* 下拉列表 (纯 Tailwind 实现，不依赖 Command 组件) */}
       {isOpen && (
-        <div className="absolute top-12 left-0 w-60 z-50 rounded-md border border-slate-200 bg-white shadow-md animate-in fade-in zoom-in-95 duration-100">
+        <div className={"absolute left-0 z-[100] rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-100 "+(compact?"top-[calc(100%+5px)] w-[235px]":"top-12 w-60")}>
           <div className="p-1">
             <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">
               选择业务单元
