@@ -1,7 +1,7 @@
 name: ERP build verification
 on:
   push:
-    branches: [main]
+    branches: [main, feature/split-cus-astra-teaching-20261107]
   workflow_dispatch:
 permissions:
   contents: read
