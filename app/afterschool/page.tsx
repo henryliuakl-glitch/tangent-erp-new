@@ -3,54 +3,68 @@ import {createClient} from "@/lib/supabase/server";
 import {Navbar} from "@/components/Navbar";
 import {MobileDock} from "@/components/MobileDock";
 import {getTodayInNZ} from "@/lib/timezone";
-import {createTodayCareVisits} from "./actions";
+
 import {CareDailyClient} from "./daily-client";
 
 export const dynamic="force-dynamic";
-export default async function AfterSchoolPage(){
+export default async function AfterSchoolPage({searchParams}:{searchParams:Promise<{date?:string}>}){
  const db=await createClient();
  const {data:{user}}=await db.auth.getUser();
  if(!user)return <main className="p-8"><Link href="/login">请先登录</Link></main>;
- const {data:membership,error:memberError}=await db.from("erp_memberships").select("role")
-  .eq("user_id",user.id).eq("business_unit_id","cus").maybeSingle();
- if(memberError||!membership)return <main className="max-w-2xl p-8">
-  <h1 className="text-xl font-bold">晚托系统尚未启用</h1>
-  <p className="mt-2 text-sm">需要在 ERP Supabase 执行三份 cus_care 迁移，并配置 CuS 成员权限。</p>
-  <Link href="/teaching" className="mt-3 inline-block text-indigo-600">返回教务</Link>
- </main>;
- const today=getTodayInNZ();
+ const {data:members,error:memberError}=await db.from("erp_memberships").select("business_unit_id,role")
+  .eq("user_id",user.id).in("business_unit_id",["cus","care"]);
+ const globalOwner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
+ const care=members?.find(m=>m.business_unit_id==="care");
+ if(memberError||(!globalOwner&&!care))return <main className="p-8">没有晚托访问权限。</main>;
+ const isAdmin=!!globalOwner||["owner","admin"].includes(care?.role||"");
+ const requested=(await searchParams).date;
+ const today=requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)&&
+   !Number.isNaN(Date.parse(requested))?requested:getTodayInNZ();
+ const actualToday=getTodayInNZ();
  // Read today's visits first, then only the related people and approvals.
- const [v,p]=await Promise.all([
-  db.from("cus_care_visits").select("id,student_id,care_date,scheduled_start,scheduled_end,status,check_in_at,check_out_at,check_out_name,late_fee_nzd").eq("care_date",today).order("scheduled_start"),
-  db.from("cus_care_profiles").select("student_id,status,missing_guardian_reason").order("created_at",{ascending:false})
+ const [v,p,c,t,b,up]=await Promise.all([
+   db.from("cus_care_visits")
+    .select("id,student_id,care_date,scheduled_start,scheduled_end,status,check_in_at,check_out_at,check_out_name,late_fee_nzd")
+    .eq("care_date",today).order("scheduled_start").limit(150),
+   db.from("cus_care_profiles").select("student_id,status,missing_guardian_reason").order("created_at",{ascending:false}).limit(300),
+   db.from("cus_care_children").select("id,full_name").order("created_at",{ascending:false}).limit(300),
+   db.from("cus_staff").select("id,full_name,phone,email,subjects,scope")
+     .eq("scope","care").order("full_name").limit(100),
+   db.rpc("cus_care_balances"),
+   db.from("cus_care_visits").select("id,student_id,care_date,status")
+     .gte("care_date",actualToday).eq("status","scheduled")
+     .order("care_date").limit(250)
  ]);
- if(v.error||p.error)return <main className="mx-auto max-w-3xl p-8">晚托名单读取失败，请刷新重试。</main>;
+ if([v,p,c,t,b,up].some(x=>x.error))
+  return <main className="mx-auto max-w-3xl p-8">晚托数据未就绪，请确认已执行最新数据库升级。</main>;
  const profiles=p.data||[],visits=v.data||[];
  const studentIds=[...new Set([...profiles.map(x=>x.student_id),...visits.map(x=>x.student_id)])];
  const visitIds=visits.map(x=>x.id);
  const empty=Promise.resolve({data:[],error:null});
- const [s,g,e,a,w]=await Promise.all([
-  studentIds.length?db.from("students").select("id,name,student_code").eq("business_unit_id","cus").in("id",studentIds):empty,
+ const [g,e,a,l]=await Promise.all([
   studentIds.length?db.from("cus_care_guardians").select("id,student_id,full_name,relationship,phone,primary_contact,pickup_authorized,signature_signed_at").in("student_id",studentIds):empty,
   studentIds.length?db.from("cus_care_emergency_contacts").select("id,student_id,full_name,relationship,phone,pickup_authorized").in("student_id",studentIds):empty,
-  visitIds.length?db.from("cus_care_pickup_approvals")
-    .select("id,visit_id,contact_id,parent_guardian_id,approved_at,revoked_at,video_path,parent_notified_at,child_response_checked")
+  visitIds.length?db.from("cus_care_pickup_approvals").select("id,visit_id,contact_id,parent_guardian_id,approved_at,revoked_at,video_path,parent_notified_at,child_response_checked")
     .in("visit_id",visitIds).order("approved_at"):empty,
-  studentIds.length?db.from("cus_care_weekdays").select("student_id,weekday,starts_at,ends_at")
-    .in("student_id",studentIds):empty
+  visitIds.length?db.from("cus_care_lesson_logs").select("id,visit_id,teacher_id,teacher_actions,child_actions,observations")
+    .in("visit_id",visitIds).order("created_at"):empty
  ]);
- if([s,g,e,a,w].some(q=>q.error))return <main className="mx-auto max-w-3xl p-8">接送信息读取失败，请刷新重试。</main>;
- const isAdmin=["owner","admin"].includes(membership.role);
+ if([g,e,a,l].some(x=>x.error))return <main className="p-8">接送信息读取失败，请刷新页面。</main>;
+ const children=(c.data||[]).map(x=>({id:x.id,name:x.full_name}));
  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
   <div className="hidden md:block"><Navbar/></div>
   <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 md:px-6">
    <header className="flex flex-wrap items-center justify-between gap-3">
     <div><h1 className="text-2xl font-bold">晚托</h1>
-     <p className="text-sm text-slate-500">{today} · 接送工作台</p></div>
+     <p className="text-sm text-slate-500">接送工作台</p></div>
     <div className="flex flex-wrap gap-2">
       
-      {isAdmin&&<Link href="/afterschool/register" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">＋ 新生报名</Link>}
-      <form action={createTodayCareVisits}><button type="submit" className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">生成今日班次</button></form>
+      {isAdmin&&<Link href="/afterschool/register" className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">＋ 建立档案</Link>}
+      <form method="get" className="flex items-center gap-2">
+        <input aria-label="查看日期" type="date" name="date" defaultValue={today}
+          className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm"/>
+        <button type="submit" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">查询</button>
+      </form>
     </div>
    </header>
    <div className="grid gap-3 sm:grid-cols-4">
@@ -60,9 +74,10 @@ export default async function AfterSchoolPage(){
       <div key={String(label)} className="rounded-xl border bg-white p-3"><p className="text-xs text-slate-500">{label}</p>
        <p className="mt-1 text-2xl font-bold">{n}</p></div>)}
    </div>
-   <CareDailyClient visits={visits} students={s.data||[]} profiles={profiles}
-    guardians={g.data||[]} contacts={e.data||[]} approvals={a.data||[]} weekdays={w.data||[]}
-    isAdmin={isAdmin}/>
+   <CareDailyClient visits={visits} students={children} profiles={profiles}
+    guardians={g.data||[]} contacts={e.data||[]} approvals={a.data||[]}
+    teachers={t.data||[]} balances={b.data||[]} upcoming={up.data||[]}
+    lessonLogs={l.data||[]} selectedDate={today} isAdmin={isAdmin}/>
   </main><MobileDock/>
  </div>;
 }
