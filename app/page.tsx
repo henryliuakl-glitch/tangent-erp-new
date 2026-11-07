@@ -451,6 +451,9 @@ export default function Home() {
   const todayPending = todayLessons.filter((b: any) => b.status === "confirmed").length;
   const todayDone = todayLessons.filter((b: any) => b.status === "completed").length;
   const todayProgress = todayLessons.length ? Math.round(todayDone / todayLessons.length * 100) : 0;
+  const quickBookHref = driving ? "/bookings/quick" : "/bookings/new";
+  const quickBookLabel = driving ? "快速排课" : "新建排课";
+
   return (
     <>
       <div className="hidden md:block">
