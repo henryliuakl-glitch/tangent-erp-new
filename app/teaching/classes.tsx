@@ -22,23 +22,29 @@ function Editor({title,children}:{title:string;children:React.ReactNode}){
 
 export async function TeachingClasses({editable,businessId="cus"}:{editable:boolean;businessId?:"cus"|"astra"}){
   const db=await createClient();
-  const [pr,cl,st,se]=await Promise.all([
-    db.from("cus_programmes").select("id,title,category").eq("business_unit_id",businessId).order("created_at",{ascending:false}).limit(100),
-    db.from("cus_classes").select("id,title,programme_id,teacher,room,capacity,status")
-      .order("created_at",{ascending:false}).limit(120),
+  const [pr,st]=await Promise.all([
+    db.from("cus_programmes").select("id,title,category").eq("business_unit_id",businessId)
+      .order("created_at",{ascending:false}).limit(100),
     db.from("students").select("id,name,student_code").eq("business_unit_id",businessId)
-      .order("name").limit(500),
-    db.from("cus_class_sessions").select("id,class_id,starts_at,ends_at,topic,room,status")
-      .order("starts_at",{ascending:false}).limit(35)
+      .order("name").limit(500)
   ]);
-  const err=[pr,cl,st,se].find(x=>x.error);
-  if(err?.error) return <section className={panel}>班级信息读取失败，请刷新页面。</section>;
+  if(pr.error||st.error)return <section className={panel}>班级信息读取失败，请刷新页面。</section>;
   const programmes=(pr.data||[]) as Row[];
-  const scopedIds=new Set(programmes.map(p=>p.id));
-  const classes=((cl.data||[]) as Row[]).filter(c=>scopedIds.has(c.programme_id));
   const students=(st.data||[]) as Row[];
-  const scopedClassIds=new Set(classes.map(c=>c.id));
-  const sessions=((se.data||[]) as Row[]).filter(s=>scopedClassIds.has(s.class_id));
+  const programmeIds=programmes.map(p=>p.id);
+  const {data:classRows,error:classError}=programmeIds.length
+    ?await db.from("cus_classes").select("id,title,programme_id,teacher,room,capacity,status")
+      .in("programme_id",programmeIds).order("created_at",{ascending:false}).limit(120)
+    :{data:[],error:null};
+  if(classError)return <section className={panel}>班级读取失败，请刷新页面。</section>;
+  const classes=(classRows||[]) as Row[];
+  const scopedClassIds=classes.map(c=>c.id);
+  const {data:sessionRows,error:sessionError}=scopedClassIds.length
+    ?await db.from("cus_class_sessions").select("id,class_id,starts_at,ends_at,topic,room,status")
+      .in("class_id",scopedClassIds).order("starts_at",{ascending:false}).limit(80)
+    :{data:[],error:null};
+  if(sessionError)return <section className={panel}>课次读取失败，请刷新页面。</section>;
+  const sessions=(sessionRows||[]) as Row[];
   const classIds=classes.map(x=>x.id),sessionIds=sessions.map(x=>x.id);
   const [en,att]=await Promise.all([
     classIds.length?db.from("cus_enrolments").select("id,class_id,student_id,status")
