@@ -57,5 +57,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+
+  if(user && !isLogin){
+    const {data:members,error:roleError}=await supabase.from("erp_memberships")
+      .select("business_unit_id,role").eq("user_id",user.id)
+      .in("business_unit_id",["cus","care"]);
+    // Fail closed if role lookup fails for a user previously marked care-only.
+    const owner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
+    const care=members?.some(m=>m.business_unit_id==="care");
+    const careOnly=(care&&!owner)||
+      (!!roleError&&request.cookies.get("erp_care_only")?.value==="1");
+    supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",{
+      httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
+    });
+    const allowed=pathname.startsWith("/afterschool")||pathname==="/teaching";
+    if(careOnly&&!allowed){
+      const url=request.nextUrl.clone();
+      url.pathname="/afterschool";
+      url.search="";
+      const redirect=NextResponse.redirect(url);
+      for(const c of supabaseResponse.cookies.getAll()){
+        redirect.cookies.set(c.name,c.value);
+      }
+      return redirect;
+    }
+  }
   return supabaseResponse;
 }
