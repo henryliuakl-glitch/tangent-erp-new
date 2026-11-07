@@ -55,11 +55,11 @@ export function FinanceInsights({data,loading,periodMode}:{
  const expense=Number(data.byCurrency?.[currency]?.expense||0);
  const net=Number(data.byCurrency?.[currency]?.net||0);
  const realized=Number(currency==="RMB"?data.realizedRmb:data.realized||0);
- const sources=useMemo(()=>(data.incomeBySource||[])
+ const sources=useMemo<{name:string;value:number}[]>(()=>(data.incomeBySource||[])
   .map((r:any)=>({name:String(r.source),value:Number(r[currency]||0)}))
   .filter((r:{value:number})=>r.value>0).sort((a:any,b:any)=>b.value-a.value),
   [data.incomeBySource,currency]);
- const expenses=useMemo(()=>(data.expenseByCategory||[])
+ const expenses=useMemo<{name:string;value:number}[]>(()=>(data.expenseByCategory||[])
   .map((r:any)=>({name:String(r.category),value:Number(r[currency]||0)}))
   .filter((r:{value:number})=>r.value>0).sort((a:any,b:any)=>b.value-a.value),
   [data.expenseByCategory,currency]);
