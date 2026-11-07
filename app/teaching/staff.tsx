@@ -1,9 +1,9 @@
 import Link from "next/link";
 import {createClient} from "@/lib/supabase/server";
-import {createTeacher} from "@/app/afterschool/actions";
+import {createTeacher} from "./actions";
 type Staff={id:string;full_name:string;phone:string|null;email:string|null;subjects:string|null;scope:string;active:boolean};
 const input="erp-field w-full px-3 py-2.5 text-sm";
-export async function TeachingStaff({owner,businessId="cus"}:{owner:boolean;businessId?:"cus"|"astra"}){
+export async function TeachingStaff({canManage,businessId="cus"}:{canManage:boolean;businessId?:"cus"|"astra"}){
  const db=await createClient();
  const {data:staff,error}=await db.from("cus_staff")
   .select("id,full_name,phone,email,subjects,scope,active").in("scope",businessId==="astra"?["astra","care"]:["general"]).order("full_name").limit(120);
@@ -21,8 +21,9 @@ export async function TeachingStaff({owner,businessId="cus"}:{owner:boolean;busi
     </div>)}</div>}
   </section>
   <section className="erp-surface p-3 md:p-4">
-    <details><summary className="cursor-pointer font-semibold">登记教师</summary>
+    {canManage&&<details><summary className="cursor-pointer font-semibold">登记教师</summary>
       <form action={createTeacher} className="mt-3 grid gap-2 sm:grid-cols-2">
+        <input type="hidden" name="businessId" value={businessId}/>
         <input name="full_name" className={input} placeholder="姓名" required/>
         <select name="scope" className={input} defaultValue={businessId==="astra"?"astra":"general"}>
           {businessId==="cus"?<option value="general">教务教师</option>:<>
@@ -36,7 +37,7 @@ export async function TeachingStaff({owner,businessId="cus"}:{owner:boolean;busi
         <input name="notes" className={input} placeholder="备注"/>
         <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">保存教师</button>
       </form>
-    </details>
+    </details>}
   </section>
  </div>;
 }
