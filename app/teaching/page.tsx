@@ -33,6 +33,7 @@ export default async function TeachingPage({searchParams}:{
   ...(businessId==="astra"?[{id:"care",label:"晚托课堂",href:"/teaching?view=care"}]:[])
  ];
  const editable=businessId==="cus"?owner:astraStaff;
+ const canManageTeachers=owner||!!members?.some(m=>m.business_unit_id==="astra"&&["owner","admin"].includes(m.role));
  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-900 md:pb-10">
   <div className="hidden md:block"><Navbar/></div>
   <main className="mx-auto max-w-[1500px] space-y-2 px-3 py-3 md:px-5">
@@ -49,7 +50,7 @@ export default async function TeachingPage({searchParams}:{
    {current==="care"?<CareTeachingOverview/>:
     current==="records"?<TeachingRecords scope={businessId} editable={editable} owner={owner} selectedDate={selectedDate}/>:
     current==="classes"?<TeachingClasses businessId={businessId} editable={editable}/>:
-    <TeachingStaff businessId={businessId} owner={owner}/>}
+    <TeachingStaff businessId={businessId} canManage={canManageTeachers}/>}
   </main><MobileDock/>
  </div>;
 }
