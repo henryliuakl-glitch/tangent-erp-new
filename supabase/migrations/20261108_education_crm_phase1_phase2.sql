@@ -105,6 +105,18 @@ create index if not exists edu_followups_unit_due_idx
  on public.edu_followups(business_unit_id,status,due_at);
 create index if not exists edu_followups_student_idx on public.edu_followups(student_id);
 
+create table if not exists public.edu_student_activities (
+ id uuid primary key default gen_random_uuid(),
+ business_unit_id text not null check(business_unit_id in ('cus','astra')),
+ student_id uuid not null references public.students(id) on delete restrict,
+ kind text not null default 'note' check(kind in ('note','call','wechat','message','meeting','feedback')),
+ content text not null check(length(btrim(content)) between 1 and 4000),
+ created_by uuid not null default auth.uid() references auth.users(id),
+ created_at timestamptz not null default now()
+);
+create index if not exists edu_student_activities_student_idx
+ on public.edu_student_activities(student_id,created_at desc);
+
 -- Database-level tenant integrity, including direct PostgREST writes.
 create or replace function public.erp_education_check_scope()
 returns trigger language plpgsql security invoker set search_path=public as $$
@@ -112,7 +124,7 @@ begin
  if tg_op='UPDATE' and new.business_unit_id is distinct from old.business_unit_id then
    raise exception 'Education entity cannot be changed after creation';
  end if;
- if tg_table_name in ('edu_leads','edu_followups') then
+ if tg_table_name in ('edu_leads','edu_followups','edu_student_activities') then
    if new.student_id is not null and not exists (
      select 1 from public.students s where s.id=new.student_id
        and s.business_unit_id=new.business_unit_id
@@ -136,6 +148,9 @@ create trigger edu_trials_scope before insert or update of booking_id,business_u
 drop trigger if exists edu_followups_scope on public.edu_followups;
 create trigger edu_followups_scope before insert or update of student_id,business_unit_id
  on public.edu_followups for each row execute function public.erp_education_check_scope();
+drop trigger if exists edu_student_activities_scope on public.edu_student_activities;
+create trigger edu_student_activities_scope before insert or update of student_id,business_unit_id
+ on public.edu_student_activities for each row execute function public.erp_education_check_scope();
 
 create or replace function public.erp_education_touch()
 returns trigger language plpgsql security invoker set search_path=public as $$
@@ -153,7 +168,7 @@ create trigger edu_followups_touch before update on public.edu_followups
 do $$
 declare t text;
 begin
- foreach t in array array['edu_leads','edu_lead_activities','edu_trials','edu_followups'] loop
+ foreach t in array array['edu_leads','edu_lead_activities','edu_trials','edu_followups','edu_student_activities'] loop
    execute format('alter table public.%I enable row level security',t);
    execute format('revoke all on public.%I from anon',t);
    execute format('grant select,insert,update on public.%I to authenticated',t);
