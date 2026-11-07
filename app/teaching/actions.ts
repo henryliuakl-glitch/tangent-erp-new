@@ -144,7 +144,11 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
       return {ok:false,error:"请选择有效的课程"};
     }
     const teacher = required(form,"teacher");
-    if(!["Henry","Yvetta"].includes(teacher))return {ok:false,error:"请选择授课教师"};
+    const {data:allowedTeacher}=await db.from("cus_staff").select("id")
+      .eq("full_name",teacher)
+      .in("scope",scope==="astra"?["astra","care"]:["general"]).maybeSingle();
+    if(!["Henry","Yvetta"].includes(teacher)&&!allowedTeacher)
+      return {ok:false,error:"请选择已登记的授课教师"};
     const lesson_content = encodeTeacherNotes(
       String(form.get("lesson_content")||""),
       String(form.get("lesson_evaluation")||"")

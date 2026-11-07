@@ -94,7 +94,7 @@ function MetricCard({
 }
 
 export default function Home() {
-  const { currentBusinessId, currentLabel, setBusinessId } = useBusiness();
+  const { currentBusinessId, currentLabel, setBusinessId, astraOnly } = useBusiness();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -239,6 +239,7 @@ export default function Home() {
         setBusinessList([
           { id: "family", name: "Family" },
           ...baseUnits.filter((unit: any) => unit.id !== "family"),
+          ...(!baseUnits.some((unit:any)=>unit.id==="astra")?[{id:"astra",name:"Astra Education"}]:[]),
         ]);
 
         const user = auth?.user;
@@ -461,7 +462,7 @@ export default function Home() {
         <div className="mx-auto w-full max-w-[1600px] px-3 sm:px-5">
           <div className="mb-2 flex justify-end md:hidden"><MobileAccountMenu
             user={userProfile} currentBusinessId={currentBusinessId}
-            businesses={businessList}
+            businesses={astraOnly?[{id:"astra",name:"Astra Education"}]:businessList}
             onSwitch={(id:string)=>{setBusinessId(id);if(id==="family")router.push("/family");}}
             onSignOut={handleSignOut}/></div>
           <section className="erp-metrics grid grid-cols-2 gap-2 xl:grid-cols-4">

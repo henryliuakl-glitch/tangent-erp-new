@@ -169,7 +169,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
   </section>
   {isAdmin&&<section className={box}>
     <details>
-      <summary className="cursor-pointer font-bold">＋ 安排具体日期</summary>
+      <summary className="cursor-pointer font-bold">安排具体日期</summary>
       <form onSubmit={doAction(createCareSchedule)} className="mt-3 space-y-3">
         <label className="block text-sm">晚托学生
           <select name="student_id" className={input} required defaultValue="">
@@ -195,7 +195,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
       <summary className="cursor-pointer text-sm font-bold">教师与课堂记录</summary>
       <div className="mt-3 space-y-4">
         <div className="flex flex-wrap gap-2">{teachers.map(t=><span key={t.id} className="rounded bg-slate-100 px-3 py-1 text-sm">{t.full_name}</span>)}</div>
-        {isAdmin&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-semibold">＋ 登记老师</summary>
+        {isAdmin&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-semibold">登记老师</summary>
           <form onSubmit={doAction(createTeacher)} className="mt-3 grid gap-2 sm:grid-cols-2">
             <input type="hidden" name="scope" value="care"/>
             <input className={input} name="full_name" placeholder="姓名" required/>

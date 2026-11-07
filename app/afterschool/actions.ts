@@ -135,7 +135,7 @@ export async function addCareDayCredits(form:FormData) {
  check(error);revalidatePath("/afterschool");
 }
 export async function createTeacher(form:FormData){
- const {db}=await operator(["owner","admin"]);
+ const {db}=await operator();
  const scope=text(form,"scope")==="general"?"general":"care";
  if(scope==="general"){
    const {data:{user}}=await db.auth.getUser();

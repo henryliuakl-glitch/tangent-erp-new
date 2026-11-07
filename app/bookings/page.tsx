@@ -132,8 +132,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           </form>
           <BookingsCta/>
         </div>}
-        afterToolbar={(businessId==="cus"||businessId==="tangent")&&
-          <Suspense fallback={null}><ClassSessionsStrip fromIso={fromIso} toIso={toIso}/></Suspense>}/>
+        afterToolbar={["cus","astra","tangent"].includes(businessId)&&
+          <Suspense fallback={null}><ClassSessionsStrip fromIso={fromIso} toIso={toIso} businessId={businessId==="astra"?"astra":"cus"}/></Suspense>}/>
 
 
       </main>

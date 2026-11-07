@@ -787,6 +787,7 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
   const [location, setLocation] = useState("线上");
   const [subject, setSubject] = useState("");
   const [teacher, setTeacher] = useState("Henry");
+  const [teacherOptions,setTeacherOptions]=useState<string[]>([...TUTORING_TEACHERS]);
   const [notes, setNotes] = useState("");
   
   const [repeatMode, setRepeatMode] = useState("none");
@@ -1002,7 +1003,7 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
                 <SelectValue placeholder="选择老师" />
               </SelectTrigger>
               <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-                {TUTORING_TEACHERS.map((name) => (
+                {teacherOptions.map((name) => (
                   <SelectItem key={name} value={name}>{name}</SelectItem>
                 ))}
               </SelectContent>

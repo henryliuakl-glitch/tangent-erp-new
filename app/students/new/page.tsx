@@ -25,7 +25,7 @@ import { MobileDock } from "@/components/MobileDock";
 export default function NewStudentPage() {
   const { currentBusinessId } = useBusiness();
   const isTangent = currentBusinessId === "tangent";
-  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine">("cus");
+  const [targetBusinessId, setTargetBusinessId] = useState<"cus" | "sine" | "astra">("cus");
   const effectiveBusinessId = isTangent ? targetBusinessId : currentBusinessId;
   const router = useRouter();
   const supabase = createClient();
@@ -114,7 +114,7 @@ export default function NewStudentPage() {
 
 
         {isTangent && (
-          <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
             <button
               type="button"
               onClick={() => {
@@ -152,6 +152,12 @@ export default function NewStudentPage() {
               }`}
             >
               Sine 驾校学员
+            </button>
+            <button type="button" onClick={()=>{
+              setTargetBusinessId("astra");setHourlyRate("70");setLevel("Year 11");
+              setPaymentType("monthly");setSubject("");setTeacher("");setBalance("0");setIncomeSource("");
+            }} className={`h-9 rounded-lg text-xs font-bold transition-all ${targetBusinessId==="astra"?"bg-[#475188] text-white shadow-sm":"text-slate-500 hover:bg-slate-50"}`}>
+              Astra
             </button>
           </div>
         )}
@@ -254,6 +260,7 @@ export default function NewStudentPage() {
                   </div>
                   <div className="col-span-2">
                     <IncomeSourceSelect
+                      businessId={effectiveBusinessId}
                       value={incomeSource}
                       onChange={setIncomeSource}
                       label="默认收款账户"

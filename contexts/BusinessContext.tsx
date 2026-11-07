@@ -16,8 +16,8 @@ const BusinessContext = createContext<BusinessContextType | undefined>(undefined
 export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false, astraOnly = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean; astraOnly?:boolean }) {
   const router = useRouter();
   // 默认值，防止服务端渲染时为空
-  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(careOnly?"care":initialBusinessId);
-  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[careOnly?"care":initialBusinessId] || (careOnly?(astraOnly?"Astra 教务":"晚托"):initialBusinessId));
+  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(astraOnly?"astra":careOnly?"care":initialBusinessId);
+  const [currentLabel, setCurrentLabel] = useState(({ astra:"Astra Education", cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[astraOnly?"astra":careOnly?"care":initialBusinessId] || (astraOnly?"Astra Education":careOnly?"晚托":initialBusinessId));
 
   // 2. 统一更新逻辑
   const updateState = (id: string) => {
@@ -25,6 +25,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus", careOnly
     
     // 更新 Label
     const labels: Record<string, string> = {
+      "astra": "Astra Education",
       "cus": "CuS Academy (教培)",
       "sine": "SINE Driving School (驾校)",
       "tangent": "Tangent Group",
@@ -35,7 +36,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus", careOnly
 
   // 3. 暴露给外部的切换函数
   const setBusinessId = (id: string) => {
-    if(careOnly)return;
+    if(careOnly||astraOnly)return;
     updateState(id);
     // 写入 Cookie，过期时间设置长一点 (365天)
     document.cookie = `businessId=${id}; path=/; max-age=31536000; SameSite=Lax`;
@@ -45,7 +46,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus", careOnly
   };
 
   return (
-    <BusinessContext.Provider value={{ currentBusinessId:careOnly?"care":currentBusinessId, currentLabel:careOnly?(astraOnly?"Astra 教务":"晚托"):currentLabel, careOnly, astraOnly, setBusinessId }}>
+    <BusinessContext.Provider value={{ currentBusinessId:astraOnly?"astra":careOnly?"care":currentBusinessId, currentLabel:astraOnly?"Astra Education":careOnly?"晚托":currentLabel, careOnly, astraOnly, setBusinessId }}>
       {children}
     </BusinessContext.Provider>
   );

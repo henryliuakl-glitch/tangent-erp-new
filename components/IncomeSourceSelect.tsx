@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 import { createClient } from "@/lib/supabase/client";
+import { useBusiness } from "@/contexts/BusinessContext";
 
 type PaymentAccount = {
   id: string;
@@ -18,17 +19,30 @@ export function IncomeSourceSelect({
   onChange,
   label = "收款账户",
   placeholder = "选择实际到账账户",
+  businessId,
 }: {
   value: string;
   onChange: (value: string) => void;
   label?: string;
   placeholder?: string;
+  businessId?: string;
 }) {
+  const {currentBusinessId}=useBusiness();
+  const scope=businessId||currentBusinessId;
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    if(scope==="astra"){
+      setAccounts([
+        {id:"astra-bank",name:"Astra · 银行转账"},
+        {id:"astra-cash",name:"Astra · 现金"},
+        {id:"astra-other",name:"Astra · 其他"}
+      ]);
+      setLoaded(true);
+      return;
+    }
     const supabase = createClient();
 
     async function load() {
@@ -66,7 +80,7 @@ export function IncomeSourceSelect({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [scope]);
 
   return (
     <div className="space-y-2">

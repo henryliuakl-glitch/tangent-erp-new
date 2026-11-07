@@ -187,7 +187,7 @@ export default function ReimbursePage() {
       toast.error(res.error);
       return;
     }
-    toast.success("已平账，Family 实际账户已同步扣款");
+    toast.success(currentBusinessId==="astra"?"已平账，记入 Astra 账户":"已平账，Family 实际账户已同步扣款");
     setSettleTarget(null);
     setSettleAccount("");
     await reload();

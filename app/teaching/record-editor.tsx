@@ -27,7 +27,7 @@ export function TeachingRecordEditor({
  const [feedback,setFeedback]=useState("");
  const current=records.find(r=>r.target===target);
  const chosen=targets.find(t=>t.value===target);
- const teacher=normalizeTutor(current?.teacher)||normalizeTutor(chosen?.teacher);
+ const teacher=normalizeTutor(current?.teacher)||normalizeTutor(chosen?.teacher)||current?.teacher||chosen?.teacher||"";
  const notes=readTeacherNotes(current?.lesson_content);
  const ratings=readStudentRatings(current?.student_feedback);
  const homework=current?.homework==="未布置"?"未布置":current?.homework?"已布置":"未布置";

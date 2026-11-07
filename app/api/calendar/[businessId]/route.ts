@@ -101,6 +101,7 @@ export async function GET(
   const tokenOk=!!secret&&secret.length>=24&&supplied.length===secret.length&&
     timingSafeEqual(Buffer.from(secret),Buffer.from(supplied));
   let owner=false;
+  let astraMember=false;
   if(!tokenOk){
     const session=await createSessionClient();
     const {data:{user}}=await session.auth.getUser();
@@ -108,12 +109,17 @@ export async function GET(
       const {data:member}=await session.from("erp_memberships").select("role")
         .eq("business_unit_id","cus").eq("user_id",user.id).eq("role","owner").maybeSingle();
       owner=!!member;
+      if(businessId==="astra"){
+        const {data:astra}=await session.from("erp_memberships").select("role")
+          .eq("user_id",user.id).eq("business_unit_id","astra").maybeSingle();
+        astraMember=!!astra;
+      }
     }
   }
-  if(!tokenOk&&!owner)return new Response("Unauthorized calendar feed",{
+  if(!tokenOk&&!owner&&!astraMember)return new Response("Unauthorized calendar feed",{
     status:401,headers:{"Cache-Control":"private, no-store"}
   });
-  if(!["cus","sine","tangent"].includes(businessId))
+  if(!["cus","sine","astra","tangent"].includes(businessId))
     return new Response("Invalid calendar scope",{status:400});
     const rawStaff = url.searchParams.get("staff");
   const staff: StaffFeed | null =

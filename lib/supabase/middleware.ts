@@ -62,31 +62,41 @@ export async function updateSession(request: NextRequest) {
     const {data:members,error:roleError}=await supabase.from("erp_memberships")
       .select("business_unit_id,role").eq("user_id",user.id)
       .in("business_unit_id",["cus","care","astra"]);
-    // Fail closed if role lookup fails for a user previously marked care-only.
-    const owner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
-    const care=members?.some(m=>m.business_unit_id==="care");
-    const astra=members?.some(m=>m.business_unit_id==="astra");
-    // Only the two explicitly provisioned CuS Owners may access core ERP.
-    // A signed-in teacher with a legacy cus/teacher role is not an Owner.
-    const careOnly=!owner||!!roleError;
-    const astraOnly=!owner&&!care;
-    supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",{
-      httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
-    });
-    supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",{
-      httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
-    });
-    const allowed=pathname==="/teaching"||
-      (!!care&&pathname.startsWith("/afterschool"));
-    if(careOnly&&!allowed){
-      const url=request.nextUrl.clone();
-      url.pathname=care?"/afterschool":"/teaching";
-      url.search="";
-      const redirect=NextResponse.redirect(url);
-      for(const c of supabaseResponse.cookies.getAll()){
-        redirect.cookies.set(c.name,c.value);
+    const owner=!roleError&&!!members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
+    const astraMember=!roleError&&!!members?.some(m=>m.business_unit_id==="astra"&&["owner","admin","teacher","viewer"].includes(m.role));
+    const careMember=!roleError&&!!members?.some(m=>m.business_unit_id==="care");
+    const astraOnly=!owner&&astraMember;
+    const careOnly=!owner&&!astraMember;
+    const roleCookieOptions={httpOnly:true,sameSite:"lax" as const,path:"/",secure:process.env.NODE_ENV==="production"};
+    supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",roleCookieOptions);
+    supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",roleCookieOptions);
+
+    if(astraOnly) {
+      const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool"]
+        .some(prefix=>prefix==="/"?pathname==="/":pathname===prefix||pathname.startsWith(prefix+"/"));
+      if(!allowed){
+        const url=request.nextUrl.clone();url.pathname="/";url.search="";
+        const redirect=NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value));
+        redirect.cookies.set("businessId","astra",{sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"});
+        return redirect;
       }
-      return redirect;
+      // Redirect once so the Server Component layout receives the Astra scope.
+      if(request.cookies.get("businessId")?.value!=="astra"||
+         request.cookies.get("erp_astra_only")?.value!=="1"){
+        const redirect=NextResponse.redirect(request.nextUrl.clone());
+        supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value));
+        redirect.cookies.set("businessId","astra",{sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"});
+        return redirect;
+      }
+    } else if(careOnly){
+      const allowed=(pathname==="/teaching"||pathname.startsWith("/afterschool"))&&!!careMember;
+      if(!allowed){
+        const url=request.nextUrl.clone();url.pathname=careMember?"/afterschool":"/teaching";url.search="";
+        const redirect=NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value));
+        return redirect;
+      }
     }
   }
   return supabaseResponse;
