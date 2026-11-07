@@ -32,28 +32,17 @@ export async function GET(req:NextRequest){
  const today=getTodayInNZ();
  const day=new Date(today+"T12:00:00Z").getUTCDay();
  if(day<1||day>5)return NextResponse.json({date:today,skipped:"weekend"});
- // Generate visit rows for active enrolled students before first reminder time.
- const [{data:weekly,error:we},{data:profiles,error:pe}]=await Promise.all([
-   db.from("cus_care_weekdays").select("student_id,starts_at,ends_at").eq("weekday",day),
-   db.from("cus_care_profiles").select("student_id,status,sms_consent")
- ]);
- if(we||pe)return NextResponse.json({error:we?.message||pe?.message},{status:500});
+ // Send only against explicit dated visits; never auto-book recurring weekdays.
+ const {data:profiles,error:pe}=await db.from("cus_care_profiles")
+   .select("student_id,status,sms_consent");
+ if(pe)return NextResponse.json({error:pe.message},{status:500});
  const enabled=new Map((profiles||[]).filter(p=>p.status==="active").map(p=>[p.student_id,p]));
- for(const w of weekly||[]){
-   if(!enabled.has(w.student_id))continue;
-   const {error}=await db.from("cus_care_visits").upsert({
-     student_id:w.student_id,care_date:today,
-     scheduled_start:nzLocalToUtc(today,w.starts_at).toISOString(),
-     scheduled_end:nzLocalToUtc(today,w.ends_at).toISOString()
-   },{onConflict:"student_id,care_date",ignoreDuplicates:true});
-   if(error)return NextResponse.json({error:"Unable to create daily roster"},{status:500});
- }
  const {data:visits,error:ve}=await db.from("cus_care_visits")
   .select("id,student_id,status,scheduled_start,scheduled_end").eq("care_date",today);
  if(ve)return NextResponse.json({error:ve.message},{status:500});
  const {data:parents,error:ge}=await db.from("cus_care_guardians")
   .select("student_id,full_name,phone,primary_contact").eq("primary_contact",true);
- const {data:students,error:se}=await db.from("students").select("id,name").eq("business_unit_id","cus");
+ const {data:students,error:se}=await db.from("cus_care_children").select("id,full_name");
  if(ge||se)return NextResponse.json({error:ge?.message||se?.message},{status:500});
  const byParent=new Map((parents||[]).map(g=>[g.student_id,g]));
  const byStudent=new Map((students||[]).map(s=>[s.id,s]));
@@ -78,7 +67,7 @@ export async function GET(req:NextRequest){
      }).select("id").maybeSingle();
      if(reserveError?.code==="23505"){ignored++;continue;}
      if(reserveError||!reserved){failed++;continue;}
-     const body=message(stage.type,byStudent.get(visit.student_id)?.name||"孩子",
+     const body=message(stage.type,byStudent.get(visit.student_id)?.full_name||"孩子",
        utcToNzTimeStr(visit.scheduled_start),utcToNzTimeStr(visit.scheduled_end),
        process.env.CARE_CONTACT_PHONE?" 如有问题请致电 "+process.env.CARE_CONTACT_PHONE:"");
      try{
