@@ -7,8 +7,8 @@ import {clockCare,approveThirdParty,uploadThirdPartyVideo,markParentNotified,
 type Data=Record<string,any>;
 type Props={visits:Data[];students:Data[];profiles:Data[];guardians:Data[];
   contacts:Data[];approvals:Data[];teachers:Data[];balances:Data[];upcoming:Data[];lessonLogs:Data[];isAdmin:boolean;selectedDate:string};
-const box="rounded-xl border border-slate-200 bg-white p-4 shadow-sm";
-const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
+const box="erp-surface p-5 md:p-6";
+const input="erp-field w-full px-3 py-2.5 text-sm";
 const button="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40";
 const days=["日","一","二","三","四","五","六"];
 function nzDate(value:string){return new Intl.DateTimeFormat("zh-NZ",{timeZone:"Pacific/Auckland",dateStyle:"medium",timeStyle:"short"}).format(new Date(value));}
@@ -39,7 +39,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
      const cs=contacts.filter(x=>x.student_id===v.student_id);
      const late=v.status==="in_care"&&new Date()>new Date(v.scheduled_end);
      const app=approvals.filter(x=>x.visit_id===v.id && !x.revoked_at).at(-1);
-     return <div key={v.id} className="space-y-2 rounded-xl border border-slate-200 p-3">
+     return <div key={v.id} className="space-y-3 rounded-xl border border-[#e9ebf7] bg-[#fcfcff] p-4 transition-all hover:border-[#d4d7f6]">
       <div className="flex items-start justify-between gap-2"><div>
         <h3 className="font-bold">{studentById.get(v.student_id)?.name||"未知学员"}</h3>
         <p className="text-xs text-slate-500">{nzDate(v.scheduled_start)} — {nzDate(v.scheduled_end).split(" ").at(-1)}</p>
@@ -146,7 +146,7 @@ export function CareDailyClient({visits,students,profiles,guardians,contacts,app
       <div className="grid gap-2 md:grid-cols-2">{profiles.map(p=>{
         const child=studentById.get(p.student_id),balance=balanceByChild.get(p.student_id);
         const next=upcoming.filter(v=>v.student_id===p.student_id);
-        return <details className="rounded-lg border border-slate-200 p-3" key={p.student_id}>
+        return <details className="rounded-xl border border-[#e9ebf7] bg-[#fcfcff] p-3" key={p.student_id}>
           <summary className="flex cursor-pointer items-center justify-between gap-2">
             <span className="font-semibold">{child?.name||"学生"}</span>
             <span className="text-xs text-slate-600">剩余 {balance?.remaining_days??0} 天 · 已安排 {balance?.reserved_days??0} 天</span>
