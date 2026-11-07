@@ -66,9 +66,10 @@ export async function updateSession(request: NextRequest) {
     const owner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
     const care=members?.some(m=>m.business_unit_id==="care");
     const astra=members?.some(m=>m.business_unit_id==="astra");
-    const careOnly=(!owner&&(care||astra))||
-      (!!roleError&&request.cookies.get("erp_care_only")?.value==="1");
-    const astraOnly=!!astra&&!care&&!owner;
+    // Only the two explicitly provisioned CuS Owners may access core ERP.
+    // A signed-in teacher with a legacy cus/teacher role is not an Owner.
+    const careOnly=!owner||!!roleError;
+    const astraOnly=!owner&&!care;
     supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",{
       httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
     });
