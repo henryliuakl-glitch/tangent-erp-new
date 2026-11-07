@@ -109,16 +109,24 @@ create index if not exists edu_followups_student_idx on public.edu_followups(stu
 create or replace function public.erp_education_check_scope()
 returns trigger language plpgsql security invoker set search_path=public as $$
 begin
- if new.student_id is not null and not exists (
-   select 1 from public.students s where s.id=new.student_id
-     and s.business_unit_id=new.business_unit_id
- ) then raise exception 'Student must belong to the same education entity'; end if;
- if tg_table_name='edu_trials' and new.booking_id is not null and not exists (
-   select 1 from public.bookings b where b.id=new.booking_id
-     and b.business_unit_id=new.business_unit_id
- ) then raise exception 'Trial booking must belong to the same education entity'; end if;
+ if tg_op='UPDATE' and new.business_unit_id is distinct from old.business_unit_id then
+   raise exception 'Education entity cannot be changed after creation';
+ end if;
+ if tg_table_name in ('edu_leads','edu_followups') then
+   if new.student_id is not null and not exists (
+     select 1 from public.students s where s.id=new.student_id
+       and s.business_unit_id=new.business_unit_id
+   ) then raise exception 'Student must belong to the same education entity'; end if;
+ end if;
+ if tg_table_name='edu_trials' then
+   if new.booking_id is not null and not exists (
+     select 1 from public.bookings b join public.edu_leads l on l.id=new.lead_id
+      where b.id=new.booking_id and b.business_unit_id=new.business_unit_id
+        and l.student_id is not null and l.student_id=b.student_id
+   ) then raise exception 'Trial booking must match the linked student and entity'; end if;
+ end if;
  return new;
-end $$;
+end $;
 drop trigger if exists edu_leads_scope on public.edu_leads;
 create trigger edu_leads_scope before insert or update of student_id,business_unit_id
  on public.edu_leads for each row execute function public.erp_education_check_scope();
@@ -192,7 +200,7 @@ begin
      name,student_code,subject,teacher,level,hourly_rate,balance,
      payment_type,currency,business_unit_id
    ) values (
-     l.student_name,nullif(btrim(p_student_code),''),coalesce(l.subject,''),
+     l.student_name,coalesce(nullif(btrim(p_student_code),''),''),coalesce(l.subject,''),
      '',coalesce(nullif(btrim(l.year_level),''),'Year 11'),p_hourly_rate,0,
      p_payment_type,'NZD',l.business_unit_id
    ) returning id into sid;
