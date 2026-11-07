@@ -42,7 +42,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
      student_code:r.student_code
    }));
  }else{
-   // Owner-only: read existing booking records, then classify by student code.
+   // Owner-only: tenant ownership, not a historical student-code prefix, defines CuS lessons.
    const {data:bookings,error}=await db.from("bookings")
     .select("id,student_id,start_time,subject,teacher,status")
     .eq("business_unit_id","cus").gte("start_time",past).lte("start_time",future)
@@ -52,7 +52,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
      const rows=(bookings||[]) as Row[];
      const ids=[...new Set(rows.map(b=>b.student_id).filter(Boolean))];
      const {data:students,error:studentError}=ids.length
-       ?await db.from("students").select("id,name,student_code,teacher").eq("business_unit_id","cus").in("id",ids)
+       ?await db.from("students").select("id,name,student_code,teacher,subject").eq("business_unit_id","cus").in("id",ids)
        :{data:[],error:null};
      if(studentError)errorMessage="学员资料读取失败。";
      else {
@@ -60,7 +60,7 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
        oneToOne=rows.flatMap(b=>{
          const student=names.get(b.student_id);
          const code=String(student?.student_code||"").trim();
-         return student&&code.startsWith("1")?[{
+         return student?[{
            id:b.id,student_id:b.student_id,starts_at:b.start_time,
            subject:b.subject||student.subject||null,teacher:b.teacher||student.teacher||null,student_name:student.name,
            student_code:code
@@ -68,12 +68,30 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
        });
      }
    }
-   const {data:sessions,error:sessionError}=await db.from("cus_class_sessions")
-      .select("id,class_id,starts_at,topic,status")
-      .gte("starts_at",past).lte("starts_at",future).neq("status","cancelled")
-      .order("starts_at",{ascending:false}).limit(80);
-   if(sessionError)errorMessage="班课信息读取失败。";
-   else classSessions=(sessions||[]) as Row[];
+ }
+ // Restrict class sessions through their programme's tenant, before limiting results.
+ if(!errorMessage){
+   const {data:programmes,error:programmeError}=await db.from("cus_programmes")
+     .select("id").eq("business_unit_id",scope).limit(200);
+   if(programmeError)errorMessage="课程项目读取失败。";
+   else {
+     const programmeIds=(programmes||[]).map(p=>p.id);
+     const {data:classes,error:classError}=programmeIds.length
+       ?await db.from("cus_classes").select("id").in("programme_id",programmeIds).limit(500)
+       :{data:[],error:null};
+     if(classError)errorMessage="班级读取失败。";
+     else {
+       const classIds=(classes||[]).map(c=>c.id);
+       if(classIds.length){
+         const {data:sessions,error:sessionError}=await db.from("cus_class_sessions")
+           .select("id,class_id,starts_at,topic,status").in("class_id",classIds)
+           .gte("starts_at",past).lte("starts_at",future).neq("status","cancelled")
+           .order("starts_at",{ascending:false}).limit(80);
+         if(sessionError)errorMessage="班课信息读取失败。";
+         else classSessions=(sessions||[]) as Row[];
+       }
+     }
+   }
  }
  if(errorMessage)return <section className={panel}><p className="text-sm text-amber-700">{errorMessage}</p></section>;
 
