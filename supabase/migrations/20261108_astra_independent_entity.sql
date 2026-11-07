@@ -16,14 +16,12 @@ select user_id,'astra','owner' from public.erp_memberships
 where business_unit_id='cus' and role='owner'
 on conflict(user_id,business_unit_id) do update set role='owner';
 
-do $$
-begin
- if to_regclass('public.business_units') is not null then
-   insert into public.business_units(id,name)
-   values ('astra','Astra Education')
-   on conflict(id) do update set name=excluded.name;
- end if;
-end $$;
+-- business_units.id is UUID in the existing ERP schema, whereas the
+-- operational tenant code is a TEXT value in erp_memberships,
+-- students, bookings, transactions and cus_programmes.
+-- Do NOT insert 'astra' as business_units.id. The application switches
+-- to the Astra tenant using the TEXT code and its membership mapping.
+-- Its display label is already defined by the application UI.
 
 create temporary table _astra_moved_students on commit drop as
 select id from public.students
