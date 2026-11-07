@@ -61,19 +61,25 @@ export async function updateSession(request: NextRequest) {
   if(user && !isLogin){
     const {data:members,error:roleError}=await supabase.from("erp_memberships")
       .select("business_unit_id,role").eq("user_id",user.id)
-      .in("business_unit_id",["cus","care"]);
+      .in("business_unit_id",["cus","care","astra"]);
     // Fail closed if role lookup fails for a user previously marked care-only.
     const owner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
     const care=members?.some(m=>m.business_unit_id==="care");
-    const careOnly=(care&&!owner)||
+    const astra=members?.some(m=>m.business_unit_id==="astra");
+    const careOnly=(!owner&&(care||astra))||
       (!!roleError&&request.cookies.get("erp_care_only")?.value==="1");
+    const astraOnly=!!astra&&!care&&!owner;
     supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",{
       httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
     });
-    const allowed=pathname.startsWith("/afterschool")||pathname==="/teaching";
+    supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",{
+      httpOnly:true,sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"
+    });
+    const allowed=pathname==="/teaching"||
+      (!!care&&pathname.startsWith("/afterschool"));
     if(careOnly&&!allowed){
       const url=request.nextUrl.clone();
-      url.pathname="/afterschool";
+      url.pathname=care?"/afterschool":"/teaching";
       url.search="";
       const redirect=NextResponse.redirect(url);
       for(const c of supabaseResponse.cookies.getAll()){
