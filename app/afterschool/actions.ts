@@ -14,10 +14,10 @@ async function operator(roles:string[]=["owner","admin","teacher"]) {
   const {data:{user}}=await db.auth.getUser();
   ensure(user,"请先登录");
   const {data:members,error}=await db.from("erp_memberships").select("business_unit_id,role")
-    .eq("user_id",user.id).in("business_unit_id",["cus","care"]);
+    .eq("user_id",user.id).in("business_unit_id",["cus","astra"]);
   ensure(!error,"无法读取账户权限");
   const owner=members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
-  const care=members?.find(m=>m.business_unit_id==="care");
+  const care=members?.find(m=>m.business_unit_id==="astra");
   ensure(owner || (care&&roles.includes(care.role)),"权限不足");
   return {db,user};
 }
@@ -133,22 +133,6 @@ export async function addCareDayCredits(form:FormData) {
    student_id:child,days,note:text(form,"note")||null
  });
  check(error);revalidatePath("/afterschool");
-}
-export async function createTeacher(form:FormData){
- const {db}=await operator();
- const scope=text(form,"scope")==="general"?"general":"care";
- if(scope==="general"){
-   const {data:{user}}=await db.auth.getUser();
-   const {data:owner}=await db.from("erp_memberships").select("role").eq("user_id",user!.id)
-     .eq("business_unit_id","cus").eq("role","owner").maybeSingle();
-   ensure(owner,"只有总管理员可登记普通教务教师");
- }
- const {error}=await db.from("cus_staff").insert({
-   full_name:must(form,"full_name"),phone:text(form,"phone")||null,
-   email:text(form,"email")||null,subjects:text(form,"subjects")||null,
-   notes:text(form,"notes")||null,scope
- });
- check(error);revalidatePath("/teaching");revalidatePath("/afterschool");
 }
 export async function addCareLessonLog(form:FormData){
  const {db}=await operator();
