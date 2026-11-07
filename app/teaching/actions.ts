@@ -167,6 +167,7 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
         studentId=student.id;
       }
     } else {
+      if(scope!=="cus"||!owner)return {ok:false,error:"班课只能由 CuS Owner 记录"};
       const {data:session} = await db.from("cus_class_sessions")
         .select("id,class_id").eq("id",id).single();
       if (!session) return {ok:false,error:"班级课次不存在"};
