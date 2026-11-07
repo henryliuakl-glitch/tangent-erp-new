@@ -132,7 +132,11 @@ begin
    execute format('drop policy if exists %I on public.%I',p.policyname,t);
   end loop;
   execute format('create policy care_read on public.%I for select to authenticated using ((select public.erp_can_care_read()))',t);
-  if t not in ('cus_care_events','cus_care_sms_log') then
+  if t in ('cus_care_children','cus_care_profiles','cus_care_guardians',
+      'cus_care_emergency_contacts','cus_care_weekdays',
+      'cus_care_pickup_approvals','cus_care_day_credits','cus_care_visits') then
+   execute format('create policy care_insert on public.%I for insert to authenticated with check ((select public.erp_can_care_manage()))',t);
+  elsif t='cus_care_lesson_logs' then
    execute format('create policy care_insert on public.%I for insert to authenticated with check ((select public.erp_can_care_write()))',t);
   end if;
   if t in ('cus_care_profiles','cus_care_guardians','cus_care_emergency_contacts','cus_care_weekdays','cus_care_pickup_approvals','cus_care_children') then
@@ -231,6 +235,10 @@ begin
    raise exception 'Care visit identity and dates are immutable';
  end if;
  if old.status='scheduled' and new.status='in_care' then
+   if not exists(select 1 from public.cus_care_profiles where student_id=new.student_id and status='active')
+    then raise exception 'Care profile requires verified guardians'; end if;
+   if new.check_in_recorded_by is distinct from auth.uid()
+    then raise exception 'Staff user must sign in using their own account'; end if;
    if new.check_in_at is null or new.check_in_name is null or
      new.check_in_signature is null or length(new.check_in_signature)<250 or
      new.check_in_staff_name is null or length(btrim(new.check_in_staff_name))<2 or
@@ -245,6 +253,8 @@ begin
       raise exception 'Parent identity mismatch on check-in';
    end if;
  elsif old.status='in_care' and new.status='released' then
+   if new.check_out_recorded_by is distinct from auth.uid()
+    then raise exception 'Staff user must sign in using their own account'; end if;
    if new.check_out_at is null or new.check_out_name is null or
      new.check_out_signature is null or length(new.check_out_signature)<250 or
      new.check_out_staff_name is null or length(btrim(new.check_out_staff_name))<2 or
