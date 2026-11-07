@@ -20,7 +20,7 @@ export default function BusinessSwitcher() {
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   
   // ✅ 获取全局状态
-  const { currentBusinessId, setBusinessId, currentLabel } = useBusiness();
+  const { currentBusinessId, setBusinessId, currentLabel, careOnly } = useBusiness();
 
   // 找到当前选中的对象
   const currentUnit = BUSINESS_UNITS.find((unit) => unit.id === currentBusinessId);
@@ -36,6 +36,7 @@ export default function BusinessSwitcher() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  if(careOnly)return null;
   return (
     <div className="relative" ref={dropdownRef}>
       {/* 触发按钮 */}
