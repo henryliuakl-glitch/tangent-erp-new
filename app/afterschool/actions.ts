@@ -116,6 +116,14 @@ export async function createCareSchedule(form:FormData) {
  revalidatePath("/afterschool");
  return {ok:true,count:dates.length};
 }
+export async function cancelCareDate(form:FormData){
+ const {db}=await operator(["owner","admin"]);
+ const id=must(form,"visit_id");
+ const {data,error}=await db.from("cus_care_visits").update({status:"cancelled"})
+   .eq("id",id).eq("status","scheduled").select("id").maybeSingle();
+ check(error);ensure(data,"只能取消尚未签到的班次");
+ revalidatePath("/afterschool");
+}
 export async function addCareDayCredits(form:FormData) {
  const {db}=await operator(["owner","admin"]);
  const days=Number(must(form,"days"));
