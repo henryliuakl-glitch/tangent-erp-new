@@ -6,16 +6,17 @@ import { useRouter } from "next/navigation";
 type BusinessContextType = {
   currentBusinessId: string;
   currentLabel: string;
+  careOnly: boolean;
   setBusinessId: (id: string) => void; // ✅ 新增：暴露切换函数
 };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-export function BusinessProvider({ children, initialBusinessId = "cus" }: { children: React.ReactNode; initialBusinessId?: string }) {
+export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean }) {
   const router = useRouter();
   // 默认值，防止服务端渲染时为空
-  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(initialBusinessId);
-  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[initialBusinessId] || initialBusinessId);
+  const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(careOnly?"care":initialBusinessId);
+  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[careOnly?"care":initialBusinessId] || (careOnly?"晚托":initialBusinessId));
 
   // 2. 统一更新逻辑
   const updateState = (id: string) => {
@@ -33,6 +34,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus" }: { chil
 
   // 3. 暴露给外部的切换函数
   const setBusinessId = (id: string) => {
+    if(careOnly)return;
     updateState(id);
     // 写入 Cookie，过期时间设置长一点 (365天)
     document.cookie = `businessId=${id}; path=/; max-age=31536000; SameSite=Lax`;
@@ -42,7 +44,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus" }: { chil
   };
 
   return (
-    <BusinessContext.Provider value={{ currentBusinessId, currentLabel, setBusinessId }}>
+    <BusinessContext.Provider value={{ currentBusinessId:careOnly?"care":currentBusinessId, currentLabel:careOnly?"晚托":currentLabel, careOnly, setBusinessId }}>
       {children}
     </BusinessContext.Provider>
   );
