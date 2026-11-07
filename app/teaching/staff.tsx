@@ -2,18 +2,18 @@ import Link from "next/link";
 import {createClient} from "@/lib/supabase/server";
 import {createTeacher} from "@/app/afterschool/actions";
 type Staff={id:string;full_name:string;phone:string|null;email:string|null;subjects:string|null;scope:string;active:boolean};
-const input="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
+const input="erp-field w-full px-3 py-2.5 text-sm";
 export async function TeachingStaff({owner}:{owner:boolean}){
  const db=await createClient();
  const {data:staff,error}=await db.from("cus_staff")
   .select("id,full_name,phone,email,subjects,scope,active").order("full_name").limit(120);
- if(error)return <section className="rounded-xl border bg-white p-4">教师档案尚未启用，请执行晚托数据库升级。</section>;
+ if(error)return <section className="erp-surface p-5 md:p-6">教师档案尚未启用，请执行晚托数据库升级。</section>;
  const rows=(staff||[]) as Staff[];
  return <div className="space-y-4">
   <section className="rounded-xl border bg-white p-4">
    <h2 className="mb-3 font-semibold">教师档案</h2>
    {rows.length===0?<p className="text-sm text-slate-500">尚未登记教师。</p>:
-    <div className="grid gap-2 sm:grid-cols-2">{rows.map(t=><div key={t.id} className="rounded-lg border p-3">
+    <div className="grid gap-2 sm:grid-cols-2">{rows.map(t=><div key={t.id} className="rounded-xl border border-[#eceefa] bg-[#fcfcff] p-4">
       <div className="flex justify-between gap-2"><strong>{t.full_name}</strong><span className="text-xs text-slate-500">{t.scope==="care"?"晚托":"教学"} · {t.active?"在职":"暂停"}</span></div>
       {t.subjects&&<p className="mt-1 text-sm text-slate-600">{t.subjects}</p>}
       {t.phone&&<a className="mt-1 block text-sm text-indigo-600" href={"tel:"+t.phone}>{t.phone}</a>}
