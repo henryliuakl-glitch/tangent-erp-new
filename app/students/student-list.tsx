@@ -217,7 +217,7 @@ export function StudentList({ students }: { students: any[] }) {
         : "无待办";
 
       return (
-        <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-slate-200 rounded-xl p-2.5 md:px-3 md:py-2.5 hover:border-indigo-300 hover:shadow-sm transition-all gap-2 md:gap-3">
+        <div key={student.id} className="group flex flex-col md:flex-row md:items-center justify-between bg-white border border-[#e8eaf5] rounded-[16px] p-3.5 md:px-4 md:py-3 hover:border-[#c9c8fa] hover:shadow-[0_7px_24px_rgba(71,74,150,.07)] transition-all gap-2 md:gap-3">
           <Link href={`/students/${student.id}`} className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <Avatar name={student.name} />
             <div className="min-w-0">
