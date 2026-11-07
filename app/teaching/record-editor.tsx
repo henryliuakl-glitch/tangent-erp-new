@@ -19,8 +19,8 @@ const label="block min-w-0 space-y-1.5 text-xs font-semibold text-[#4a516e]";
 const selectChoices=(items:readonly string[])=>
  items.map(value=><option key={value} value={value}>{value}</option>);
 export function TeachingRecordEditor({
- targets,records,scope,currentUserId,owner
-}:{targets:LessonTarget[];records:SavedLesson[];scope:"cus"|"astra";currentUserId:string;owner:boolean}){
+ targets,records,scope,currentUserId,owner,teacherOptions=["Henry","Yvetta"]
+}:{targets:LessonTarget[];records:SavedLesson[];scope:"cus"|"astra";currentUserId:string;owner:boolean;teacherOptions?:string[]}){
  const router=useRouter();
  const [target,setTarget]=useState(targets[0]?.value||"");
  const [pending,start]=useTransition();
