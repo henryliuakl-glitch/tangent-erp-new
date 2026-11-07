@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { nzLocalToUtc } from "@/lib/timezone";
+import {encodeTeacherNotes,encodeStudentRatings,validRatings,HOMEWORK_OPTIONS} from "@/lib/teaching-record-format";
 
 async function staff() {
   const db = await createClient();
@@ -142,13 +143,23 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       return {ok:false,error:"请选择有效的课程"};
     }
-    const content = required(form,"lesson_content");
-    if (content.length > 8000) return {ok:false,error:"课堂内容不能超过 8000 字"};
-    const teacher = optional(form,"teacher");
-    const homework = optional(form,"homework");
-    const student_feedback = required(form,"student_feedback");
-    const next_steps = optional(form,"next_steps");
-    const payload = {teacher,lesson_content:content,homework,student_feedback,next_steps};
+    const teacher = required(form,"teacher");
+    if(!["Henry","Yvetta"].includes(teacher))return {ok:false,error:"请选择授课教师"};
+    const lesson_content = encodeTeacherNotes(
+      String(form.get("lesson_content")||""),
+      String(form.get("lesson_evaluation")||"")
+    );
+    if(lesson_content.length>8000)return {ok:false,error:"教师记录合计不能超过 8000 字"};
+    const mastery = required(form,"mastery");
+    const participation = required(form,"participation");
+    const progress = required(form,"progress");
+    if(!validRatings(mastery,participation,progress))
+      return {ok:false,error:"学生表现选项不正确"};
+    const student_feedback = encodeStudentRatings(mastery,participation,progress);
+    const homework = String(form.get("homework")||"");
+    if(!HOMEWORK_OPTIONS.some(x=>x===homework))return {ok:false,error:"请选择是否布置作业"};
+    const next_steps = String(form.get("next_steps")||"").trim()||"无";
+    const payload = {teacher,lesson_content,homework,student_feedback,next_steps};
     const foreignKey = type === "booking" ? "booking_id" : "class_session_id";
     let studentId: string | null = null;
     if (type === "booking") {

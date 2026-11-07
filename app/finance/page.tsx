@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { currencySymbol, formatMoney, normalizeCurrency, type Currency, CURRENCY_OPTIONS } from "@/lib/currency";
 import { MobileDock } from "@/components/MobileDock";
+import { FinanceInsights } from "./finance-insights";
 import { INCOME_SOURCE_OPTIONS } from "@/lib/income-source";
 
 const EMPTY_FINANCE_DATA = {
@@ -44,6 +45,8 @@ const EMPTY_FINANCE_DATA = {
   transactions: [],
   chartData: [],
   incomeBySource: [],
+  expenseByCategory: [],
+  transactionReadError: null,
   pendingReimburseCount: 0,
   pendingReimburseNzd: 0,
   pendingReimburseRmb: 0,
@@ -362,58 +365,7 @@ export default function FinancePage() {
           </div>)}
         </div>
 
-        {data.incomeBySource?.length > 0 && (
-          <div className="erp-plain-card mt-2 p-3 md:p-4">
-            <div className="mb-3">
-              <h3 className="text-sm font-bold text-slate-900">收入来源</h3>
-              <p className="mt-0.5 text-[11px] text-slate-400">当前筛选时段内，实际收到各账户/方式的收入</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {data.incomeBySource.map((row: any) => (
-                <div key={row.source} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
-                  <div className="truncate text-xs font-bold text-slate-700">{row.source}</div>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    {Number(row.NZD || 0) > 0 && (
-                      <span className="text-sm font-black text-slate-900">${Number(row.NZD).toLocaleString()}</span>
-                    )}
-                    {Number(row.RMB || 0) > 0 && (
-                      <span className="text-sm font-black text-slate-900">¥{Number(row.RMB).toLocaleString()}</span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-slate-400">{row.count} 笔</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Chart */}
-        <div className="erp-finance-content mt-3">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-900">
-            <FileBarChart className="h-4 w-4 text-slate-400" /> 收支与销课趋势
-          </h3>
-          <Card className="erp-plain-card overflow-hidden p-3 md:p-4">
-            <div className="overflow-x-auto no-scrollbar w-full pb-2">
-               <div className="h-[180px] md:h-[205px] min-w-[500px] md:min-w-full">
-                 {loading ? (
-                   <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-300"/></div>
-                 ) : (
-                   <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={data.chartData} barGap={0} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} dy={10} />
-                       <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                       <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                       <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
-                       <Bar dataKey="income" name="收入 In" fill="#10b981" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
-                       <Bar dataKey="expense" name="支出 Out" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
-                       <Bar dataKey="realized" name="产值 Realized" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={periodMode === "week" ? 20 : periodMode === "year" ? 14 : 8} />
-                     </BarChart>
-                   </ResponsiveContainer>
-                 )}
-               </div>
-            </div>
-          </Card>
-        </div>
+        <FinanceInsights data={data} loading={loading} periodMode={periodMode}/>
 
         {/* Transactions List */}
         <div className="mt-3">

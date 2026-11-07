@@ -264,11 +264,52 @@ export async function getFinanceStats(
   bookingQuery = bookingQuery.in("business_unit_id", ["cus", "sine"]);
   pendingQuery = pendingQuery.in("business_unit_id", ["cus", "sine"]);
 
-  const [transactionsRes, bookingsPrimary, pendingRes] = await Promise.all([
+  // Same month/period aggregation as the dashboard: never let an optional
+  // detail column make the finance headline falsely show zero cash.
+  const cashTotalsQuery = supabase.rpc("get_dashboard_kpis", {
+    p_business_id: businessId,
+    p_start_date: startDay,
+    p_next_date: endExclusiveDay,
+    p_start_ts: bookingStartIso,
+    p_end_ts: new Date(endExclusiveDate.getTime() - 1).toISOString(),
+  });
+  const [transactionsRes, bookingsPrimary, pendingRes, cashTotalsRes] = await Promise.all([
     txQuery,
     bookingQuery,
     pendingQuery,
+    cashTotalsQuery,
   ]);
+  const cashRow: any = !cashTotalsRes.error
+    ? (Array.isArray(cashTotalsRes.data) ? cashTotalsRes.data[0] : cashTotalsRes.data)
+    : null;
+
+  // Older ERP databases may not have the optional income_source or currency
+  // columns. Retry detail reads without them instead of erasing all cash totals.
+  let transactionRows: any[] = (transactionsRes.data || []) as any[];
+  let transactionReadError: string | null = transactionsRes.error?.message || null;
+  if (transactionReadError) {
+    for (const columns of [
+      "id,type,amount,category,description,transaction_date,business_unit_id,student_id,quantity,currency",
+      "id,type,amount,category,description,transaction_date,business_unit_id,student_id,quantity",
+      "id,type,amount,transaction_date,business_unit_id"
+    ]) {
+      const fallback = await supabase.from("transactions").select(columns)
+        .in("business_unit_id", ["cus", "sine"])
+        .gte("transaction_date", startStr).lt("transaction_date", endStr)
+        .order("transaction_date", { ascending: false });
+      if (!fallback.error) {
+        transactionRows = (fallback.data || []).map((row: any) => ({
+          ...row, currency: row.currency || "NZD",
+          income_source: row.income_source || null,
+          category: row.category || null,
+          description: row.description || null
+        }));
+        transactionReadError = null;
+        break;
+      }
+      transactionReadError = fallback.error.message;
+    }
+  }
 
   let bookings: any[] = bookingsPrimary.data || [];
 
@@ -288,18 +329,14 @@ export async function getFinanceStats(
     bookings = bookingsFallback.data || [];
   }
 
-  if (transactionsRes.error) {
-    console.error("[getFinanceStats] transactions error:", transactionsRes.error.message, {
-      businessId,
-      mode,
-      anchorDate: safeAnchor,
-      startStr,
-      endStr,
+  if (transactionReadError) {
+    console.error("[getFinanceStats] transaction details unavailable:", transactionReadError, {
+      businessId, mode, anchorDate: safeAnchor, startStr, endStr
     });
   }
 
   // 再按 NZ 日历日收紧，统一使用半开区间 [start, end)
-  let transactions = (transactionsRes.data || []).filter((t) => {
+  let transactions = transactionRows.filter((t: any) => {
     if (businessId !== "tangent" && t.business_unit_id !== businessId) return false;
     const day = toNzCalendarDay(t.transaction_date);
     return day >= startDay && day < endExclusiveDay;
@@ -319,6 +356,15 @@ export async function getFinanceStats(
   );
   
   const byCurrency = aggregateByCurrency(transactions);
+  if (cashRow && Object.prototype.hasOwnProperty.call(cashRow, "cash_income_nzd")) {
+    // Dashboard and Finance always agree on period cash, including RMB.
+    byCurrency.NZD.income = Number(cashRow.cash_income_nzd || 0);
+    byCurrency.NZD.expense = Number(cashRow.cash_expense_nzd || 0);
+    byCurrency.NZD.net = byCurrency.NZD.income - byCurrency.NZD.expense;
+    byCurrency.RMB.income = Number(cashRow.cash_income_rmb || 0);
+    byCurrency.RMB.expense = Number(cashRow.cash_expense_rmb || 0);
+    byCurrency.RMB.net = byCurrency.RMB.income - byCurrency.RMB.expense;
+  }
   const income = byCurrency.NZD.income;
   const expense = byCurrency.NZD.expense;
   let realized = 0;
@@ -455,12 +501,24 @@ export async function getFinanceStats(
     completedHours: bookings.reduce((total: number, booking: any) => total + (Number(booking.duration) || 0), 0),
     byCurrency,
     transactions,
+    transactionReadError,
+    cashTotalsSource: cashRow ? "dashboard_rpc" : "transactions",
     chartData,
     defaultCurrency: DEFAULT_CURRENCY,
     pendingReimburseCount: pendingReimburse.length,
     pendingReimburseNzd: pendingReimburseByCurrency.NZD.expense,
     pendingReimburseRmb: pendingReimburseByCurrency.RMB.expense,
     incomeBySource,
+    expenseByCategory: Object.entries(transactions.filter((t:any)=>t.type==="expense")
+      .reduce((a:Record<string,{NZD:number;RMB:number;count:number}>, t:any)=>{
+        const key=String(t.category || "其他");
+        if(!a[key])a[key]={NZD:0,RMB:0,count:0};
+        const currency=normalizeCurrency(t.currency);
+        a[key][currency]+=Math.abs(Number(t.amount)||0);
+        a[key].count++;
+        return a;
+      },{})).map(([category,totals])=>({category,...totals}))
+      .sort((a,b)=>b.NZD-a.NZD),
     period: {
       mode,
       anchorDate: safeAnchor,
