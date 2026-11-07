@@ -7,16 +7,17 @@ type BusinessContextType = {
   currentBusinessId: string;
   currentLabel: string;
   careOnly: boolean;
+  astraOnly: boolean;
   setBusinessId: (id: string) => void; // ✅ 新增：暴露切换函数
 };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean }) {
+export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false, astraOnly = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean; astraOnly?:boolean }) {
   const router = useRouter();
   // 默认值，防止服务端渲染时为空
   const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(careOnly?"care":initialBusinessId);
-  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[careOnly?"care":initialBusinessId] || (careOnly?"晚托":initialBusinessId));
+  const [currentLabel, setCurrentLabel] = useState(({ cus: "CuS Academy (教培)", sine: "SINE Driving School (驾校)", tangent: "Tangent Group", family: "Family" } as Record<string, string>)[careOnly?"care":initialBusinessId] || (careOnly?(astraOnly?"Astra 教务":"晚托"):initialBusinessId));
 
   // 2. 统一更新逻辑
   const updateState = (id: string) => {
@@ -44,7 +45,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus", careOnly
   };
 
   return (
-    <BusinessContext.Provider value={{ currentBusinessId:careOnly?"care":currentBusinessId, currentLabel:careOnly?"晚托":currentLabel, careOnly, setBusinessId }}>
+    <BusinessContext.Provider value={{ currentBusinessId:careOnly?"care":currentBusinessId, currentLabel:careOnly?(astraOnly?"Astra 教务":"晚托"):currentLabel, careOnly, astraOnly, setBusinessId }}>
       {children}
     </BusinessContext.Provider>
   );
