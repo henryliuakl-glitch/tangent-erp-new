@@ -234,3 +234,25 @@ export async function createRenewalTask(form:FormData):Promise<ActionResult>{
   refresh();return {ok:true};
  }catch(e){return respond(e);}
 }
+
+
+/** Parent communication for existing students without a prior CRM lead. */
+export async function addStudentActivity(form:FormData):Promise<ActionResult>{
+ try{
+  const {db,unit,user}=await context(form);
+  const studentId=required(form,"student_id");
+  const {data:student,error:studentError}=await db.from("students")
+    .select("id").eq("id",studentId).eq("business_unit_id",unit).maybeSingle();
+  if(studentError||!student)throw new Error("学员不属于当前教培实体");
+  const kind=value(form,"kind")||"note";
+  if(!["note","call","wechat","message","meeting","feedback"].includes(kind))
+    throw new Error("无效沟通方式");
+  const content=required(form,"content");
+  limit(content,4000);
+  const {error}=await db.from("edu_student_activities").insert({
+    business_unit_id:unit,student_id:studentId,kind,content,created_by:user.id
+  });
+  if(error)throw new Error(error.message);
+  refresh();return {ok:true};
+ }catch(e){return respond(e);}
+}
