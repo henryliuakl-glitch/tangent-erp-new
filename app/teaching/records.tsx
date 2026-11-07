@@ -6,7 +6,7 @@ import {TeachingRecordEditor,type LessonTarget,type SavedLesson} from "./record-
 type Row=Record<string,any>;
 const panel="rounded-xl border border-slate-200 bg-white p-4";
 type Scope="cus"|"astra";
-type Props={scope:Scope;editable:boolean;selectedDate?:string};
+type Props={scope:Scope;editable:boolean;owner:boolean;selectedDate?:string};
 type LessonRow={id:string;student_id:string;starts_at:string;subject:string|null;teacher:string|null;student_name:string;student_code:string|null};
 
 function distanceFromDay(date:string,today:string){
@@ -22,7 +22,7 @@ function sortClosest(a:{date:string;value:string},b:{date:string;value:string},p
   return a.value.localeCompare(b.value);
 }
 
-export async function TeachingRecords({scope,editable,selectedDate}:Props){
+export async function TeachingRecords({scope,editable,owner,selectedDate}:Props){
  const db=await createClient();
  const today=getTodayInNZ(),focus=selectedDate||today;
  const past=nzLocalToUtc(addCalendarDaysInNZ(focus,-90),"00:00").toISOString();
@@ -135,9 +135,7 @@ export async function TeachingRecords({scope,editable,selectedDate}:Props){
    </form>
    {editable&&<TeachingRecordEditor
      key={scope+":"+focus} scope={scope} currentUserId={currentUserId}
-     owner={scope==="cus"||!!(await db.from("erp_memberships").select("role")
-       .eq("user_id",currentUserId).eq("business_unit_id","cus")
-       .eq("role","owner").maybeSingle()).data}
+     owner={owner}
      targets={targets} records={saved}/>}
    <section className={panel}>
      <h2 className="mb-3 font-semibold">已保存的教学记录</h2>
