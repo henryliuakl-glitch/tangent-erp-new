@@ -57,8 +57,8 @@ export default async function TeachingPage({
         </Link>)}
       </nav>
       {current==="care"?<CareTeachingOverview/>:
-        current==="cus"?<TeachingRecords scope="cus" editable={owner} selectedDate={selectedDate}/>:
-        current==="astra"?<TeachingRecords scope="astra" editable={astraStaff} selectedDate={selectedDate}/>:
+        current==="cus"?<TeachingRecords scope="cus" editable={owner} owner={owner} selectedDate={selectedDate}/>:
+        current==="astra"?<TeachingRecords scope="astra" editable={astraStaff} owner={owner} selectedDate={selectedDate}/>:
         current==="teachers"?<TeachingStaff owner={owner}/>:
         <TeachingClasses editable={owner}/>}
     </main><MobileDock/>
