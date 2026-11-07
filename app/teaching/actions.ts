@@ -128,7 +128,7 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
     if (content.length > 8000) return {ok:false,error:"课堂内容不能超过 8000 字"};
     const teacher = optional(form,"teacher");
     const homework = optional(form,"homework");
-    const student_feedback = optional(form,"student_feedback");
+    const student_feedback = required(form,"student_feedback");
     const next_steps = optional(form,"next_steps");
     const payload = {teacher,lesson_content:content,homework,student_feedback,next_steps};
     const foreignKey = type === "booking" ? "booking_id" : "class_session_id";
