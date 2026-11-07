@@ -451,6 +451,8 @@ export async function getFinanceStats(
     net: income - expense,
     realized,
     realizedRmb,
+    completedLessons: bookings.length,
+    completedHours: bookings.reduce((total: number, booking: any) => total + (Number(booking.duration) || 0), 0),
     byCurrency,
     transactions,
     chartData,

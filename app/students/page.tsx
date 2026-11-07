@@ -70,21 +70,6 @@ export default async function StudentsPage() {
 
       <main className="mx-auto max-w-[1480px] px-3 py-3 md:px-5 md:py-5">
         
-        {/* Header */}
-        <div className="erp-page-heading flex items-center justify-between mb-3 md:mb-4">
-          <div>
-            <h1 className="text-lg md:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <Users className="h-5 w-5 md:h-6 md:w-6 text-indigo-600" />
-              学员管理
-            </h1>
-          </div>
-          <Link href="/students/new">
-            <Button className="rounded-xl bg-indigo-600 font-bold h-9 w-9 md:h-10 md:w-10 p-0 active:scale-95 transition-transform">
-              <Plus className="h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-
         {/* 智能列表：将带 start_time 的数据传给子组件进行沉睡名单过滤 */}
         <StudentList students={students || []} />
 

@@ -35,6 +35,8 @@ const EMPTY_FINANCE_DATA = {
   net: 0,
   realized: 0,
   realizedRmb: 0,
+  completedLessons: 0,
+  completedHours: 0,
   byCurrency: {
     NZD: { income: 0, expense: 0, net: 0 },
     RMB: { income: 0, expense: 0, net: 0 },
@@ -250,10 +252,7 @@ export default function FinancePage() {
 
       <main className="max-w-[1600px] mx-auto px-3 py-3 md:px-5 md:py-4">
         
-        <div className="erp-page-heading flex flex-wrap items-center gap-2.5">
-          <h1 className="mr-auto flex items-center gap-2 text-xl font-extrabold tracking-tight">
-            <Wallet className="h-5 w-5 text-indigo-600"/>财务
-          </h1>
+        <div className="erp-page-heading erp-finance-toolbar flex flex-wrap items-center justify-end gap-2.5">
           <div className="flex items-center gap-1 rounded-xl bg-white p-1 shadow-sm">
             {([{id:"week" as const,label:"周"},{id:"month" as const,label:"月"},{id:"year" as const,label:"年"}]).map(item=>
               <button key={item.id} type="button" onClick={()=>setPeriodMode(item.id)}
@@ -348,6 +347,19 @@ export default function FinancePage() {
                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full bg-amber-100 flex items-center justify-center text-amber-600"><TrendingUp className="h-5 w-5" /></div>
              </div>
           </Card>
+        </div>
+
+        <div className="mb-2 mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {([
+            {label:"已完成课程",value:`${Number(data.completedLessons||0).toLocaleString()} 节`,note:"本期销课次数"},
+            {label:"已完成课时",value:`${Number(data.completedHours||0).toLocaleString(undefined,{maximumFractionDigits:1})} h`,note:"本期实际教学时长"},
+            {label:"实收笔数",value:`${(data.transactions||[]).filter((t:{type:string})=>t.type==="income").length} 笔`,note:"已登记收款流水"},
+            {label:"支出笔数",value:`${(data.transactions||[]).filter((t:{type:string})=>t.type==="expense").length} 笔`,note:"已登记支出流水"}
+          ]).map(item=><div key={item.label} className="erp-finance-mini-card rounded-2xl bg-white px-4 py-3">
+            <p className="text-[11px] font-semibold text-slate-500">{item.label}</p>
+            <p className="mt-1 text-xl font-extrabold tabular-nums text-[#282a4a]">{item.value}</p>
+            <p className="mt-0.5 text-[10px] text-slate-400">{item.note}</p>
+          </div>)}
         </div>
 
         {data.incomeBySource?.length > 0 && (
@@ -447,7 +459,7 @@ export default function FinancePage() {
              {loading ? (
                <div className="text-center py-10"><Loader2 className="animate-spin text-slate-300 mx-auto"/></div>
              ) : data.transactions.filter((t: { type?: string }) => txFilter === "all" || t.type === txFilter).length === 0 ? (
-               <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
+               <div className="erp-surface py-10 text-center text-xs text-slate-400">
                  本时段无流水记录
                </div>
              ) : (

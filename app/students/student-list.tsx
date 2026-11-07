@@ -357,7 +357,7 @@ export function StudentList({ students }: { students: any[] }) {
         <div className="flex flex-wrap items-center gap-1.5 md:flex-nowrap md:gap-1.5">
           {/* 老师筛选 */}
           <Select value={filterTeacher} onValueChange={setFilterTeacher}>
-            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-10 w-[112px] md:h-10 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-slate-500"><User className="h-3.5 w-3.5"/> <SelectValue placeholder="老师" /></div>
             </SelectTrigger>
             <SelectContent>
@@ -368,7 +368,7 @@ export function StudentList({ students }: { students: any[] }) {
 
           {/* 学科筛选 */}
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="h-8 w-[112px] md:h-9 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-10 w-[112px] md:h-10 md:w-[108px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-slate-500"><BookOpen className="h-3.5 w-3.5"/> <SelectValue placeholder="学科" /></div>
             </SelectTrigger>
             <SelectContent>
@@ -379,7 +379,7 @@ export function StudentList({ students }: { students: any[] }) {
 
           {/* 排序字段 */}
           <Select value={sortKey} onValueChange={setSortKey}>
-            <SelectTrigger className="h-8 w-[122px] md:h-9 md:w-[116px] rounded-lg bg-white border-slate-200 text-xs font-bold">
+            <SelectTrigger className="h-10 w-[122px] md:h-10 md:w-[116px] rounded-lg bg-white border-slate-200 text-xs font-bold">
               <div className="flex items-center gap-1.5 text-indigo-600"><SortAsc className="h-3.5 w-3.5"/> <SelectValue placeholder="排序" /></div>
             </SelectTrigger>
             <SelectContent>

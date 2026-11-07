@@ -119,16 +119,16 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       
       <div className="hidden md:block"><Navbar /></div>
 
-      <main className="mx-auto max-w-6xl px-2.5 py-2 md:px-5 md:py-5">
-        <BookingList bookings={bookings} toolbar={<div className="flex min-w-0 flex-wrap items-center gap-2">
+      <main className="mx-auto max-w-[1600px] px-3 py-2 md:px-5 md:py-4">
+        <BookingList bookings={bookings} toolbar={<div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 xl:flex-nowrap">
           <h1 className="mr-1 shrink-0 text-[18px] font-extrabold tracking-tight text-[#232643]">排课</h1>
-          <form method="get" className="flex min-w-0 flex-wrap items-center gap-1.5" aria-label="日期范围">
+          <form method="get" className="flex min-w-0 items-center gap-1.5" aria-label="日期范围">
             <input aria-label="开始日期" type="date" name="from" defaultValue={lower}
-              className="h-9 max-w-[155px] rounded-lg border border-slate-200 bg-white px-2 text-xs"/>
+              className="h-10 w-[137px] rounded-xl border-0 bg-white px-2 text-xs shadow-sm"/>
             <span className="text-xs text-slate-400">至</span>
             <input aria-label="结束日期" type="date" name="to" defaultValue={upper}
               className="h-9 max-w-[155px] rounded-lg border border-slate-200 bg-white px-2 text-xs"/>
-            <button type="submit" className="h-9 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">查询</button>
+            <button type="submit" className="h-10 rounded-xl bg-[#eeeefe] px-3 text-xs font-bold text-indigo-600 hover:bg-[#e6e6ff]">查询</button>
           </form>
           <BookingsCta/>
         </div>}
