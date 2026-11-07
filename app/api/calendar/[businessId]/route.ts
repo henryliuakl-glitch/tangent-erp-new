@@ -2,7 +2,9 @@ import {
   formatSineIcsDescription,
   formatSineIcsSummary,
 } from "@/lib/driving-booking-text";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { createClient as createSessionClient } from "@/lib/supabase/server";
+import { timingSafeEqual } from "node:crypto";
 import ical from "ical-generator";
 import { formatDualTime } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
@@ -93,13 +95,33 @@ export async function GET(
 ) {
   const { businessId } = await params;
   const url = new URL(request.url);
-  const rawStaff = url.searchParams.get("staff");
+  // Never expose service-role calendar data to arbitrary logged-in care accounts.
+  const secret=process.env.CALENDAR_FEED_SECRET;
+  const supplied=url.searchParams.get("token")||"";
+  const tokenOk=!!secret&&secret.length>=24&&supplied.length===secret.length&&
+    timingSafeEqual(Buffer.from(secret),Buffer.from(supplied));
+  let owner=false;
+  if(!tokenOk){
+    const session=await createSessionClient();
+    const {data:{user}}=await session.auth.getUser();
+    if(user){
+      const {data:member}=await session.from("erp_memberships").select("role")
+        .eq("business_unit_id","cus").eq("user_id",user.id).eq("role","owner").maybeSingle();
+      owner=!!member;
+    }
+  }
+  if(!tokenOk&&!owner)return new Response("Unauthorized calendar feed",{
+    status:401,headers:{"Cache-Control":"private, no-store"}
+  });
+  if(!["cus","sine","tangent"].includes(businessId))
+    return new Response("Invalid calendar scope",{status:400});
+    const rawStaff = url.searchParams.get("staff");
   const staff: StaffFeed | null =
     rawStaff && ["niu", "tong", "henry", "yvetta"].includes(rawStaff)
       ? (rawStaff as StaffFeed)
       : null;
 
-  const supabase = createClient(
+  const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
