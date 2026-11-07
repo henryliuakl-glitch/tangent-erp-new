@@ -315,3 +315,22 @@ body.erp-app {
 .erp-app .erp-care-metric:first-child p:first-child{opacity:.78;}
 .erp-app .erp-surface h2,.erp-app .erp-surface h3{color:#242743;}
 .erp-app [data-radix-popper-content-wrapper]{z-index:99!important;}
+
+/* Reuse the same financial/statistic visual hierarchy in Family and Vehicles. */
+.erp-app .erp-secondary-metrics>div{
+  border-radius:18px!important;padding:20px!important;
+  border:1px solid #e9eaf5!important;background:#fff;
+  box-shadow:0 6px 22px rgba(45,46,100,.035)!important;
+}
+.erp-app .erp-secondary-metrics>div:first-child{
+  background:linear-gradient(140deg,#5656ef,#7370f3)!important;
+  border-color:transparent!important;color:#fff!important;
+  box-shadow:0 11px 24px rgba(77,78,223,.17)!important;
+}
+.erp-app .erp-secondary-metrics>div:first-child :is(span,div,svg,p){color:#fff!important;}
+.erp-app .erp-secondary-metrics>div:first-child :is(svg){opacity:.85;}
+.erp-app .erp-secondary-metrics>div:first-child :is(span){opacity:.85;}
+@media(max-width:480px){
+  .erp-app .erp-secondary-metrics>div{padding:13px!important;}
+  .erp-app .erp-care-metric{padding:14px!important;}
+}
