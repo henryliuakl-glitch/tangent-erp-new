@@ -72,7 +72,7 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",roleCookieOptions);
 
     if(astraOnly) {
-      const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool"]
+      const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool","/crm"]
         .some(prefix=>prefix==="/"?pathname==="/":pathname===prefix||pathname.startsWith(prefix+"/"));
       if(!allowed){
         const url=request.nextUrl.clone();url.pathname="/";url.search="";
