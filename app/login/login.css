@@ -1,0 +1,343 @@
+/* Tangent ERP sign-in: a borderless, responsive gradient workspace.
+   Kept separate from the shared ERP stylesheet to avoid modifying other modules. */
+.tangent-login-page {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100dvh;
+  padding: clamp(12px, 3.5vw, 40px);
+  background: #eaf4fb;
+}
+
+.tangent-login-stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 1430px);
+  min-height: min(770px, calc(100dvh - 80px));
+  overflow: hidden;
+  border-radius: 30px;
+  background:
+    radial-gradient(ellipse 55% 70% at 7% 94%, rgba(91, 80, 247, .94) 0%, rgba(100, 92, 248, .52) 47%, transparent 100%),
+    radial-gradient(ellipse 44% 55% at 57% 106%, rgba(176, 115, 245, .77) 0%, rgba(178, 134, 249, .36) 49%, transparent 100%),
+    radial-gradient(ellipse 54% 66% at 54% 19%, rgba(102, 148, 251, .42), transparent 83%),
+    linear-gradient(117deg, #52a0f5 1%, #82c4fb 42%, #cceaf0 100%);
+  box-shadow: 0 14px 40px rgba(65, 114, 171, .11);
+}
+
+.tangent-login-stage::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 40% 35% at 82% 17%, rgba(233, 255, 255, .50), transparent 100%),
+    radial-gradient(ellipse 34% 40% at 49% 50%, rgba(233, 239, 255, .27), transparent 100%);
+}
+
+.tangent-login-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(calc(100% - 36px), 432px);
+  padding: 36px 0 30px;
+}
+
+.tangent-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 26px;
+  text-align: center;
+}
+
+.tangent-login-brandmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 12px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .83);
+  box-shadow: 0 9px 30px rgba(60, 79, 166, .15), inset 0 1px rgba(255,255,255,.7);
+  backdrop-filter: blur(12px);
+}
+
+.tangent-login-brandmark img {
+  width: 55px;
+  height: 69px;
+  object-fit: contain;
+}
+
+.tangent-login-brand h1 {
+  margin: 0;
+  color: #1e2850;
+  font-size: clamp(25px, 3vw, 31px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -.045em;
+}
+
+.tangent-login-brand p {
+  margin-top: 7px;
+  color: #4d6487;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .015em;
+}
+
+.tangent-login-card {
+  width: 100%;
+  padding: 30px 33px 32px;
+  border: 0;
+  border-radius: 23px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 22px 56px rgba(30, 55, 145, .19), 0 3px 12px rgba(44, 69, 153, .05);
+}
+
+.tangent-login-intro {
+  margin-bottom: 27px;
+  text-align: center;
+}
+
+.tangent-login-intro h2 {
+  margin: 0;
+  color: #232844;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+
+.tangent-login-intro p {
+  margin-top: 6px;
+  color: #98a0b4;
+  font-size: 12px;
+}
+
+.tangent-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+}
+
+.tangent-login-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+}
+
+.tangent-login-field > label {
+  color: #343b5a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body.erp-app .tangent-login-field input {
+  width: 100%;
+  height: 46px;
+  min-width: 0;
+  padding: 0 14px;
+  border: 0 !important;
+  border-radius: 11px !important;
+  outline: none;
+  background: #f4f6fc !important;
+  color: #262d4d;
+  font-size: 13px;
+  box-shadow: inset 0 0 0 1px rgba(94, 110, 177, .065);
+  transition: box-shadow .16s ease, background-color .16s ease;
+}
+
+body.erp-app .tangent-login-field input::placeholder {
+  color: #adb5c6;
+}
+
+body.erp-app .tangent-login-field input:focus {
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(85, 87, 239, .17), inset 0 0 0 1px rgba(85, 87, 239, .55);
+}
+
+body.erp-app .tangent-login-field input:disabled {
+  opacity: .72;
+}
+
+.tangent-login-password {
+  position: relative;
+}
+
+body.erp-app .tangent-login-password input {
+  padding-right: 51px;
+}
+
+.tangent-login-eye {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 35px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #a3acc1;
+  cursor: pointer;
+}
+
+.tangent-login-eye:hover {
+  color: #5658ea;
+  background: #e9ecfc;
+}
+
+.tangent-login-eye:focus-visible {
+  outline: 2px solid #5557ed;
+  outline-offset: 1px;
+}
+
+.tangent-login-remember {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 9px;
+  margin-top: 0;
+  cursor: pointer;
+  color: #75809c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tangent-login-remember input {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: #5757ef;
+}
+
+.tangent-login-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 47px;
+  margin-top: 1px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(105deg, #5e65f3 0%, #5351e9 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: .01em;
+  box-shadow: 0 10px 20px rgba(82, 78, 233, .22);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  cursor: pointer;
+}
+
+.tangent-login-submit:hover:not(:disabled) {
+  filter: brightness(1.035);
+  box-shadow: 0 13px 25px rgba(82, 78, 233, .29);
+}
+
+.tangent-login-submit:active:not(:disabled) {
+  transform: scale(.985);
+}
+
+.tangent-login-submit:focus-visible {
+  outline: 3px solid rgba(77, 77, 236, .35);
+  outline-offset: 3px;
+}
+
+.tangent-login-submit:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.tangent-login-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff0f1;
+  color: #b83349;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tangent-login-footnote {
+  margin-top: 24px;
+  color: rgba(255, 255, 255, .86);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .tangent-login-page {
+    display: block;
+    padding: 0;
+    background: #70a8f1;
+  }
+  .tangent-login-stage {
+    min-height: 100dvh;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .tangent-login-content {
+    width: min(calc(100% - 36px), 420px);
+    padding: 35px 0;
+  }
+  .tangent-login-brand {
+    margin-bottom: 24px;
+  }
+  .tangent-login-card {
+    padding: 27px 23px 29px;
+    border-radius: 21px;
+  }
+}
+
+@media (max-height: 660px) {
+  .tangent-login-stage {
+    min-height: 100dvh;
+  }
+  .tangent-login-content {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .tangent-login-brandmark {
+    width: 65px;
+    height: 65px;
+    margin-bottom: 8px;
+  }
+  .tangent-login-brandmark img {
+    width: 42px;
+    height: 53px;
+  }
+  .tangent-login-brand {
+    margin-bottom: 14px;
+  }
+  .tangent-login-card {
+    padding-top: 23px;
+    padding-bottom: 24px;
+  }
+  .tangent-login-intro {
+    margin-bottom: 20px;
+  }
+  .tangent-login-footnote {
+    margin-top: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tangent-login-submit,
+  body.erp-app .tangent-login-field input {
+    transition: none;
+  }
+}
