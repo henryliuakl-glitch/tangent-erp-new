@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useBusiness } from "@/contexts/BusinessContext";
 import { completeBooking, cancelBooking, deleteBooking, updateBooking, type BookingScope } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -96,19 +97,24 @@ function getStaffAccent(name?: string | null) {
 }
 
 export function BookingsCta() {
-  const { currentBusinessId } = useBusiness();
+  const { currentBusinessId,crmAllowed } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
-  return (
+  return (<>
     <Link href={driving ? "/bookings/quick" : "/bookings/new"} className="self-end sm:self-auto">
       <Button className="h-10 rounded-xl border-0 bg-indigo-600 px-3 text-xs font-bold shadow-sm transition-transform active:scale-95 hover:bg-indigo-700">
         <Plus className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-5 sm:w-5" />
         {driving ? "极速排课" : "新建排课"}
       </Button>
     </Link>
-  );
+    {crmAllowed && ["cus","astra","sine","tangent"].includes(currentBusinessId) &&
+      <Link href="/calendar-subscriptions" className="rounded-xl border border-indigo-200 bg-white px-3 py-2.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50">
+        苹果日历订阅
+      </Link>}
+  </>);
 }
 
 export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booking[]; toolbar?:React.ReactNode; afterToolbar?:React.ReactNode }) {
+  const router=useRouter();
   const { currentBusinessId } = useBusiness();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
@@ -256,7 +262,17 @@ export function BookingList({ bookings,toolbar,afterToolbar }: { bookings: Booki
 
   const handleDelete = async (id: string) => {
     if (!confirm("彻底删除记录？")) return;
-    setLoadingId(id); await deleteBooking(id); setLoadingId(null);
+    setLoadingId(id);
+    try {
+      const result=await deleteBooking(id);
+      if(result?.error)toast.error("课程未删除："+result.error);
+      else {
+        toast.success("课程已从 ERP 删除，将在苹果日历下次订阅刷新后消失");
+        router.refresh();
+      }
+    } catch(error){
+      toast.error(error instanceof Error?error.message:"删除失败，请重试");
+    } finally {setLoadingId(null);}
   };
 
   const openEdit = (b: Booking) => {
