@@ -8,12 +8,13 @@ type BusinessContextType = {
   currentLabel: string;
   careOnly: boolean;
   astraOnly: boolean;
+  crmAllowed: boolean;
   setBusinessId: (id: string) => void; // ✅ 新增：暴露切换函数
 };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false, astraOnly = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean; astraOnly?:boolean }) {
+export function BusinessProvider({ children, initialBusinessId = "cus", careOnly = false, astraOnly = false, crmAllowed = false }: { children: React.ReactNode; initialBusinessId?: string; careOnly?:boolean; astraOnly?:boolean; crmAllowed?:boolean }) {
   const router = useRouter();
   // 默认值，防止服务端渲染时为空
   const [currentBusinessId, setCurrentBusinessIdState] = useState<string>(astraOnly?"astra":careOnly?"care":initialBusinessId);
@@ -46,7 +47,7 @@ export function BusinessProvider({ children, initialBusinessId = "cus", careOnly
   };
 
   return (
-    <BusinessContext.Provider value={{ currentBusinessId:astraOnly?"astra":careOnly?"care":currentBusinessId, currentLabel:astraOnly?"Astra Education":careOnly?"晚托":currentLabel, careOnly, astraOnly, setBusinessId }}>
+    <BusinessContext.Provider value={{ currentBusinessId:astraOnly?"astra":careOnly?"care":currentBusinessId, currentLabel:astraOnly?"Astra Education":careOnly?"晚托":currentLabel, careOnly, astraOnly, crmAllowed, setBusinessId }}>
       {children}
     </BusinessContext.Provider>
   );
