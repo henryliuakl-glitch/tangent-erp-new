@@ -17,10 +17,10 @@ const car:Item={href:"/vehicles",label:"车辆",icon:CarFront};
 const family:Item={href:"/family",label:"家庭",icon:House};
 export function Navbar(){
   const pathname=usePathname(),router=useRouter();
-  const {currentBusinessId,careOnly,astraOnly}=useBusiness();
+  const {currentBusinessId,careOnly,astraOnly,crmAllowed}=useBusiness();
   const nav:Item[]=careOnly?[teaching,care]:
     currentBusinessId==="family"?[family]:
-      [home,...(["cus","astra"].includes(currentBusinessId)?[crm]:[]),students,booking,finance,
+      [home,...(crmAllowed&&["cus","astra"].includes(currentBusinessId)?[crm]:[]),students,booking,finance,
         ...(["cus","astra","tangent"].includes(currentBusinessId)?[teaching]:[]),
         ...(currentBusinessId==="astra"?[care]:[]),
         ...(["sine","tangent"].includes(currentBusinessId)?[car]:[])];
