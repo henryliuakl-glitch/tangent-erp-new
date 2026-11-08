@@ -10,7 +10,7 @@ type Staff={id:string;full_name:string;scope:string;subjects:string|null;active:
 type Credential={id:string;staff_id:string;credential_type:string;title:string;status:string;
   issued_on:string|null;review_due_on:string|null;reference_note:string|null;notes:string|null};
 type Training={id:string;staff_id:string;kind:string;title:string;outcome:string;
-  session_date:string;notes:string|null};
+  session_date:string;quality_score:number|null;notes:string|null};
 type Result={ok:boolean;error?:string};
 const input="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none";
 const btn="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50";
@@ -124,6 +124,10 @@ export function QualityClient({unit,staff,credentials,trainings}:{
        <Field name="日期"><input className={input} type="date" name="session_date" required defaultValue={today}/></Field>
        <Field name="主题"><input className={input} name="title" required placeholder="例如 Cambridge 试讲"/></Field>
        <Field name="状态"><select className={input} name="outcome"><option value="planned">计划中</option><option value="completed">已完成</option><option value="followup">待改进</option><option value="cancelled">已取消</option></select></Field>
+       <Field name="教学质量评分（可选）"><select name="quality_score" className={input}>
+        <option value="">未评分</option>
+        {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}/5</option>)}
+       </select></Field>
        <div className="sm:col-span-2"><Field name="评价与改进建议"><input className={input} name="notes"/></Field></div>
        <button className={btn+" sm:col-span-2"} disabled={busy||!selected}>保存培训</button>
       </form>
@@ -132,13 +136,17 @@ export function QualityClient({unit,staff,credentials,trainings}:{
       <details key={x.id} className="rounded-xl border border-slate-100 p-3">
        <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm font-semibold">
         <span>{titles[x.kind]||x.kind} · {x.title}</span>
-        <span className="text-xs text-slate-500">{x.session_date} · {x.outcome==="completed"?"已完成":x.outcome==="planned"?"计划中":x.outcome==="followup"?"待改进":"已取消"}</span>
+        <span className="text-xs text-slate-500">{x.session_date} · {x.outcome==="completed"?"已完成":x.outcome==="planned"?"计划中":x.outcome==="followup"?"待改进":"已取消"}
+        {x.quality_score!==null?" · "+x.quality_score+"/5":""}</span>
        </summary>
        <form className="mt-3 grid gap-2 sm:grid-cols-2" onSubmit={e=>act(e,updateTraining)}>
         <input type="hidden" name="id" value={x.id}/>
         <Field name="结果"><select className={input} name="outcome" defaultValue={x.outcome}>
           <option value="planned">计划中</option><option value="completed">已完成</option>
           <option value="followup">待改进</option><option value="cancelled">已取消</option>
+        </select></Field>
+        <Field name="质量评分"><select className={input} name="quality_score" defaultValue={x.quality_score??""}>
+         <option value="">未评分</option>{[1,2,3,4,5].map(n=><option key={n} value={n}>{n}/5</option>)}
         </select></Field>
         <Field name="反馈与下一步"><textarea className={input} name="notes" defaultValue={x.notes||""} rows={2}/></Field>
         <button className={btn+" sm:col-span-2"} disabled={busy}>保存评估</button>
