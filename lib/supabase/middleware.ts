@@ -47,11 +47,8 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLogin = pathname.startsWith("/login");
-  const hasAuthCookie = request.cookies
-    .getAll()
-    .some((cookie) => isAuthTokenCookie(cookie.name));
-
-  if (!user && !isLogin && !hasAuthCookie) {
+  // A stale cookie is not an authenticated session. getUser() is authoritative.
+  if (!user && !isLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -66,12 +63,26 @@ export async function updateSession(request: NextRequest) {
     const astraMember=!roleError&&!!members?.some(m=>m.business_unit_id==="astra"&&["owner","admin","teacher","viewer"].includes(m.role));
     const careMember=!roleError&&!!members?.some(m=>m.business_unit_id==="care");
     const astraOnly=!owner&&astraMember;
-    const careOnly=!owner&&!astraMember;
+    const careOnly=!owner&&!astraMember&&careMember;
     const crmAllowed=owner||!!members?.some(m=>m.business_unit_id==="astra"&&["owner","admin"].includes(m.role));
     const roleCookieOptions={httpOnly:true,sameSite:"lax" as const,path:"/",secure:process.env.NODE_ENV==="production"};
     supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",roleCookieOptions);
     supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",roleCookieOptions);
     supabaseResponse.cookies.set("erp_crm_allowed",crmAllowed?"1":"0",roleCookieOptions);
+
+    // Never redirect a user without any verified ERP membership back to
+    // /teaching: the old fallback redirected /teaching to itself indefinitely.
+    // Instead show a stable, explicit error page.
+    if(roleError||(!owner&&!astraMember&&!careMember)){
+      if(pathname==="/access-denied")return supabaseResponse;
+      const url=request.nextUrl.clone();
+      url.pathname="/access-denied";
+      url.search="";
+      const redirect=NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value,c));
+      return redirect;
+    }
+    if(pathname==="/access-denied")return supabaseResponse;
 
     if(astraOnly) {
       const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool","/crm","/calendar-subscriptions"]
@@ -101,7 +112,7 @@ export async function updateSession(request: NextRequest) {
     } else if(careOnly){
       const allowed=(pathname==="/teaching"||pathname.startsWith("/afterschool"))&&!!careMember;
       if(!allowed){
-        const url=request.nextUrl.clone();url.pathname=careMember?"/afterschool":"/teaching";url.search="";
+        const url=request.nextUrl.clone();url.pathname="/afterschool";url.search="";
         const redirect=NextResponse.redirect(url);
         supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value));
         return redirect;
