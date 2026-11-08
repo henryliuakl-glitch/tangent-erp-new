@@ -57,6 +57,7 @@ export async function saveLead(form:FormData):Promise<ActionResult>{
   const student_name=required(form,"student_name");
   const status=value(form,"status")||"new";
   if(!statuses.includes(status))throw new Error("无效咨询状态");
+  if(status==="enrolled"&&!id)throw new Error("请通过学员转换功能完成报名");
   const payload={
     student_name:limit(student_name,160)!,parent_name:limit(value(form,"parent_name"),160),
     contact:limit(value(form,"contact"),160),contact_channel:limit(value(form,"contact_channel"),80),
@@ -68,6 +69,7 @@ export async function saveLead(form:FormData):Promise<ActionResult>{
   };
   if(id){
     const lead=await assertLead(db,unit,id);
+    if(status==="enrolled"&&!lead.student_id)throw new Error("请先关联正式学生档案");
     if(lead.student_id&&status!=="enrolled")throw new Error("已报名咨询不能更改为其他状态");
     const {error}=await db.from("edu_leads").update(payload)
       .eq("id",id).eq("business_unit_id",unit);
