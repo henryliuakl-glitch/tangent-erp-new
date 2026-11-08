@@ -67,9 +67,11 @@ export async function updateSession(request: NextRequest) {
     const careMember=!roleError&&!!members?.some(m=>m.business_unit_id==="care");
     const astraOnly=!owner&&astraMember;
     const careOnly=!owner&&!astraMember;
+    const crmAllowed=owner||!!members?.some(m=>m.business_unit_id==="astra"&&["owner","admin"].includes(m.role));
     const roleCookieOptions={httpOnly:true,sameSite:"lax" as const,path:"/",secure:process.env.NODE_ENV==="production"};
     supabaseResponse.cookies.set("erp_care_only",careOnly?"1":"0",roleCookieOptions);
     supabaseResponse.cookies.set("erp_astra_only",astraOnly?"1":"0",roleCookieOptions);
+    supabaseResponse.cookies.set("erp_crm_allowed",crmAllowed?"1":"0",roleCookieOptions);
 
     if(astraOnly) {
       const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool","/crm"]
