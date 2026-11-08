@@ -140,7 +140,8 @@ begin
    ) then raise exception 'Trial booking must match the linked student and entity'; end if;
  end if;
  return new;
-end $;
+end;
+$$;
 drop trigger if exists edu_leads_scope on public.edu_leads;
 create trigger edu_leads_scope before insert or update of student_id,business_unit_id
  on public.edu_leads for each row execute function public.erp_education_check_scope();
@@ -156,7 +157,11 @@ create trigger edu_student_activities_scope before insert or update of student_i
 
 create or replace function public.erp_education_touch()
 returns trigger language plpgsql security invoker set search_path=public as $$
-begin new.updated_at=now(); return new; end $$;
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 drop trigger if exists edu_leads_touch on public.edu_leads;
 create trigger edu_leads_touch before update on public.edu_leads
  for each row execute function public.erp_education_touch();
@@ -186,7 +191,8 @@ begin
      execute format('create policy education_crm_update on public.%I for update to authenticated using (public.erp_education_crm_access(business_unit_id)) with check (public.erp_education_crm_access(business_unit_id))',t);
    end if;
  end loop;
-end $$;
+end;
+$$;
 
 -- Leads are linked to the existing students ledger transactionally. A trial is a
 -- pre-enrolment appointment, not a completed lesson and never a cash receipt.
@@ -228,7 +234,8 @@ begin
  update public.edu_leads set student_id=sid,status='enrolled',
    next_followup_at=null where id=l.id and business_unit_id=l.business_unit_id;
  return sid;
-end $$;
+end;
+$$;
 revoke all on function public.erp_education_convert_lead(uuid,uuid,text,numeric,text) from public,anon;
 grant execute on function public.erp_education_convert_lead(uuid,uuid,text,numeric,text) to authenticated;
 commit;
