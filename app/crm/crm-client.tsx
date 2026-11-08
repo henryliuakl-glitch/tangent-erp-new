@@ -20,6 +20,7 @@ type Trial={id:string;lead_id:string;starts_at:string;duration_minutes:number;fe
  booking_id:string|null};
 type Followup={id:string;lead_id:string|null;student_id:string|null;kind:string;title:string;
  notes:string|null;due_at:string;status:string};
+type Booking={id:string;student_id:string|null;start_time:string;status:string;subject:string|null;teacher:string|null;duration:number};
 type StudentActivity={id:string;student_id:string;kind:string;content:string;created_at:string};
 type Student={id:string;name:string;student_code:string|null;balance:number;payment_type:string;
  subject:string|null;level:string|null;hourly_rate:number|null};
@@ -27,7 +28,7 @@ type Renewal={id:string;name:string;payment_type:string;balance:number;reason:st
 type ActionResult={ok:true;studentId?:string}|{ok:false;error:string};
 type Action=(form:FormData)=>Promise<ActionResult>;
 type Props={unit:Unit;leads:Lead[];activities:Activity[];trials:Trial[];followups:Followup[];
- students:Student[];studentActivities:StudentActivity[];renewalCandidates:Renewal[];focusLeadId:string|null;focusStudentId:string|null};
+ students:Student[];bookings:Booking[];studentActivities:StudentActivity[];renewalCandidates:Renewal[];focusLeadId:string|null;focusStudentId:string|null};
 const statuses=[
  ["new","新咨询"],["contacted","跟进中"],["trial_booked","已约试听"],
  ["trial_done","已试听"],["considering","待决定"],["enrolled","已报名"],["lost","未成交"]
@@ -65,7 +66,7 @@ function Field({label,children}:{label:string;children:React.ReactNode}){
 function Empty({children}:{children:React.ReactNode}){
  return <div className="rounded-lg bg-slate-50 px-4 py-7 text-center text-sm text-slate-400">{children}</div>;
 }
-export function CrmClient({unit,leads,activities,trials,followups,students,studentActivities,renewalCandidates,focusLeadId,focusStudentId}:Props){
+export function CrmClient({unit,leads,activities,trials,followups,students,bookings,studentActivities,renewalCandidates,focusLeadId,focusStudentId}:Props){
  const router=useRouter();
  const [tab,setTab]=useState<"leads"|"trials"|"followups"|"parents"|"renewals">(focusStudentId?"parents":"leads");
  const [selectedStudentId,setSelectedStudentId]=useState<string|null>(focusStudentId||students[0]?.id||null);
@@ -77,6 +78,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,stude
  const [taskTarget,setTaskTarget]=useState<"lead"|"student">(focusStudentId?"student":"lead");
  const [busy,setBusy]=useState(false);
  const [trialOpen,setTrialOpen]=useState(false);
+ const [trialBookingId,setTrialBookingId]=useState("");
  const selected=leads.find(l=>l.id===selectedId)||null;
  const selectedActivities=activities.filter(x=>x.lead_id===selectedId);
  const selectedTrials=trials.filter(x=>x.lead_id===selectedId);
@@ -115,7 +117,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,stude
   void perform(new FormData(event.currentTarget),action,done);
  }
  function chooseLead(id:string){
-  setSelectedId(id);setNewLead(false);setTrialOpen(false);setTab("leads");
+  setSelectedId(id);setNewLead(false);setTrialOpen(false);setTrialBookingId("");setTab("leads");
  }
  const tabItems=[
   {id:"leads" as const,label:"咨询线索",icon:UserPlus,count:leads.filter(l=>l.status!=="enrolled"&&l.status!=="lost").length},
@@ -219,12 +221,23 @@ export function CrmClient({unit,leads,activities,trials,followups,students,stude
         <h3 className="font-bold">试听记录 <span className="text-slate-400">{selectedTrials.length}</span></h3>
         <button onClick={()=>setTrialOpen(!trialOpen)} className={subtle}><CalendarClock className="h-3.5 w-3.5"/>安排试听</button>
        </div>
-       {trialOpen&&<form className="grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2" onSubmit={e=>submit(e,scheduleTrial,()=>setTrialOpen(false))}>
+       {trialOpen&&<form className="grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2" onSubmit={e=>submit(e,scheduleTrial,()=>{setTrialOpen(false);setTrialBookingId("");})}>
         <input type="hidden" name="lead_id" value={selected.id}/>
-        <Field label="试听日期与时间（新西兰）"><input className={field} type="datetime-local" name="starts_at" required/></Field>
-        <Field label="时长（分钟）"><input className={field} type="number" name="duration_minutes" defaultValue="45" min="15" max="240"/></Field>
-        <Field label="授课教师"><input className={field} name="teacher" placeholder="教师姓名"/></Field>
-        <Field label="试听科目"><input className={field} name="subject" defaultValue={selected.subject||""}/></Field>
+        {selected.student_id&&<div className="sm:col-span-2"><Field label="关联现有排课（可选）">
+         <select className={field} name="booking_id" value={trialBookingId} onChange={e=>setTrialBookingId(e.target.value)}>
+          <option value="">不关联，在 CRM 新建试听预约</option>
+          {bookings.filter(b=>b.student_id===selected.student_id&&b.status!=="cancelled").map(b=>
+           <option key={b.id} value={b.id}>{dateLabel(b.start_time)} · {b.subject||"课程"} · {b.teacher||"未分配"}</option>)}
+         </select>
+        </Field></div>}
+        {trialBookingId?<p className="rounded-lg border border-indigo-100 bg-white p-3 text-xs text-indigo-700 sm:col-span-2">
+         已关联真实排课，试听日期、课时、科目及教师将直接使用该课程记录。
+        </p>:<>
+         <Field label="试听日期与时间（新西兰）"><input className={field} type="datetime-local" name="starts_at" required/></Field>
+         <Field label="时长（分钟）"><input className={field} type="number" name="duration_minutes" defaultValue="45" min="15" max="240"/></Field>
+         <Field label="授课教师"><input className={field} name="teacher" placeholder="教师姓名"/></Field>
+         <Field label="试听科目"><input className={field} name="subject" defaultValue={selected.subject||""}/></Field>
+        </>}
         <Field label="试听费用（NZD，仅登记约定，不自动收款）"><input className={field} type="number" name="fee_nzd" defaultValue="0" min="0" step="0.01"/></Field>
         <button className={btn+" self-end"} disabled={busy}>保存试听预约</button>
         <p className="text-xs text-slate-500 sm:col-span-2">未报名学员的试听先记录于 CRM，不创建虚假学员或财务流水。正式学员可另在排课中安排课程。</p>
