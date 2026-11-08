@@ -5,7 +5,7 @@ import {createClient} from "@/lib/supabase/server";
 import {nzLocalToUtc} from "@/lib/timezone";
 
 type Unit="cus"|"astra";
-type ActionResult={ok:true;studentId?:string}|{ok:false;error:string};
+type ActionResult={ok:true;studentId?:string;leadId?:string}|{ok:false;error:string};
 const statuses=["new","contacted","trial_booked","trial_done","considering","enrolled","lost"];
 const trialStatuses=["scheduled","completed","no_show","cancelled"];
 const followupKinds=["lead","trial","parent","renewal"];
@@ -67,6 +67,7 @@ export async function saveLead(form:FormData):Promise<ActionResult>{
     notes:limit(value(form,"notes"),4000),lost_reason:limit(value(form,"lost_reason"),500),
     next_followup_at:parseNz(value(form,"next_followup_at"),true)
   };
+  let savedId=id;
   if(id){
     const lead=await assertLead(db,unit,id);
     if(status==="enrolled"&&!lead.student_id)throw new Error("请先关联正式学生档案");
@@ -75,12 +76,13 @@ export async function saveLead(form:FormData):Promise<ActionResult>{
       .eq("id",id).eq("business_unit_id",unit);
     if(error)throw new Error(error.message);
   }else{
-    const {error}=await db.from("edu_leads").insert({
+    const {data,error}=await db.from("edu_leads").insert({
       ...payload,business_unit_id:unit,created_by:user.id,assigned_to:user.id
-    });
+    }).select("id").single();
     if(error)throw new Error(error.message);
+    savedId=data.id;
   }
-  refresh();return {ok:true};
+  refresh();return {ok:true,leadId:savedId};
  }catch(e){return respond(e);}
 }
 
