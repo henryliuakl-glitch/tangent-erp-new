@@ -130,7 +130,11 @@ export function CrmClient({unit,leads,activities,trials,followups,students,booki
   <header className="flex flex-wrap items-center justify-between gap-3">
    <div><h1 className="text-xl font-extrabold tracking-tight">招生 CRM</h1>
      <p className="mt-1 text-xs text-slate-500">{unit==="cus"?"CuS Academy":"Astra Education"} · 咨询、试听、报名与续费</p></div>
-   <button className={btn} onClick={()=>{setTab("leads");setNewLead(true);}}><Plus className="h-4 w-4"/>新增咨询</button>
+   <div className="flex flex-wrap items-center gap-2">
+    <Link href="/crm/analytics" className={subtle}>经营分析</Link>
+    <Link href="/crm/events" className={subtle}>活动招生</Link>
+    <button className={btn} onClick={()=>{setTab("leads");setNewLead(true);}}><Plus className="h-4 w-4"/>新增咨询</button>
+   </div>
   </header>
   <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
    {[
