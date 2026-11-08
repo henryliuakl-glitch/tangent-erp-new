@@ -565,7 +565,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
 
   return (
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pb-14 pr-0.5 md:pb-0">
 
         <div className="min-w-0">
           <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">学员</Label>
