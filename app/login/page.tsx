@@ -2,13 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient, getRememberMe, setRememberMe } from "@/lib/supabase/client";
 import "./login.css";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [remember, setRemember] = useState(() => getRememberMe());
@@ -29,27 +27,44 @@ export default function LoginPage() {
       // Keep the existing 60-day sign-in and session-backup behaviour unchanged.
       setRememberMe(remember);
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // A prior background session restore must not race a new sign-in.
+      // Always finish a verification attempt, including when the network stalls.
+      const response = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_resolve, reject) => {
+          // The timeout also prevents an infinite "Verifying..." UI if auth stalls.
+          window.setTimeout(() => reject(new Error("登录请求超时，请刷新后重试。")), 20000);
+        }),
+      ]);
 
-      if (signInError) {
-        setError("账号或密码错误，请重试。");
-        setPending(false);
+      if (response.error) {
+        const message = response.error.message.toLowerCase();
+        setError(
+          message.includes("email not confirmed")
+            ? "邮箱尚未确认。请在 Supabase Authentication → Users 检查并确认该用户。"
+            : message.includes("invalid login credentials")
+              ? "邮箱或密码错误，请检查测试账号的密码。"
+              : "登录验证失败：" + response.error.message
+        );
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (remember && session) {
-        const { persistSessionBackup } = await import("@/lib/supabase/session-backup");
-        persistSessionBackup(session);
+      if (!response.data.session) {
+        setError("登录成功但未收到有效会话，请确认 Supabase 用户已完成邮箱验证。");
+        return;
       }
 
-      router.replace("/");
-      router.refresh();
-    } catch {
-      setError("登录暂时失败，请检查网络连接后重试。");
+      if (remember) {
+        const { persistSessionBackup } = await import("@/lib/supabase/session-backup");
+        persistSessionBackup(response.data.session);
+      }
+
+      // A full navigation guarantees middleware re-evaluates the new auth cookies
+      // and applies Astra-only entity restrictions before rendering the dashboard.
+      window.location.replace("/");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "登录暂时失败，请检查网络连接后重试。");
+    } finally {
       setPending(false);
     }
   };
