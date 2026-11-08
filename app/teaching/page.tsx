@@ -6,6 +6,7 @@ import {MobileDock} from "@/components/MobileDock";
 import {TeachingRecords} from "./records";
 import {TeachingClasses} from "./classes";
 import {TeachingStaff,CareTeachingOverview} from "./staff";
+import {TeachingQuality} from "./quality";
 
 export default async function TeachingPage({searchParams}:{
  searchParams:Promise<{view?:string;date?:string}>
@@ -25,11 +26,14 @@ export default async function TeachingPage({searchParams}:{
  const {view,date}=await searchParams;
  const selectedDate=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date))?date:undefined;
  const current=view==="classes"?"classes":view==="teachers"?"teachers":
+  view==="quality"?"quality":
   view==="care"&&businessId==="astra"?"care":"records";
  const tabs=[
   {id:"records",label:businessId==="astra"?"Astra 教学记录":"CuS 教学记录",href:"/teaching"},
   {id:"classes",label:"班级管理",href:"/teaching?view=classes"},
   {id:"teachers",label:"教师档案",href:"/teaching?view=teachers"},
+  ...(owner||!!members?.some(m=>m.business_unit_id===businessId&&["owner","admin"].includes(m.role))?
+    [{id:"quality",label:"资质与培训",href:"/teaching?view=quality"}]:[]),
   ...(businessId==="astra"?[{id:"care",label:"晚托课堂",href:"/teaching?view=care"}]:[])
  ];
  const editable=businessId==="cus"?owner:astraStaff;
@@ -50,6 +54,7 @@ export default async function TeachingPage({searchParams}:{
    {current==="care"?<CareTeachingOverview/>:
     current==="records"?<TeachingRecords scope={businessId} editable={editable} owner={owner} selectedDate={selectedDate}/>:
     current==="classes"?<TeachingClasses businessId={businessId} editable={editable}/>:
+    current==="quality"?(canManageTeachers?<TeachingQuality unit={businessId}/>:<p className="p-4 text-sm">无管理权限</p>):
     <TeachingStaff businessId={businessId} canManage={canManageTeachers}/>}
   </main><MobileDock/>
  </div>;
