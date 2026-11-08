@@ -78,7 +78,21 @@ export default async function CrmAnalyticsPage({searchParams}:{
    db.from("edu_campaign_registrations").select("id,campaign_id,lead_id,status")
      .eq("business_unit_id",unit).limit(4500)
  ]);
- const errors=[l,t,f,b,s,tx,events,registrations].filter(x=>x.error).map(x=>x.error!.message);
+ // Active class utilisation is a current-state metric from the existing teaching ledger.
+ const programmes=await db.from("cus_programmes").select("id")
+   .eq("business_unit_id",unit).limit(200);
+ const programmeIds=(programmes.data||[]).map(x=>x.id);
+ const classes=programmes.error?{data:[],error:programmes.error}:
+   programmeIds.length?await db.from("cus_classes").select("id,title,capacity,status")
+     .in("programme_id",programmeIds).eq("status","active").limit(700)
+     :{data:[],error:null};
+ const classIds=(classes.data||[]).map(x=>x.id);
+ const enrolments=classes.error?{data:[],error:classes.error}:
+   classIds.length?await db.from("cus_enrolments").select("class_id")
+     .in("class_id",classIds).eq("status","active").limit(4000)
+    :{data:[],error:null};
+ const errors=[l,t,f,b,s,tx,events,registrations,programmes,classes,enrolments]
+   .filter(x=>x.error).map(x=>x.error!.message);
  return <div className="min-h-screen bg-slate-50 pb-24 md:pb-8">
   <div className="hidden md:block"><Navbar/></div>
   <main className="mx-auto max-w-[1500px] space-y-3 px-3 py-4 md:px-5">
@@ -106,16 +120,20 @@ export default async function CrmAnalyticsPage({searchParams}:{
      days,leads:l.data||[],trials:t.data||[],tasks:f.data||[],
      bookings:b.data||[],students:s.data||[],transactions:tx.data||[],
      campaigns:events.data||[],registrations:registrations.data||[],
-     truncated:!!(l.data?.length===4000||t.data?.length===4000||f.data?.length===4000||
+     activeClasses:classes.data||[],activeEnrolments:enrolments.data||[],
+     truncated:!!(programmes.data?.length===200||classes.data?.length===700||
+       enrolments.data?.length===4000||l.data?.length===4000||t.data?.length===4000||f.data?.length===4000||
        b.data?.length===6000||s.data?.length===3500||tx.data?.length===6000||
        events.data?.length===500||registrations.data?.length===4500)
    }}/>}
   </main><MobileDock/>
  </div>;
 }
-function AnalyticsContent({days,leads,trials,tasks,bookings,students,transactions,campaigns,registrations,truncated}:{
+function AnalyticsContent({days,leads,trials,tasks,bookings,students,transactions,campaigns,registrations,activeClasses,activeEnrolments,truncated}:{
  days:number;leads:Lead[];trials:Trial[];tasks:Task[];bookings:Booking[];
  students:Student[];transactions:Tx[];campaigns:Event[];registrations:Registration[];
+ activeClasses:{id:string;title:string;capacity:number}[];
+ activeEnrolments:{class_id:string}[];
  truncated:boolean
 }){
  const leadMap=new Map(leads.map(l=>[l.id,l]));
@@ -184,6 +202,15 @@ function AnalyticsContent({days,leads,trials,tasks,bookings,students,transaction
    <Metric label="完成续费跟进" value={num(renewalDone)} note="表示任务完成，不等于实际续费收款"/>
    <Metric label="本期活动到场人次" value={num(eventAttended.length)} note="按本期举行的活动与签到状态统计"/>
    <Metric label="活动到场后转学员" value={num(eventConverted)} note="仅统计在本期新增咨询中可验证的学员关联"/>
+  </div>
+  <div className="grid gap-3 sm:grid-cols-2">
+    <Metric label="当前活跃班级" value={num(activeClasses.length)}
+      note="读取现有教务 active 班级，当前状态不随日期窗口变化"/>
+    <Metric label="当前班级容量占用"
+      value={activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0)?
+       percent(activeEnrolments.length,activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0))+"%":"—"}
+      note={activeEnrolments.length+"位有效报名 / "+
+         activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0)+"个名额；按班级人次统计"/>
   </div>
   <div className="grid gap-3 md:grid-cols-2">
    <article className={panel}>
