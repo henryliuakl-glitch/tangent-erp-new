@@ -173,15 +173,18 @@ begin
  foreach t in array array['edu_leads','edu_lead_activities','edu_trials','edu_followups','edu_student_activities'] loop
    execute format('alter table public.%I enable row level security',t);
    execute format('revoke all on public.%I from anon',t);
-   execute format('grant select,insert,update on public.%I to authenticated',t);
-   -- No DELETE permission: preserve the history of enquiries and follow-ups.
-   execute format('revoke delete on public.%I from authenticated',t);
+   -- Historical communication records are append-only; leads/trials/tasks are editable.
+   execute format('revoke update,delete on public.%I from authenticated',t);
+   execute format('grant select,insert on public.%I to authenticated',t);
    execute format('drop policy if exists education_crm_read on public.%I',t);
    execute format('drop policy if exists education_crm_insert on public.%I',t);
    execute format('drop policy if exists education_crm_update on public.%I',t);
    execute format('create policy education_crm_read on public.%I for select to authenticated using (public.erp_education_crm_access(business_unit_id))',t);
    execute format('create policy education_crm_insert on public.%I for insert to authenticated with check (public.erp_education_crm_access(business_unit_id) and created_by=(select auth.uid()))',t);
-   execute format('create policy education_crm_update on public.%I for update to authenticated using (public.erp_education_crm_access(business_unit_id)) with check (public.erp_education_crm_access(business_unit_id))',t);
+   if t not in ('edu_lead_activities','edu_student_activities') then
+     execute format('grant update on public.%I to authenticated',t);
+     execute format('create policy education_crm_update on public.%I for update to authenticated using (public.erp_education_crm_access(business_unit_id)) with check (public.erp_education_crm_access(business_unit_id))',t);
+   end if;
  end loop;
 end $$;
 
