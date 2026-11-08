@@ -83,14 +83,21 @@ export async function updateSession(request: NextRequest) {
         redirect.cookies.set("businessId","astra",{sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"});
         return redirect;
       }
-      // Redirect once so the Server Component layout receives the Astra scope.
-      if(request.cookies.get("businessId")?.value!=="astra"||
-         request.cookies.get("erp_astra_only")?.value!=="1"){
-        const redirect=NextResponse.redirect(request.nextUrl.clone());
-        supabaseResponse.cookies.getAll().forEach(c=>redirect.cookies.set(c.name,c.value));
-        redirect.cookies.set("businessId","astra",{sameSite:"lax",path:"/",secure:process.env.NODE_ENV==="production"});
-        return redirect;
-      }
+      // Apply Astra identity to the forwarded request instead of redirecting to
+      // exactly the same URL. A self-redirect can loop indefinitely on Safari/PWA
+      // when browser cookies and middleware request cookies are out of sync.
+      const cookieOptions={sameSite:"lax" as const,path:"/",secure:process.env.NODE_ENV==="production"};
+      request.cookies.set("businessId","astra");
+      request.cookies.set("erp_astra_only","1");
+      request.cookies.set("erp_care_only","0");
+      request.cookies.set("erp_crm_allowed",crmAllowed?"1":"0");
+      const next=NextResponse.next({request:{headers:request.headers}});
+      supabaseResponse.cookies.getAll().forEach(c=>next.cookies.set(c.name,c.value,c));
+      next.cookies.set("businessId","astra",cookieOptions);
+      next.cookies.set("erp_astra_only","1",roleCookieOptions);
+      next.cookies.set("erp_care_only","0",roleCookieOptions);
+      next.cookies.set("erp_crm_allowed",crmAllowed?"1":"0",roleCookieOptions);
+      return next;
     } else if(careOnly){
       const allowed=(pathname==="/teaching"||pathname.startsWith("/afterschool"))&&!!careMember;
       if(!allowed){
