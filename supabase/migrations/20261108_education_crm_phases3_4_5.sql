@@ -126,6 +126,28 @@ create trigger edu_campaign_reg_scope
  before insert or update of business_unit_id,campaign_id,lead_id on public.edu_campaign_registrations
  for each row execute function public.erp_education_ext_scope();
 
+-- All signups (including direct PostgREST writes) respect event capacity.
+create or replace function public.erp_education_campaign_capacity()
+returns trigger language plpgsql security invoker set search_path=public as $$
+declare max_seats integer; occupied integer;
+begin
+ if new.status in ('registered','attended') and
+    (tg_op='INSERT' or old.status not in ('registered','attended')) then
+   select capacity into max_seats from public.edu_campaigns
+     where id=new.campaign_id and business_unit_id=new.business_unit_id for update;
+   if max_seats is null then raise exception 'Event not found'; end if;
+   select count(*) into occupied from public.edu_campaign_registrations
+     where campaign_id=new.campaign_id and status in ('registered','attended');
+   if occupied>=max_seats then raise exception 'Event is full'; end if;
+ end if;
+ return new;
+end;
+$$;
+drop trigger if exists edu_campaign_capacity on public.edu_campaign_registrations;
+create trigger edu_campaign_capacity
+ before insert or update of status on public.edu_campaign_registrations
+ for each row execute function public.erp_education_campaign_capacity();
+
 -- RLS: same administrator predicate and separation as Phase 1.
 do $$
 declare t text;
