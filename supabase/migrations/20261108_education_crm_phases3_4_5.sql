@@ -129,10 +129,15 @@ create trigger edu_campaign_reg_scope
 -- All signups (including direct PostgREST writes) respect event capacity.
 create or replace function public.erp_education_campaign_capacity()
 returns trigger language plpgsql security invoker set search_path=public as $$
-declare max_seats integer; occupied integer;
+declare max_seats integer; occupied integer; needs_seat boolean;
 begin
- if new.status in ('registered','attended') and
-    (tg_op='INSERT' or old.status not in ('registered','attended')) then
+ if tg_op='INSERT' then
+   needs_seat:=new.status in ('registered','attended');
+ else
+   needs_seat:=new.status in ('registered','attended') and
+     old.status not in ('registered','attended');
+ end if;
+ if needs_seat then
    select capacity into max_seats from public.edu_campaigns
      where id=new.campaign_id and business_unit_id=new.business_unit_id for update;
    if max_seats is null then raise exception 'Event not found'; end if;
