@@ -1,5 +1,9 @@
 /* Tangent ERP sign-in: a borderless, responsive gradient workspace.
    Kept separate from the shared ERP stylesheet to avoid modifying other modules. */
+body.erp-app main.tangent-login-page {
+  background: #eaf4fb !important;
+}
+
 .tangent-login-page {
   display: grid;
   place-items: center;
@@ -279,10 +283,12 @@ body.erp-app .tangent-login-password input {
 }
 
 @media (max-width: 640px) {
+  body.erp-app main.tangent-login-page {
+    background: #70a8f1 !important;
+  }
   .tangent-login-page {
     display: block;
     padding: 0;
-    background: #70a8f1;
   }
   .tangent-login-stage {
     min-height: 100dvh;
