@@ -201,7 +201,7 @@ function AnalyticsContent({days,leads,trials,tasks,bookings,students,transaction
    <Metric label="已完成一对一课时" value={completedHours.toFixed(1)+"h"} note="只统计原有 Bookings 已完成课程"/>
    <Metric label="完成续费跟进" value={num(renewalDone)} note="表示任务完成，不等于实际续费收款"/>
    <Metric label="本期活动到场人次" value={num(eventAttended.length)} note="按本期举行的活动与签到状态统计"/>
-   <Metric label="活动到场后转学员" value={num(eventConverted)} note="仅统计在本期新增咨询中可验证的学员关联"/>
+   <Metric label="活动到场且已关联学员" value={num(eventConverted)} note="仅统计在本期新增咨询中可验证的学员关联"/>
   </div>
   <div className="grid gap-3 sm:grid-cols-2">
     <Metric label="当前活跃班级" value={num(activeClasses.length)}
