@@ -112,12 +112,31 @@ export async function scheduleTrial(form:FormData):Promise<ActionResult>{
   if(!Number.isInteger(duration)||duration<15||duration>240)throw new Error("试听时长应为15–240分钟");
   if(!Number.isFinite(fee)||fee<0||fee>10000)throw new Error("试听费用不正确");
   const bookingId=value(form,"booking_id")||null;
-  if(bookingId&&!lead.student_id)throw new Error("只有已关联学员的试听才能绑定现有排课");
+  let startsAt:string,trialMinutes=duration;
+  let trialTeacher=limit(value(form,"teacher"),160);
+  let trialSubject=limit(value(form,"subject"),160);
+  if(bookingId){
+    if(!lead.student_id)throw new Error("请先关联正式学员档案");
+    const {data:lesson,error:lessonError}=await db.from("bookings")
+      .select("student_id,start_time,duration,status,teacher,subject")
+      .eq("id",bookingId).eq("business_unit_id",unit).eq("student_id",lead.student_id)
+      .maybeSingle();
+    if(lessonError||!lesson||lesson.status==="cancelled")
+      throw new Error("该预约不属于当前学员，或课程已取消");
+    startsAt=lesson.start_time;
+    trialMinutes=Math.round(Number(lesson.duration)*60);
+    if(!Number.isInteger(trialMinutes)||trialMinutes<15||trialMinutes>240)
+      throw new Error("关联课程时长不符合试听要求");
+    trialTeacher=lesson.teacher||trialTeacher;
+    trialSubject=lesson.subject||trialSubject;
+  }else{
+    startsAt=parseNz(required(form,"starts_at"))!;
+  }
   const {error}=await db.from("edu_trials").insert({
     business_unit_id:unit,lead_id:leadId,booking_id:bookingId,
-    starts_at:parseNz(required(form,"starts_at"))!,
-    duration_minutes:duration,fee_nzd:fee,
-    teacher:limit(value(form,"teacher"),160),subject:limit(value(form,"subject"),160),
+    starts_at:startsAt,
+    duration_minutes:trialMinutes,fee_nzd:fee,
+    teacher:trialTeacher,subject:trialSubject,
     created_by:user.id
   });
   if(error)throw new Error(error.message);
