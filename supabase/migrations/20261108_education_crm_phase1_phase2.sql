@@ -121,8 +121,10 @@ create index if not exists edu_student_activities_student_idx
 create or replace function public.erp_education_check_scope()
 returns trigger language plpgsql security invoker set search_path=public as $$
 begin
- if tg_op='UPDATE' and new.business_unit_id is distinct from old.business_unit_id then
-   raise exception 'Education entity cannot be changed after creation';
+ if tg_op='UPDATE' then
+   if new.business_unit_id is distinct from old.business_unit_id then
+     raise exception 'Education entity cannot be changed after creation';
+   end if;
  end if;
  if tg_table_name in ('edu_leads','edu_followups','edu_student_activities') then
    if new.student_id is not null and not exists (
