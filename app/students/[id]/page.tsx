@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import {cookies} from "next/headers";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     .single();
 
   if (!student) notFound();
+  const c=await cookies();
+  const crmAllowed=c.get("erp_crm_allowed")?.value==="1"||(
+    c.get("erp_astra_only")?.value!=="1"&&c.get("erp_care_only")?.value!=="1");
 
   // 2. ✅ 获取历史记录
   const { bookings, transactions } = await getStudentHistory(id);
@@ -63,7 +67,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {(student.business_unit_id==="cus"||student.business_unit_id==="astra")&&
+        {crmAllowed&&(student.business_unit_id==="cus"||student.business_unit_id==="astra")&&
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-indigo-900">招生与家长跟进</p>
