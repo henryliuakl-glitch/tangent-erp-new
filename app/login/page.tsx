@@ -1,129 +1,160 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient, getRememberMe, setRememberMe } from "@/lib/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck } from "lucide-react";
+import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [remember, setRemember] = useState(() => getRememberMe());
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+
     setError("");
     setPending(true);
 
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(event.currentTarget);
     const email = String(form.get("email") || "").trim();
     const password = String(form.get("password") || "");
 
-    setRememberMe(remember);
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Keep the existing 60-day sign-in and session-backup behaviour unchanged.
+      setRememberMe(remember);
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError) {
+      if (signInError) {
+        setError("账号或密码错误，请重试。");
+        setPending(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (remember && session) {
+        const { persistSessionBackup } = await import("@/lib/supabase/session-backup");
+        persistSessionBackup(session);
+      }
+
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setError("登录暂时失败，请检查网络连接后重试。");
       setPending(false);
-      setError("账号或密码错误，请重试。");
-      return;
     }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (remember && session) {
-      const { persistSessionBackup } = await import("@/lib/supabase/session-backup");
-      persistSessionBackup(session);
-    }
-
-    router.replace("/");
-    router.refresh();
   };
 
   return (
-    <main className="flex h-dvh w-full max-w-full flex-col items-center justify-center overflow-x-hidden overscroll-none bg-slate-50 p-6">
-      <div className="w-full min-w-0 max-w-sm space-y-8">
-        <div className="flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Tangent ERP
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Internal Management System
-          </p>
-        </div>
-
-        <div className="w-full min-w-0 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm sm:p-8">
-          <form onSubmit={handleSubmit} className="w-full min-w-0 space-y-5">
-            <div className="w-full min-w-0 space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@tangent.center"
-                required
-                autoComplete="email"
-                className="h-11 w-full min-w-0 rounded-xl border-slate-200/70 bg-slate-50/50"
+    <main className="tangent-login-page">
+      <section className="tangent-login-stage" aria-label="Tangent ERP login">
+        <div className="tangent-login-content">
+          <header className="tangent-login-brand">
+            <div className="tangent-login-brandmark">
+              <Image
+                src="/favicon.svg"
+                width={55}
+                height={69}
+                alt="Tangent"
+                priority
+                unoptimized
               />
             </div>
-            <div className="w-full min-w-0 space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="h-11 w-full min-w-0 rounded-xl border-slate-200/70 bg-slate-50/50"
-              />
+            <h1>Tangent ERP</h1>
+            <p>Internal Management System</p>
+          </header>
+
+          <div className="tangent-login-card">
+            <div className="tangent-login-intro">
+              <h2>Welcome back!</h2>
+              <p>Sign in to your workspace to continue.</p>
             </div>
 
-            <label className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-              />
-              60天免登录（推荐 PWA）
-            </label>
-
-            {error && (
-              <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
-                {error}
+            <form onSubmit={handleSubmit} className="tangent-login-form">
+              <div className="tangent-login-field">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                  inputMode="email"
+                  required
+                  disabled={pending}
+                />
               </div>
-            )}
 
-            <Button
-              type="submit"
-              disabled={pending}
-              className="h-12 w-full min-w-0 rounded-xl bg-indigo-600 font-bold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98]"
-            >
-              {pending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                "Sign In"
+              <div className="tangent-login-field">
+                <label htmlFor="password">Password</label>
+                <div className="tangent-login-password">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                    disabled={pending}
+                  />
+                  <button
+                    type="button"
+                    className="tangent-login-eye"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    disabled={pending}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <label className="tangent-login-remember">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(event) => setRemember(event.target.checked)}
+                  disabled={pending}
+                />
+                <span>60天免登录（推荐 PWA）</span>
+              </label>
+
+              {error && (
+                <div className="tangent-login-error" role="alert">
+                  {error}
+                </div>
               )}
-            </Button>
-          </form>
-        </div>
 
-        <p className="text-center text-xs text-slate-400">
-          Authorized Personnel Only
-        </p>
-      </div>
+              <button
+                type="submit"
+                className="tangent-login-submit"
+                disabled={pending}
+              >
+                {pending ? (
+                  <>
+                    <Loader2 className="animate-spin" size={17} aria-hidden="true" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </form>
+          </div>
+
+          <p className="tangent-login-footnote">Authorized Personnel Only</p>
+        </div>
+      </section>
     </main>
   );
 }
