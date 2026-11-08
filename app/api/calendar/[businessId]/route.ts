@@ -4,7 +4,7 @@ import {
 } from "@/lib/driving-booking-text";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
-import { timingSafeEqual } from "node:crypto";
+import { isValidCalendarFeedToken } from "@/lib/calendar-feed-token";
 import ical from "ical-generator";
 import { formatDualTime } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
@@ -95,11 +95,15 @@ export async function GET(
 ) {
   const { businessId } = await params;
   const url = new URL(request.url);
-  // Never expose service-role calendar data to arbitrary logged-in care accounts.
-  const secret=process.env.CALENDAR_FEED_SECRET;
-  const supplied=url.searchParams.get("token")||"";
-  const tokenOk=!!secret&&secret.length>=24&&supplied.length===secret.length&&
-    timingSafeEqual(Buffer.from(secret),Buffer.from(supplied));
+  // Each signed subscription link is limited to one business and staff calendar.
+  if(!["cus","sine","astra","tangent"].includes(businessId))
+    return new Response("Invalid calendar scope",{status:400});
+  const rawStaff = url.searchParams.get("staff");
+  const staff: StaffFeed | null =
+    rawStaff && ["niu","tong","henry","yvetta"].includes(rawStaff)
+      ? (rawStaff as StaffFeed) : null;
+  if(rawStaff&&!staff)return new Response("Invalid staff calendar",{status:400});
+  const tokenOk=isValidCalendarFeedToken(url.searchParams.get("token"),businessId,staff);
   let owner=false;
   let astraMember=false;
   if(!tokenOk){
@@ -119,13 +123,6 @@ export async function GET(
   if(!tokenOk&&!owner&&!astraMember)return new Response("Unauthorized calendar feed",{
     status:401,headers:{"Cache-Control":"private, no-store"}
   });
-  if(!["cus","sine","astra","tangent"].includes(businessId))
-    return new Response("Invalid calendar scope",{status:400});
-    const rawStaff = url.searchParams.get("staff");
-  const staff: StaffFeed | null =
-    rawStaff && ["niu", "tong", "henry", "yvetta"].includes(rawStaff)
-      ? (rawStaff as StaffFeed)
-      : null;
 
   const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -140,7 +137,10 @@ export async function GET(
     `)
     .neq("status", "cancelled");
 
-  if (businessId !== "tangent") {
+  if (businessId === "tangent") {
+    // Astra is independently owned and must never appear in group calendar exports.
+    query = query.in("business_unit_id", ["cus", "sine"]);
+  } else {
     query = query.eq("business_unit_id", businessId);
   }
 
