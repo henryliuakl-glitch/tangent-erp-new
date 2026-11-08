@@ -236,10 +236,11 @@ export default function Home() {
                 { id: "tangent", name: "Tangent Group" },
               ];
 
+        // Astra is an independent collaborator: always list it after Tangent's own units.
         setBusinessList([
           { id: "family", name: "Family" },
-          ...baseUnits.filter((unit: any) => unit.id !== "family"),
-          ...(!baseUnits.some((unit:any)=>unit.id==="astra")?[{id:"astra",name:"Astra Education"}]:[]),
+          ...baseUnits.filter((unit: any) => unit.id !== "family" && unit.id !== "astra"),
+          baseUnits.find((unit:any)=>unit.id==="astra") || {id:"astra",name:"Astra Education"},
         ]);
 
         const user = auth?.user;
