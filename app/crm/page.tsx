@@ -39,7 +39,7 @@ export default async function CrmPage({searchParams}:{
   db.from("edu_followups").select("*").eq("business_unit_id",unit).order("due_at",{ascending:true}).limit(800),
   db.from("students").select("id,name,student_code,level,subject,teacher,balance,payment_type,hourly_rate,created_at")
     .eq("business_unit_id",unit).order("name").limit(1200),
-  db.from("bookings").select("student_id,start_time,status")
+  db.from("bookings").select("id,student_id,start_time,status,subject,teacher,duration")
     .eq("business_unit_id",unit).gte("start_time",cutoff)
     .order("start_time",{ascending:false}).limit(2000),
   db.from("edu_student_activities").select("*").eq("business_unit_id",unit)
@@ -88,7 +88,7 @@ export default async function CrmPage({searchParams}:{
   <main className="mx-auto max-w-[1500px] px-3 py-3 md:px-5 md:py-5">
    <CrmClient unit={unit} leads={l.data||[]} activities={a.data||[]}
      trials={t.data||[]} followups={f.data||[]} students={students}
-     studentActivities={sa.data||[]}
+     bookings={bookings} studentActivities={sa.data||[]}
      renewalCandidates={renewalCandidates}
      focusLeadId={params.lead||null} focusStudentId={params.student||null}/>
   </main><MobileDock/>
