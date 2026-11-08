@@ -210,7 +210,7 @@ function AnalyticsContent({days,leads,trials,tasks,bookings,students,transaction
       value={activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0)?
        percent(activeEnrolments.length,activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0))+"%":"—"}
       note={activeEnrolments.length+"位有效报名 / "+
-         activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0)+"个名额；按班级人次统计"/>
+         activeClasses.reduce((n,x)=>n+Number(x.capacity||0),0)+"个名额；按班级人次统计"}/>
   </div>
   <div className="grid gap-3 md:grid-cols-2">
    <article className={panel}>
