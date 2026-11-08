@@ -507,7 +507,7 @@ export default function Home() {
               }
               meta={`¥${Number(stats.unearnedRevenueRmb || 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
-              })} RMB · 我们欠学生的课`}
+              })} RMB`}
               icon={BookOpen}
               href="/students"
             />
@@ -522,7 +522,7 @@ export default function Home() {
               }
               meta={`¥${Number(stats.accountsReceivableRmb || 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
-              })} RMB · 后付费学生欠款`}
+              })} RMB`}
               icon={WalletCards}
               href="/students"
             />
@@ -537,7 +537,7 @@ export default function Home() {
               }
               meta={`¥${Number(stats.cashIncomeRmb || 0).toLocaleString(undefined, {
                 maximumFractionDigits: 0,
-              })} RMB · 预充值/后付结算/一课一结`}
+              })} RMB`}
               icon={WalletCards}
               href="/finance"
             />
