@@ -50,11 +50,12 @@ export default async function RootLayout({
   const cookieStore=await cookies();
   const careOnly=cookieStore.get("erp_care_only")?.value==="1";
   const astraOnly=cookieStore.get("erp_astra_only")?.value==="1";
+  const crmAllowed=cookieStore.get("erp_crm_allowed")?.value==="1"||(!careOnly&&!astraOnly);
   const businessId = astraOnly?"astra":careOnly?"care":(cookieStore.get("businessId")?.value || "cus");
   return (
     <html lang="en" className="h-full max-w-full overflow-x-hidden overscroll-none">
       <body className={`${inter.className} erp-app overflow-x-hidden overscroll-none`}>
-        <BusinessProvider initialBusinessId={businessId} careOnly={careOnly} astraOnly={astraOnly}>
+        <BusinessProvider initialBusinessId={businessId} careOnly={careOnly} astraOnly={astraOnly} crmAllowed={crmAllowed}>
           {children}
           <Toaster position="top-center" />
         </BusinessProvider>
