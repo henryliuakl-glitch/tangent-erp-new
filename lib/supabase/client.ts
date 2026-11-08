@@ -30,6 +30,10 @@ function bindSessionHooks(client: SupabaseClient) {
     else persistSessionBackup(null);
   });
 
+  // On the login screen, do not start a competing getSession()/setSession()
+  // recovery task while the user is authenticating with another account.
+  if (window.location.pathname.startsWith("/login")) return;
+
   void (async () => {
     const { data: { session } } = await client.auth.getSession();
     if (session) {
