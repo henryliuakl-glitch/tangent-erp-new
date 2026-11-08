@@ -6,6 +6,13 @@ const types=["first_aid","police_vetting","p_endorsement","teacher_registration"
 const outcomes=["planned","completed","followup","cancelled"];
 const kinds=["onboarding","training","demo","observation","review"];
 const statuses=["pending","verified","needs_review"];
+function qualityScore(form:FormData){
+ const raw=formString(form,"quality_score",2);
+ if(!raw)return null;
+ const value=Number(raw);
+ if(!Number.isInteger(value)||value<1||value>5)throw new Error("评分应为1–5");
+ return value;
+}
 
 function date(form:FormData,key:string){
  const d=formString(form,key,10);
@@ -68,7 +75,8 @@ export async function saveTraining(form:FormData):Promise<ActionFeedback>{
   const {error}=await db.from("edu_staff_training").insert({
     business_unit_id:unit,staff_id:staffId,kind,
     title:requiredFormString(form,"title",200),session_date:sessionDate,
-    outcome,notes:formString(form,"notes",2000)||null,created_by:user.id
+    outcome,quality_score:qualityScore(form),
+    notes:formString(form,"notes",2000)||null,created_by:user.id
   });
   if(error)throw new Error(error.message);
   revalidatePath("/teaching");return {ok:true};
@@ -81,7 +89,8 @@ export async function updateTraining(form:FormData):Promise<ActionFeedback>{
   const outcome=requiredFormString(form,"outcome",40);
   if(!outcomes.includes(outcome))throw new Error("无效培训结果");
   const {data,error}=await db.from("edu_staff_training").update({
-    outcome,notes:formString(form,"notes",2000)||null,updated_at:new Date().toISOString()
+    outcome,quality_score:qualityScore(form),
+    notes:formString(form,"notes",2000)||null,updated_at:new Date().toISOString()
   }).eq("id",requiredFormString(form,"id",60)).eq("business_unit_id",unit)
     .select("id").maybeSingle();
   if(error)throw new Error(error.message);
