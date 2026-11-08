@@ -31,7 +31,7 @@ const pill="flex items-center gap-3 rounded-xl border border-[#ededf5] bg-white 
 
 export function MobileDock(){
   const pathname=usePathname(),router=useRouter();
-  const {currentBusinessId,careOnly,astraOnly}=useBusiness();
+  const {currentBusinessId,careOnly,astraOnly,crmAllowed}=useBusiness();
   const [more,setMore]=useState(false);
   const driving=isDrivingSchoolBusiness(currentBusinessId);
   const family=currentBusinessId==="family";
@@ -46,7 +46,7 @@ export function MobileDock(){
     router.replace("/login");router.refresh();
   }
   const extra=careOnly?[{href:"/afterschool",label:"晚托",icon:Baby}]:family?[]:[
-    ...(["cus","astra"].includes(currentBusinessId)?[{href:"/crm",label:"招生",icon:UserRoundSearch}]:[]),
+    ...(crmAllowed&&["cus","astra"].includes(currentBusinessId)?[{href:"/crm",label:"招生",icon:UserRoundSearch}]:[]),
     {href:"/finance",label:"财务",icon:ReceiptText},
     ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap}]:[]),
     ...(currentBusinessId==="astra"?[{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
