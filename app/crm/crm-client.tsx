@@ -25,7 +25,7 @@ type StudentActivity={id:string;student_id:string;kind:string;content:string;cre
 type Student={id:string;name:string;student_code:string|null;balance:number;payment_type:string;
  subject:string|null;level:string|null;hourly_rate:number|null};
 type Renewal={id:string;name:string;payment_type:string;balance:number;reason:string;lastLesson:string|null;nextLesson:string|null};
-type ActionResult={ok:true;studentId?:string}|{ok:false;error:string};
+type ActionResult={ok:true;studentId?:string;leadId?:string}|{ok:false;error:string};
 type Action=(form:FormData)=>Promise<ActionResult>;
 type Props={unit:Unit;leads:Lead[];activities:Activity[];trials:Trial[];followups:Followup[];
  students:Student[];bookings:Booking[];studentActivities:StudentActivity[];renewalCandidates:Renewal[];focusLeadId:string|null;focusStudentId:string|null};
@@ -178,7 +178,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,booki
     {newLead?<section className={card}>
      <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">新增招生咨询</h2>
       <button className={subtle} onClick={()=>setNewLead(false)}>取消</button></div>
-     <LeadForm unit={unit} busy={busy} onSubmit={e=>submit(e,saveLead,()=>setNewLead(false))}/>
+     <LeadForm unit={unit} busy={busy} onSubmit={e=>submit(e,saveLead,res=>{setNewLead(false);if(res.ok&&res.leadId)setSelectedId(res.leadId);})}/>
     </section>:selected?<>
       <section className={card}>
        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
