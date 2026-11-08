@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ClassSessionsStrip } from "./class-sessions-strip";
 import { Navbar } from "@/components/Navbar";
 import { BookingList, BookingsCta } from "./booking-list";
+import { BookingsDateRange } from "./date-range-filter";
 import { MobileDock } from "@/components/MobileDock";
 import { cookies } from "next/headers";
 import { addCalendarMonthsInNZ, getTodayInNZ, nzLocalToUtc } from "@/lib/timezone";
@@ -120,16 +121,9 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       <div className="hidden md:block"><Navbar /></div>
 
       <main className="mx-auto max-w-[1600px] px-3 py-2 md:px-5 md:py-4">
-        <BookingList bookings={bookings} toolbar={<div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 xl:flex-nowrap">
-          <h1 className="mr-1 shrink-0 text-[18px] font-extrabold tracking-tight text-[#232643]">排课</h1>
-          <form method="get" className="flex min-w-0 items-center gap-1.5" aria-label="日期范围">
-            <input aria-label="开始日期" type="date" name="from" defaultValue={lower}
-              className="h-10 w-[137px] rounded-xl border-0 bg-white px-2 text-xs shadow-sm"/>
-            <span className="text-xs text-slate-400">至</span>
-            <input aria-label="结束日期" type="date" name="to" defaultValue={upper}
-              className="h-9 max-w-[155px] rounded-lg border border-slate-200 bg-white px-2 text-xs"/>
-            <button type="submit" className="h-10 rounded-xl bg-[#eeeefe] px-3 text-xs font-bold text-indigo-600 hover:bg-[#e6e6ff]">查询</button>
-          </form>
+        <BookingList bookings={bookings} toolbar={<div className="flex w-full min-w-0 items-center gap-1.5 md:w-auto md:shrink-0 md:gap-2">
+          <h1 className="shrink-0 text-[18px] font-extrabold tracking-tight text-[#232643]">排课</h1>
+          <BookingsDateRange from={lower} to={upper}/>
           <BookingsCta/>
         </div>}
         afterToolbar={["cus","astra","tangent"].includes(businessId)&&
