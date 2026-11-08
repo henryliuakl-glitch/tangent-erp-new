@@ -64,7 +64,8 @@ export default async function CrmAnalyticsPage({searchParams}:{
    db.from("edu_trials").select("id,lead_id,starts_at,status")
      .eq("business_unit_id",unit).gte("starts_at",fromIso).order("starts_at",{ascending:false}).limit(4000),
    db.from("edu_followups").select("id,kind,status,completed_at,created_at")
-     .eq("business_unit_id",unit).gte("created_at",fromIso).order("created_at",{ascending:false}).limit(4000),
+     .eq("business_unit_id",unit).eq("kind","renewal").eq("status","done")
+     .gte("completed_at",fromIso).order("completed_at",{ascending:false}).limit(4000),
    db.from("bookings").select("id,student_id,start_time,status,subject,teacher,duration,actual_rate")
      .eq("business_unit_id",unit).gte("start_time",fromIso).order("start_time",{ascending:false}).limit(6000),
    db.from("students").select("id,hourly_rate,currency")
