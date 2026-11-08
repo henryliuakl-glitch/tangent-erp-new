@@ -100,14 +100,14 @@ export function BookingsCta() {
   const { currentBusinessId,crmAllowed } = useBusiness();
   const driving = isDrivingSchoolBusiness(currentBusinessId);
   return (<>
-    <Link href={driving ? "/bookings/quick" : "/bookings/new"} className="self-end sm:self-auto">
-      <Button className="h-10 rounded-xl border-0 bg-indigo-600 px-3 text-xs font-bold shadow-sm transition-transform active:scale-95 hover:bg-indigo-700">
-        <Plus className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-5 sm:w-5" />
-        {driving ? "极速排课" : "新建排课"}
+    <Link href={driving ? "/bookings/quick" : "/bookings/new"} aria-label={driving ? "极速排课" : "新建排课"} className="shrink-0">
+      <Button className="h-10 w-10 shrink-0 rounded-xl border-0 bg-indigo-600 px-0 text-xs font-bold shadow-sm transition-transform active:scale-95 hover:bg-indigo-700 md:w-auto md:px-3">
+        <Plus className="h-4 w-4 md:mr-2 md:h-5 md:w-5" />
+        <span className="hidden md:inline">{driving ? "极速排课" : "新建排课"}</span>
       </Button>
     </Link>
     {crmAllowed && ["cus","astra","sine","tangent"].includes(currentBusinessId) &&
-      <Link href="/calendar-subscriptions" className="rounded-xl border border-indigo-200 bg-white px-3 py-2.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50">
+      <Link href="/calendar-subscriptions" className="hidden rounded-xl border border-indigo-200 bg-white px-3 py-2.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 md:inline-flex">
         苹果日历订阅
       </Link>}
   </>);
