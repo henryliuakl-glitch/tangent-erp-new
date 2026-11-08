@@ -70,13 +70,11 @@ export default function LoginPage() {
               />
             </div>
             <h1>Tangent ERP</h1>
-            <p>Internal Management System</p>
           </header>
 
           <div className="tangent-login-card">
             <div className="tangent-login-intro">
               <h2>Welcome back!</h2>
-              <p>Sign in to your workspace to continue.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="tangent-login-form">
@@ -126,7 +124,7 @@ export default function LoginPage() {
                   onChange={(event) => setRemember(event.target.checked)}
                   disabled={pending}
                 />
-                <span>60天免登录（推荐 PWA）</span>
+                <span>Remember me</span>
               </label>
 
               {error && (
