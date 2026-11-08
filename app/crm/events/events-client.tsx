@@ -106,7 +106,7 @@ export function EventsClient({unit,campaigns,registrations,leads,truncated}:{
        <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg bg-slate-50 p-3"><p className="text-[11px] text-slate-500">占用名额</p><p className="mt-1 text-xl font-bold">{activeSeats}/{selected.capacity}</p></div>
         <div className="rounded-lg bg-slate-50 p-3"><p className="text-[11px] text-slate-500">已签到</p><p className="mt-1 text-xl font-bold">{attended.length}</p></div>
-        <div className="rounded-lg bg-slate-50 p-3"><p className="text-[11px] text-slate-500">到场后已转学员</p><p className="mt-1 text-xl font-bold">{converted}</p></div>
+        <div className="rounded-lg bg-slate-50 p-3"><p className="text-[11px] text-slate-500">到场且已关联学员</p><p className="mt-1 text-xl font-bold">{converted}</p></div>
        </div>
        <p className="text-xs text-slate-500">
         活动标价 {selected.advertised_fee_nzd===null?"未设置":"NZ$"+Number(selected.advertised_fee_nzd).toFixed(2)}；这不是实际收款。
