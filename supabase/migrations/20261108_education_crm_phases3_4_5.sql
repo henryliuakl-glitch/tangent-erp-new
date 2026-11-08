@@ -29,6 +29,7 @@ create table if not exists public.edu_staff_training (
  title text not null check(length(btrim(title)) between 1 and 200),
  session_date date not null,
  outcome text not null default 'planned' check(outcome in ('planned','completed','followup','cancelled')),
+ quality_score integer check (quality_score between 1 and 5),
  notes text,
  created_by uuid not null default auth.uid() references auth.users(id),
  created_at timestamptz not null default now(),
