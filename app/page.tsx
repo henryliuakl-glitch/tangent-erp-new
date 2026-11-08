@@ -236,12 +236,20 @@ export default function Home() {
                 { id: "tangent", name: "Tangent Group" },
               ];
 
-        // Astra is an independent collaborator: always list it after Tangent's own units.
-        setBusinessList([
-          { id: "family", name: "Family" },
-          ...baseUnits.filter((unit: any) => unit.id !== "family" && unit.id !== "astra"),
-          baseUnits.find((unit:any)=>unit.id==="astra") || {id:"astra",name:"Astra Education"},
-        ]);
+        // Mobile entity order is explicit rather than depending on database name sorting.
+        // Preserve the actual business-unit names if available, including Astra's own entity.
+        const fallbackNames: Record<string, string> = {
+          family: "Family",
+          tangent: "Tangent Group",
+          cus: "CuS Academy",
+          sine: "SINE Driving School",
+          astra: "Astra Education",
+        };
+        const mobileEntityOrder = ["family", "tangent", "cus", "sine", "astra"] as const;
+        setBusinessList(mobileEntityOrder.map((id) => {
+          const item = baseUnits.find((unit: { id: string; name: string }) => unit.id === id);
+          return { id, name: item?.name || fallbackNames[id] };
+        }));
 
         const user = auth?.user;
         if (!user) return;
