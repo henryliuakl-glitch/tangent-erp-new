@@ -90,6 +90,24 @@ function durationSelectValue(value: string) {
   return "custom";
 }
 
+function CompactBookingDateTimeInput({
+  type,value,onChange,
+}:{
+  type:"date"|"time";value:string;onChange:(value:string)=>void;
+}){
+  const shortDate=value && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value.slice(8,10)}/${value.slice(5,7)}/${value.slice(2,4)}`
+    : "选择日期";
+  return <div className="relative h-9 min-w-0 overflow-hidden rounded-xl bg-[#f0f1f6] focus-within:ring-2 focus-within:ring-indigo-300">
+    <span className="pointer-events-none flex h-full items-center justify-center text-[11px] font-medium tabular-nums text-slate-700 md:hidden">
+      {type==="date"?shortDate:value||"选择时间"}
+    </span>
+    <Input type={type} aria-label={type==="date"?"日期":"时间"} value={value}
+      onChange={event=>onChange(event.target.value)}
+      className={`${FIELD} absolute inset-0 z-10 h-full w-full min-w-0 max-w-full cursor-pointer opacity-0 md:static md:z-auto md:opacity-100`}/>
+  </div>;
+}
+
 export default function NewBookingPage() {
   const router = useRouter();
   const { currentBusinessId } = useBusiness();
@@ -559,26 +577,14 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
           />
         </div>
 
-        <div className="grid min-w-0 grid-cols-[1.35fr_0.85fr_1fr] gap-1.5">
+        <div className="grid min-w-0 grid-cols-3 gap-2">
           <div className="min-w-0 overflow-hidden">
             <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">日期</Label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={FIELD}
-              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
-            />
+            <CompactBookingDateTimeInput type="date" value={date} onChange={setDate}/>
           </div>
           <div className="min-w-0 overflow-hidden">
             <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">时间</Label>
-            <Input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className={FIELD}
-              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
-            />
+            <CompactBookingDateTimeInput type="time" value={time} onChange={setTime}/>
           </div>
           <div className="min-w-0 overflow-hidden">
             <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">时长</Label>
@@ -604,7 +610,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
                 }}
               >
                 <SelectTrigger className={FIELD}>
-                  <SelectValue placeholder="时长" />
+                  <SelectValue placeholder="时长">{durationMode+"h"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
                   {DURATION_PRESETS.map((opt) => (
@@ -754,7 +760,7 @@ function DrivingBookingForm({ businessId, router }: { businessId: string, router
       <Button
         type="submit"
         disabled={isLoading}
-        className="mt-2 h-10 w-full shrink-0 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm hover:bg-slate-800 active:scale-[0.99]"
+        className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[65] mx-auto h-11 w-auto max-w-xl shrink-0 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm hover:bg-slate-800 active:scale-[0.99] md:static md:inset-auto md:mt-2 md:h-10 md:w-full"
       >
         {isLoading ? (
           <>
@@ -886,7 +892,7 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
 
   return (
     <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pr-0.5">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pb-14 pr-0.5 md:pb-0">
 
         <div className="min-w-0">
           <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">学员</Label>
@@ -921,27 +927,15 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
           </Select>
         </div>
 
-        <div className="grid min-w-0 grid-cols-[1.35fr_0.85fr_1fr] gap-1.5">
+        <div className="grid min-w-0 grid-cols-3 gap-2">
           <div className="min-w-0 overflow-hidden">
             <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">日期</Label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={FIELD}
-              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
-            />
+            <CompactBookingDateTimeInput type="date" value={date} onChange={setDate}/>
           </div>
 
           <div className="min-w-0 overflow-hidden">
             <Label className="mb-1 block pl-1 text-[10px] font-semibold text-slate-500">时间</Label>
-            <Input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className={FIELD}
-              style={{ minWidth: 0, width: "100%", maxWidth: "100%" }}
-            />
+            <CompactBookingDateTimeInput type="time" value={time} onChange={setTime}/>
           </div>
 
           <div className="min-w-0 overflow-hidden">
@@ -968,7 +962,7 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
                 }}
               >
                 <SelectTrigger className={FIELD}>
-                  <SelectValue placeholder="时长" />
+                  <SelectValue placeholder="时长">{durationMode+"h"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
                   {DURATION_PRESETS.map((opt) => (
@@ -1060,7 +1054,7 @@ function TutoringBookingForm({ businessId, router }: { businessId: string, route
       <Button
         type="submit"
         disabled={isLoading}
-        className="mt-2 h-10 w-full shrink-0 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm hover:bg-slate-800 active:scale-[0.99]"
+        className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[65] mx-auto h-11 w-auto max-w-xl shrink-0 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-sm hover:bg-slate-800 active:scale-[0.99] md:static md:inset-auto md:mt-2 md:h-10 md:w-full"
       >
         {isLoading ? (
           <>
