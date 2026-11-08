@@ -47,6 +47,7 @@ export function MobileDock(){
   }
   const extra=careOnly?[{href:"/afterschool",label:"晚托",icon:Baby}]:family?[]:[
     ...(crmAllowed&&["cus","astra"].includes(currentBusinessId)?[{href:"/crm",label:"招生",icon:UserRoundSearch}]:[]),
+    ...(crmAllowed&&["cus","astra","sine","tangent"].includes(currentBusinessId)?[{href:"/calendar-subscriptions",label:"日历订阅",icon:CalendarDays}]:[]),
     {href:"/finance",label:"财务",icon:ReceiptText},
     ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap}]:[]),
     ...(currentBusinessId==="astra"?[{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
