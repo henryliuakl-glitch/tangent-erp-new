@@ -191,7 +191,10 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
   try {
     const scope=String(form.get("scope")||"");
     if(scope!=="cus"&&scope!=="astra")return {ok:false,error:"请选择教学记录类别"};
-    const {db}=await teachingRecordStaff(scope);
+    const ctx=await teachingRecordStaff(scope);
+    const {db}=ctx;
+    const isAstraTeacher=scope==="astra"&&!ctx.owner&&
+      ctx.members.some(m=>m.business_unit_id==="astra"&&m.role==="teacher");
     const target = required(form, "target");
     const divider = target.indexOf(":");
     const type = target.slice(0, divider);
@@ -204,8 +207,17 @@ export async function saveTeachingRecord(form: FormData): Promise<{ok:true}|{ok:
     const {data:allowedTeacher}=await db.from("cus_staff").select("id")
       .eq("full_name",teacher)
       .in("scope",scope==="astra"?["astra","care"]:["general"]).maybeSingle();
-    if(!["Henry","Yvetta"].includes(teacher)&&!allowedTeacher)
+    if(isAstraTeacher){
+      // Tie the displayed teacher identity to the signed-in account, never trust
+      // a teacher name chosen from someone else's staff list.
+      const {data:{user}}=await db.auth.getUser();
+      const {data:ownStaff}=await db.from("cus_staff").select("full_name")
+        .eq("email",user?.email||"").in("scope",["astra","care"]).limit(1).maybeSingle();
+      if(!user?.email||![user.email,ownStaff?.full_name].includes(teacher))
+        return {ok:false,error:"教师仅可使用本人登记的姓名或登录邮箱填写记录"};
+    }else if(!["Henry","Yvetta"].includes(teacher)&&!allowedTeacher){
       return {ok:false,error:"请选择已登记的授课教师"};
+    }
     const lesson_content = encodeTeacherNotes(
       String(form.get("lesson_content")||""),
       String(form.get("lesson_evaluation")||"")
