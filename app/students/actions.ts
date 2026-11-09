@@ -106,7 +106,9 @@ export async function createStudent(prevState: any, formData: FormData) {
     studentError = fallback.error;
   }
 
-  if (studentError) return { error: studentError.message };
+  if (studentError) return { error: studentError.code==="23505"
+    ? "该实体已有相同学号，请使用其他学号后重试。"
+    : studentError.message };
 
 
 
