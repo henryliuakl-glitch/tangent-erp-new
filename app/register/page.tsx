@@ -14,7 +14,6 @@ import { toast } from "sonner";
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [studentCode, setStudentCode] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,7 +26,6 @@ export default function RegisterPage() {
       toast.error(res.error);
     } else if (res?.success) {
       setSuccess(true);
-      setStudentCode(res.code || "");
       toast.success("提交成功！");
     }
   };
@@ -39,13 +37,11 @@ export default function RegisterPage() {
           <div className="h-20 w-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h1 className="text-2xl font-black text-slate-900">注册成功！</h1>
+          <h1 className="text-2xl font-black text-slate-900">咨询已提交！</h1>
           <p className="text-slate-500">
-            欢迎加入 CuS Academy。您的学员档案已建立，学号为：
+            已收到您的课程咨询，我们核对信息后将联系您安排后续事宜。
           </p>
-          <div className="text-4xl font-black text-indigo-600 bg-indigo-50 py-4 rounded-xl border border-indigo-100">
-            {studentCode}
-          </div>
+          <div className="rounded-xl bg-indigo-50 p-4 text-sm text-indigo-700">此步骤仅登记课程咨询，不代表已完成正式入学。</div>
           <p className="text-sm text-slate-400">
             我们的老师将尽快与您联系安排试课。
           </p>
@@ -81,6 +77,10 @@ export default function RegisterPage() {
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
+            <label className="absolute -left-[9999px]" aria-hidden="true">
+              Leave this blank
+              <input name="website" tabIndex={-1} autoComplete="off" />
+            </label>
             
             {/* 1. 基本信息 */}
             <div className="space-y-4">
