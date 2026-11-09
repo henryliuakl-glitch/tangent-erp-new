@@ -404,6 +404,19 @@ export async function completeBooking(
     return { error: "该学员为一课一结，请选择本次实际收款账户后再完成课程" };
   }
 
+  // Credit-based settlement is now atomic in Postgres: booking state + balance
+  // are committed together, including fractional hours. No compensation race.
+  if (!payAsYouGo) {
+    const {error:atomicError}=await supabase.rpc("erp_complete_credit_booking",{p_booking_id:id});
+    if(atomicError)return {error:"销课失败："+atomicError.message};
+    revalidatePath("/bookings");
+    revalidatePath("/students");
+    revalidatePath("/finance");
+    revalidatePath("/");
+    return {success:true};
+  }
+
+  // Pay-as-you-go cash settlement still follows the existing cash/account flow.
   // 幂等抢占：只有第一个把 confirmed 改成 completed 的请求才能继续扣课时/记收入。
   const { data: claimed, error: claimError } = await supabase
     .from("bookings")
@@ -502,7 +515,7 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status, student_id, duration, start_time, location, business_unit_id")
+    .select("id, status, student_id, duration, start_time, location, business_unit_id, metadata")
     .eq("id", id)
     .single();
 
@@ -534,6 +547,22 @@ export async function cancelBooking(id: string, scope: BookingScope = "single") 
 
     if (b.status !== "completed") continue;
 
+    // Reverse prepaid/postpaid course + balance in one DB transaction.
+    const mode=(b.metadata as Record<string,unknown>|null)?.settlementMode;
+    let cash=mode==="single";
+    if(!mode){
+      const found=await loadBookingStudent(supabase,b.student_id);
+      if(found.error)return {error:found.error};
+      cash=isPayAsYouGo(found.student?.payment_type);
+    }
+    if(!cash){
+      const {error:atomicError}=await supabase.rpc("erp_cancel_credit_booking",{p_booking_id:b.id});
+      if(atomicError)return {error:"取消销课失败："+atomicError.message};
+      cancelledCount++;
+      continue;
+    }
+
+    // Pay-as-you-go cash reversal keeps the existing account reconciliation path.
     // 先抢占 completed → cancelled，避免并发重复恢复课时。
     const { data: claimed, error: claimError } = await supabase
       .from("bookings")
@@ -618,7 +647,20 @@ export async function deleteBooking(id: string) {
   }
   const bookingStudent = bookingStudentResult.student;
 
-  // 已完成课程先抢占成 cancelled，再恢复课时/删除收入，防止并发重复回滚。
+  // Credit-based deletion and balance reversal share one DB transaction.
+  if(booking.status==="completed"){
+    const mode=(booking.metadata as Record<string,unknown>|null)?.settlementMode;
+    const cash=mode==="single"||(!mode&&isPayAsYouGo(bookingStudent?.payment_type));
+    if(!cash){
+      const {error:atomicError}=await supabase.rpc("erp_delete_credit_booking",{p_booking_id:id});
+      if(atomicError)return {error:"删除销课失败："+atomicError.message};
+      revalidatePath("/bookings");
+      revalidatePath("/students");
+      revalidatePath("/finance");
+      return {success:true};
+    }
+  }
+  // Pay-as-you-go: revert cash settlement through existing finance workflow.
   if (booking.status === "completed") {
     const { data: claimed, error: claimError } = await supabase
       .from("bookings")
