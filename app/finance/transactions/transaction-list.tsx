@@ -1,5 +1,5 @@
-import { securedReceiptHref } from "@/lib/secured-receipt";
 "use client";
+import { securedReceiptHref } from "@/lib/secured-receipt";
 
 import { useState } from "react";
 import { useBusiness } from "@/contexts/BusinessContext";
