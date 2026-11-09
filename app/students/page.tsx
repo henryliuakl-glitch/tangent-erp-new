@@ -11,6 +11,14 @@ export default async function StudentsPage() {
   const supabase = await createClient();
   const cookieStore = await cookies();
   const businessId = cookieStore.get("businessId")?.value || "cus";
+  const {data:{user}}=await supabase.auth.getUser();
+  const {data:members}=user
+    ?await supabase.from("erp_memberships").select("business_unit_id,role").eq("user_id",user.id)
+    :{data:[]};
+  const coreOwner=!!members?.some(m=>m.business_unit_id==="cus"&&m.role==="owner");
+  const canCreateStudent=coreOwner||
+    (businessId==="astra"&&!!members?.some(m=>m.business_unit_id==="astra"&&
+      (m.role==="owner"||m.role==="admin")));
 
   let studentQuery = supabase
     .from("students")
@@ -71,7 +79,7 @@ export default async function StudentsPage() {
       <main className="mx-auto max-w-[1480px] px-3 py-3 md:px-5 md:py-5">
         
         {/* 智能列表：将带 start_time 的数据传给子组件进行沉睡名单过滤 */}
-        <StudentList students={students || []} />
+        <StudentList students={students || []} canCreateStudent={canCreateStudent} />
 
       </main>
 
