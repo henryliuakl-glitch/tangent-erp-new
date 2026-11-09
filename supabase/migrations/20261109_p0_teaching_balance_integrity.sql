@@ -46,15 +46,15 @@ create policy tenant_records_update on public.cus_teaching_records
  for update to authenticated
  using (
   (select public.erp_is_owner()) or
-  (created_by=(select auth.uid()) and
-   public.erp_record_tenant(booking_id,class_session_id)='astra' and
-   ((select public.erp_astra_access(true)) or (select public.erp_astra_teacher())))
+  (public.erp_record_tenant(booking_id,class_session_id)='astra' and
+   ((select public.erp_astra_access(true)) or
+    (created_by=(select auth.uid()) and (select public.erp_astra_teacher()))))
  )
  with check (
   (select public.erp_is_owner()) or
-  (created_by=(select auth.uid()) and
-   public.erp_record_tenant(booking_id,class_session_id)='astra' and
-   ((select public.erp_astra_access(true)) or (select public.erp_astra_teacher())))
+  (public.erp_record_tenant(booking_id,class_session_id)='astra' and
+   ((select public.erp_astra_access(true)) or
+    (created_by=(select auth.uid()) and (select public.erp_astra_teacher()))))
  );
 
 drop policy if exists tenant_insert on public.cus_attendance;
