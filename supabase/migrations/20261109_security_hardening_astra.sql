@@ -93,7 +93,7 @@ begin
  end if;
  return new;
 end;
-$;
+$$;
 drop trigger if exists erp_guard_transaction_family on public.transactions;
 create trigger erp_guard_transaction_family
  before insert or update or delete on public.transactions
