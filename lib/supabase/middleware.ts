@@ -47,6 +47,11 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLogin = pathname.startsWith("/login");
+  // The public lead-intake page does not expose ERP data. Its server action
+  // validates and rate-limits incoming inquiries without creating students.
+  if (pathname === "/register" || pathname.startsWith("/register/")) {
+    return supabaseResponse;
+  }
   // A stale cookie is not an authenticated session. getUser() is authoritative.
   if (!user && !isLogin) {
     const url = request.nextUrl.clone();
@@ -85,7 +90,7 @@ export async function updateSession(request: NextRequest) {
     if(pathname==="/access-denied")return supabaseResponse;
 
     if(astraOnly) {
-      const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool","/crm","/calendar-subscriptions"]
+      const allowed = ["/","/students","/bookings","/finance","/teaching","/afterschool","/crm","/calendar-subscriptions","/api/receipts"]
         .some(prefix=>prefix==="/"?pathname==="/":pathname===prefix||pathname.startsWith(prefix+"/"));
       if(!allowed){
         const url=request.nextUrl.clone();url.pathname="/";url.search="";
