@@ -1,5 +1,5 @@
-import { securedReceiptHref } from "@/lib/secured-receipt";
 "use client";
+import { securedReceiptHref } from "@/lib/secured-receipt";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
