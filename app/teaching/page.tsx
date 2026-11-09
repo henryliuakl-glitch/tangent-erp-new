@@ -53,7 +53,7 @@ export default async function TeachingPage({searchParams}:{
    </header>
    {current==="care"?<CareTeachingOverview/>:
     current==="records"?<TeachingRecords scope={businessId} editable={editable} owner={owner} selectedDate={selectedDate}/>:
-    current==="classes"?<TeachingClasses businessId={businessId} editable={editable}/>:
+    current==="classes"?<TeachingClasses businessId={businessId} editable={canManageTeachers} attendanceEditable={editable}/>:
     current==="quality"?(canManageTeachers?<TeachingQuality unit={businessId}/>:<p className="p-4 text-sm">无管理权限</p>):
     <TeachingStaff businessId={businessId} canManage={canManageTeachers}/>}
   </main><MobileDock/>
