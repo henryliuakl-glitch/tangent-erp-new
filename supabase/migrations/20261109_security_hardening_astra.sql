@@ -205,4 +205,33 @@ $$;
 revoke all on function public.erp_submit_public_inquiry(text,text,text,text,text,text,text,text,text,text,text) from public,anon,authenticated;
 grant execute on function public.erp_submit_public_inquiry(text,text,text,text,text,text,text,text,text,text,text) to service_role;
 
+
+-- Owner-only atomic conversion of a reviewed public inquiry to a CRM lead.
+create or replace function public.erp_convert_public_inquiry(p_id uuid)
+returns uuid language plpgsql security invoker set search_path=public,pg_temp as $$
+declare q public.erp_public_inquiries%rowtype; lead_id uuid;
+begin
+ if not public.erp_is_owner() then raise exception 'Not authorised'; end if;
+ select * into q from public.erp_public_inquiries where id=p_id for update;
+ if not found then raise exception 'Inquiry not found'; end if;
+ if q.status='converted' then raise exception 'Already converted'; end if;
+ insert into public.edu_leads (
+   business_unit_id,student_name,contact,contact_channel,school,year_level,
+   subject,source,status,notes,created_by
+ ) values (
+   'cus',q.student_name,q.phone,'电话',q.school,q.year_level,
+   q.subject,'Public Registration','new',
+   concat_ws(E'\n',nullif(q.goal,''),nullif(q.notes,''),
+             case when q.email is not null then 'Email: '||q.email end,
+             case when q.current_grade is not null then 'Current: '||q.current_grade end,
+             case when q.target_grade is not null then 'Target: '||q.target_grade end),
+   (select auth.uid())
+ ) returning id into lead_id;
+ update public.erp_public_inquiries set status='converted' where id=q.id;
+ return lead_id;
+end;
+$$;
+revoke all on function public.erp_convert_public_inquiry(uuid) from public,anon;
+grant execute on function public.erp_convert_public_inquiry(uuid) to authenticated;
+
 commit;
