@@ -38,8 +38,8 @@ async function teachingWriter(form:FormData){
   const scope=formScope(form);
   const ctx=await memberContext();
   const writable=ctx.owner||ctx.members.some(m=>
-    m.business_unit_id===scope&&["owner","admin","teacher"].includes(m.role));
-  if(!writable)throw new Error("没有该实体的教务编辑权限");
+    m.business_unit_id===scope&&["owner","admin"].includes(m.role));
+  if(!writable)throw new Error("只有当前实体管理员可以调整课程、班级和报名");
   return {...ctx,scope};
 }
 async function teachingRecordStaff(scope:TeachingScope){
@@ -161,7 +161,10 @@ export async function createSession(form:FormData){
   revalidatePath("/teaching");
 }
 export async function setAttendance(form:FormData){
-  const {db,scope}=await teachingWriter(form);
+  const scope=required(form,"businessId");
+  if(scope!=="cus"&&scope!=="astra")throw new Error("无效实体");
+  // Teachers may mark attendance only; programme/class management stays admin-only.
+  const {db}=await teachingRecordStaff(scope);
   const sessionId=required(form,"session_id"),studentId=required(form,"student_id");
   const {data:session,error:sessionError}=await db.from("cus_class_sessions")
     .select("class_id").eq("id",sessionId).maybeSingle();
