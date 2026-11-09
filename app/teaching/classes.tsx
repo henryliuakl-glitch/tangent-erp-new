@@ -20,7 +20,7 @@ function Editor({title,children}:{title:string;children:React.ReactNode}){
   </details>;
 }
 
-export async function TeachingClasses({editable,businessId="cus"}:{editable:boolean;businessId?:"cus"|"astra"}){
+export async function TeachingClasses({editable,attendanceEditable=editable,businessId="cus"}:{editable:boolean;attendanceEditable?:boolean;businessId?:"cus"|"astra"}){
   const db=await createClient();
   const [pr,st]=await Promise.all([
     db.from("cus_programmes").select("id,title,category").eq("business_unit_id",businessId)
@@ -144,7 +144,7 @@ export async function TeachingClasses({editable,businessId="cus"}:{editable:bool
                <span>{studentNames.get(e.student_id)||"学员"}</span>
                <input type="hidden" name="businessId" value={businessId}/><input type="hidden" name="session_id" value={s.id}/>
                <input type="hidden" name="student_id" value={e.student_id}/>
-               {editable?<div className="flex gap-2"><select name="status" defaultValue={marked?.status||"present"}
+               {attendanceEditable?<div className="flex gap-2"><select name="status" defaultValue={marked?.status||"present"}
                  className="rounded border border-slate-200 bg-white p-1 text-xs">
                  <option value="present">出席</option><option value="late">迟到</option>
                  <option value="absent">缺席</option><option value="excused">请假</option>
