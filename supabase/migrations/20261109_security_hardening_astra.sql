@@ -71,8 +71,19 @@ create policy erp_profile_update_self on public.profiles
 create or replace function public.erp_guard_transaction_family()
 returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
 begin
- if tg_op='UPDATE' and new.business_unit_id is distinct from old.business_unit_id then
-   raise exception 'Transaction entity cannot be reassigned';
+ if tg_op='DELETE' then
+   if old.family_account_id is not null and not public.erp_is_owner() then
+     raise exception 'Deleting a Family-linked transaction requires a core owner';
+   end if;
+   return old;
+ end if;
+ if tg_op='UPDATE' then
+   if new.business_unit_id is distinct from old.business_unit_id then
+     raise exception 'Transaction entity cannot be reassigned';
+   end if;
+   if old.family_account_id is not null and not public.erp_is_owner() then
+     raise exception 'Editing a Family-linked transaction requires a core owner';
+   end if;
  end if;
  if new.business_unit_id='astra' and new.family_account_id is not null then
    raise exception 'Astra cannot link a Family account';
@@ -82,10 +93,10 @@ begin
  end if;
  return new;
 end;
-$$;
+$;
 drop trigger if exists erp_guard_transaction_family on public.transactions;
 create trigger erp_guard_transaction_family
- before insert or update on public.transactions
+ before insert or update or delete on public.transactions
  for each row execute function public.erp_guard_transaction_family();
 
 -- Even a service-role caller cannot directly expose a privileged trigger RPC.
