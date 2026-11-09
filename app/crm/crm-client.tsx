@@ -133,6 +133,7 @@ export function CrmClient({unit,leads,activities,trials,followups,students,booki
    <div className="flex flex-wrap items-center gap-2">
     <Link href="/crm/analytics" className={subtle}>经营分析</Link>
     <Link href="/crm/events" className={subtle}>活动招生</Link>
+    {unit==="cus"&&<Link href="/crm/public-inquiries" className={subtle}>公开咨询审核</Link>}
     <button className={btn} onClick={()=>{setTab("leads");setNewLead(true);}}><Plus className="h-4 w-4"/>新增咨询</button>
    </div>
   </header>
