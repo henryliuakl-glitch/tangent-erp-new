@@ -1,3 +1,4 @@
+import { securedReceiptHref } from "@/lib/secured-receipt";
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -420,7 +421,7 @@ export default function ReimbursePage() {
                         {note ? ` · ${note}` : ""}
                       </p>
                       {row.proof_img_url ? (
-                        <a href={row.proof_img_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] font-bold text-indigo-600">
+                        <a href={securedReceiptHref(row.proof_img_url)} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] font-bold text-indigo-600">
                           查看凭证
                         </a>
                       ) : null}
