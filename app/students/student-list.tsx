@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Trash2, Loader2, User, BookOpen, Pencil, 
   Search, Coins, MoreHorizontal, ArchiveX, 
-  ChevronDown, ChevronUp, GraduationCap, SortAsc, SortDesc, Info
+  ChevronDown, ChevronUp, GraduationCap, SortAsc, SortDesc, Info, Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,7 +25,7 @@ import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { IncomeSourceSelect } from "@/components/IncomeSourceSelect";
 
-export function StudentList({ students }: { students: any[] }) {
+export function StudentList({ students, canCreateStudent = false }: { students: any[]; canCreateStudent?: boolean }) {
   const { currentBusinessId } = useBusiness();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -347,6 +347,14 @@ export function StudentList({ students }: { students: any[] }) {
 
   return (
     <div className="space-y-2 md:space-y-4">
+      {/* Create action must remain accessible on mobile and desktop. */}
+      {canCreateStudent&&<div className="flex items-center justify-between gap-3">
+        <h1 className="text-base font-bold text-slate-900 md:text-lg">学员管理</h1>
+        <Link href="/students/new" className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
+          <Plus className="h-4 w-4" />
+          创建新学员
+        </Link>
+      </div>}
       {/* --- 顶栏：搜索、筛选与排序 --- */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
         <div className="relative md:flex-1">
