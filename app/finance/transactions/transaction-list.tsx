@@ -1,3 +1,4 @@
+import { securedReceiptHref } from "@/lib/secured-receipt";
 "use client";
 
 import { useState } from "react";
@@ -78,7 +79,7 @@ export function TransactionList({ initialTransactions }: { initialTransactions: 
                   </span>
                 )}
                 {t.proof_img_url && (
-                  <Link href={t.proof_img_url} target="_blank" className="text-indigo-500 hover:text-indigo-700">
+                  <Link href={securedReceiptHref(t.proof_img_url)} target="_blank" className="text-indigo-500 hover:text-indigo-700">
                     <FileText className="h-3.5 w-3.5" />
                   </Link>
                 )}
