@@ -1,0 +1,39 @@
+name: Next Security Patch Build
+on:
+  push:
+    branches: [security/upgrade-next-patched-20261109]
+permissions:
+  contents: write
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Patch Next.js and eslint-config-next
+        run: npm install --save-exact next@16.4.5 eslint-config-next@16.4.5
+      - name: Verify full app build
+        run: npm run build
+      - name: Check remaining production advisories
+        run: |
+          npm audit --omit=dev --json > /tmp/audit.json || true
+          node -e "const a=require('/tmp/audit.json');const v=a.metadata?.vulnerabilities||{};console.log('Patched audit: '+JSON.stringify(v)); if((v.critical||0)>0) process.exit(1)"
+      - name: Commit tested package files to audit branch
+        run: |
+          git config user.name "ERP Security Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "security(deps): patch Next.js to 16.4.5 with verified lockfile"
+          git push origin HEAD:security/upgrade-next-patched-20261109
