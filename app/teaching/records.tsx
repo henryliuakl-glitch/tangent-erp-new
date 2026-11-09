@@ -141,9 +141,21 @@ export async function TeachingRecords({scope,editable,owner,selectedDate}:Props)
  }));
  const {data:staffList}=await db.from("cus_staff").select("full_name")
    .in("scope",scope==="astra"?["astra","care"]:["general"]).eq("active",true).limit(120);
- const teacherOptions=[...new Set(["Henry","Yvetta",...(staffList||[]).map(s=>s.full_name)])];
  const {data:{user}}=await db.auth.getUser();
  const currentUserId=user?.id||"";
+ const {data:membership}=scope==="astra"&&!owner&&user
+   ?await db.from("erp_memberships").select("role").eq("user_id",user.id)
+     .eq("business_unit_id","astra").maybeSingle()
+   :{data:null};
+ const isTeacher=membership?.role==="teacher";
+ const {data:ownStaff}=isTeacher&&user?.email
+   ?await db.from("cus_staff").select("full_name").eq("email",user.email)
+     .in("scope",["astra","care"]).limit(1).maybeSingle()
+   :{data:null};
+ // A teacher may author notes only under their verified staff name or login email.
+ const teacherOptions=isTeacher
+   ?[...new Set([ownStaff?.full_name,user?.email].filter((v):v is string=>!!v))]
+   :[...new Set(["Henry","Yvetta",...(staffList||[]).map(s=>s.full_name))];
  const displayed=records.filter(r=>r.created_at).slice(0,80);
  return <div className="space-y-2">
    <form action="/teaching" method="get" className="erp-surface flex w-fit flex-wrap items-center gap-2 px-3 py-2">
