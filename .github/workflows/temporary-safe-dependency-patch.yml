@@ -1,0 +1,41 @@
+name: Safe Transitive Dependency Patch
+on:
+  push:
+    branches: [security/patch-transitive-deps-20261109]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Safe dependency patches without forced major upgrades
+        run: npm audit fix || true
+      - name: Full build verification
+        run: npm run build
+      - name: Security audit
+        run: |
+          npm audit --omit=dev --json > /tmp/audit.json || true
+          node -e "const x=require('/tmp/audit.json').metadata.vulnerabilities;console.log('Audit after safe patches:',JSON.stringify(x));if(x.critical>0)process.exit(1)"
+      - name: Commit tested safe lockfile changes
+        run: |
+          git config user.name "ERP Security Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then echo "No compatible fixes"; else
+            git commit -m "security(deps): apply compatible npm transitive security patches"
+            git push origin HEAD:security/patch-transitive-deps-20261109
+          fi
