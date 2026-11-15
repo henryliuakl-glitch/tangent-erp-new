@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import {usePathname,useRouter} from "next/navigation";
-import {LayoutDashboard,Users,CalendarDays,ReceiptText,GraduationCap,Baby,CarFront,House,LogOut,Plus,UserRoundSearch} from "lucide-react";
+import {LayoutDashboard,Users,CalendarDays,ReceiptText,GraduationCap,Baby,CarFront,House,LogOut,Plus,UserRoundSearch,Timer} from "lucide-react";
 import {createClient} from "@/lib/supabase/client";
 import {useBusiness} from "@/contexts/BusinessContext";
 import BusinessSwitcher from "@/components/BusinessSwitcher";
@@ -11,6 +11,7 @@ const students:Item={href:"/students",label:"学员",icon:Users};
 const crm:Item={href:"/crm",label:"招生",icon:UserRoundSearch};
 const booking:Item={href:"/bookings",label:"排课",icon:CalendarDays};
 const finance:Item={href:"/finance",label:"财务",icon:ReceiptText};
+const workHours:Item={href:"/work-hours",label:"工时",icon:Timer};
 const teaching:Item={href:"/teaching",label:"教务",icon:GraduationCap};
 const care:Item={href:"/afterschool",label:"晚托",icon:Baby};
 const car:Item={href:"/vehicles",label:"车辆",icon:CarFront};
@@ -21,6 +22,7 @@ export function Navbar(){
   const nav:Item[]=careOnly?[teaching,care]:
     currentBusinessId==="family"?[family]:
       [home,...(crmAllowed&&["cus","astra"].includes(currentBusinessId)?[crm]:[]),students,booking,finance,
+        ...(["cus","sine","tangent"].includes(currentBusinessId)?[workHours]:[]),
         ...(["cus","astra","tangent"].includes(currentBusinessId)?[teaching]:[]),
         ...(currentBusinessId==="astra"?[care]:[]),
         ...(["sine","tangent"].includes(currentBusinessId)?[car]:[])];
