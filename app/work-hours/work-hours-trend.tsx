@@ -71,7 +71,7 @@ export function WorkHoursTrend({ trend, units }: { trend: WorkTrend; units: Work
               tickFormatter={(value: number) => String(value)}/>
             <Tooltip
               cursor={{ stroke: "#d0d5e9", strokeDasharray: "3 4" }}
-              formatter={(value) => [formatHours(Number(value ?? 0)), ""]}
+              formatter={(value, name) => [formatHours(Number(value ?? 0)), String(name)]}
               labelFormatter={(_label, payload) =>
                 (payload?.[0]?.payload as TrendPoint | undefined)?.date || String(_label)}
               contentStyle={{ borderRadius: 12, border: "1px solid #edf0f5", fontSize: 12,
