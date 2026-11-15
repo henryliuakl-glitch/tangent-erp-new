@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { MobileDock } from "@/components/MobileDock";
+import { WorkHoursTrend } from "./work-hours-trend";
+import { buildWorkTrend } from "@/lib/work-hours-trend";
 import { createClient } from "@/lib/supabase/server";
 import {
   addCalendarMonthsInNZ, getTodayInNZ, nzStartOfDayUtc,
@@ -165,10 +167,15 @@ export default async function WorkHoursPage({ searchParams }: { searchParams: Se
   const { data: memberships, error: membershipError } = await db.from("erp_memberships")
     .select("business_unit_id,role").eq("user_id", user.id)
     .in("business_unit_id", ["cus", "sine"]);
-  const allowed = (memberships || [])
-    .filter(m => m.role === "owner" || m.role === "admin")
-    .map(m => m.business_unit_id)
-    .filter((unit): unit is WorkUnit => unit === "sine" || unit === "cus");
+  // Production RLS grants CuS core owners access to BOTH CuS and Sine.
+  // Sine doesn't necessarily have separate erp_memberships rows.
+  const coreOwner = (memberships || []).some(m =>
+    m.business_unit_id === "cus" && m.role === "owner");
+  const allowed: WorkUnit[] = coreOwner ? ["cus", "sine"] :
+    (memberships || [])
+      .filter(m => m.role === "owner" || m.role === "admin")
+      .map(m => m.business_unit_id)
+      .filter((unit): unit is WorkUnit => unit === "sine" || unit === "cus");
 
   const units: WorkUnit[] = restricted || membershipError ? [] :
     currentBusiness === "tangent" ? allowed :
@@ -201,6 +208,7 @@ export default async function WorkHoursPage({ searchParams }: { searchParams: Se
 
   const report = summarizeWorkHours(workSessions);
   const { totals } = report;
+  const trend = buildWorkTrend(report.classified, period, month);
 
   return <div className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-900 md:pb-10">
     <div className="hidden md:block"><Navbar /></div>
@@ -250,6 +258,8 @@ export default async function WorkHoursPage({ searchParams }: { searchParams: Se
             <StatTile title="未来已排工时" minutes={totals.upcomingMinutes}
               caption={String(totals.upcomingSessions) + " 节待进行 Session"}/>
           </section>
+
+          <WorkHoursTrend trend={trend} units={units}/>
 
           {(["sine", "cus"] as const).filter(unit => units.includes(unit)).map(unit =>
             <section key={unit} className="space-y-2">
