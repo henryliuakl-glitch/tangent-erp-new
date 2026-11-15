@@ -6,7 +6,7 @@ import {useState} from "react";
 import type {ComponentType} from "react";
 import {
   CalendarDays, CirclePlus, House, LayoutDashboard, ReceiptText, Users,
-  CarFront, GraduationCap, Baby, Grid2X2, LogOut, X, ArrowUpRight, UserRoundSearch
+  CarFront, GraduationCap, Baby, Grid2X2, LogOut, X, ArrowUpRight, UserRoundSearch, Timer
 } from "lucide-react";
 import {useBusiness} from "@/contexts/BusinessContext";
 import {isDrivingSchoolBusiness} from "@/lib/business";
@@ -49,6 +49,7 @@ export function MobileDock(){
     ...(crmAllowed&&["cus","astra"].includes(currentBusinessId)?[{href:"/crm",label:"招生",icon:UserRoundSearch}]:[]),
     ...(crmAllowed&&["cus","astra","sine","tangent"].includes(currentBusinessId)?[{href:"/calendar-subscriptions",label:"日历订阅",icon:CalendarDays}]:[]),
     {href:"/finance",label:"财务",icon:ReceiptText},
+    ...(["cus","sine","tangent"].includes(currentBusinessId)?[{href:"/work-hours",label:"工时",icon:Timer}]:[]),
     ...(education?[{href:"/teaching",label:"教务",icon:GraduationCap}]:[]),
     ...(currentBusinessId==="astra"?[{href:"/afterschool",label:"晚托",icon:Baby}]:[]),
     ...(showVehicles?[{href:"/vehicles",label:"车辆",icon:CarFront}]:[])
