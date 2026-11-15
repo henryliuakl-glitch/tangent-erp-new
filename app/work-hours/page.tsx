@@ -163,9 +163,10 @@ export default async function WorkHoursPage({ searchParams }: { searchParams: Se
   const restricted = store.get("erp_care_only")?.value === "1" ||
     store.get("erp_astra_only")?.value === "1";
   const { data: memberships, error: membershipError } = await db.from("erp_memberships")
-    .select("business_unit_id").eq("user_id", user.id)
+    .select("business_unit_id,role").eq("user_id", user.id)
     .in("business_unit_id", ["cus", "sine"]);
   const allowed = (memberships || [])
+    .filter(m => m.role === "owner" || m.role === "admin")
     .map(m => m.business_unit_id)
     .filter((unit): unit is WorkUnit => unit === "sine" || unit === "cus");
 
@@ -213,7 +214,7 @@ export default async function WorkHoursPage({ searchParams }: { searchParams: Se
       </header>
 
       {!units.length ? <section className="rounded-2xl bg-white p-5 text-sm text-slate-600">
-        当前实体无权查看 CuS / Sine 工时。请切换到获授权的 CuS、Sine 或 Tangent 实体。
+        工时属于管理统计，仅 CuS / Sine 的 owner 或 admin 可查看。请切换到已授权的实体。
       </section> : <>
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-2.5 shadow-sm">
           <nav className="flex flex-wrap items-center gap-1" aria-label="统计周期">
